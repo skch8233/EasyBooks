@@ -1,0 +1,40 @@
+{
+  "summary": "Round 4 (Stock Management + Payment Reminders) tested on backend and frontend. Backend: the new suite tests/test_round4_stock_reminders.py passes 18/18. Regression passes 48/48 after one stale assertion in test_round2_multitenant.py was updated: the Round 4 seed SAL/0004 for Late Payer in Gupta Oct 2026 adds 7.5 CGST and 7.5 SGST. Verified stock: CRUD; a case-insensitive duplicate name gives 400 on create and on update; on hand = opening + purchases + credit notes - sales - debit notes; editing a sale's qty updates on hand; cancelling restores stock; avg cost = (opening value + purchase amount) / qty; value is 0 when stock is negative; the low and negative flags and low_count work; movements give the opening, running balances and the closing, and from_date carries the opening forward; a bogus or foreign item_id gives 400; description and unit are auto-filled from the item; an item used in vouchers cannot be deleted (400), an unused one can, and its name can then be reused; business isolation returns 404 on PUT, DELETE and movements. Verified reminders: FIFO allocation of receipts to the oldest bills; ledger credit_days and the settings default_credit_days both drive the due date and days overdue; send creates a token and updates last_reminded_at and reminder_count; there is a 400 when nothing is overdue; a viewer gets 403 and an expired business gets 402; cross-tenant ledgers give 400; public /pay works without auth, returns no internal ids, and gives 404 on an invalid token; after full payment overdue and outstanding are 0, the customer drops off the list, and send gives 400; Trial Balance stays balanced. Frontend, using a fresh TEST business: Stock page create dialog, duplicate toast, row and on hand, movements dialog (opening 5 -> +10 -> -4 -> closing 11), low filter, dashboard alert-low-stock links to /stock. Voucher ItemPicker: a sales pick fills HSN 1514, sale rate 180 and GST 5%; a purchase pick fills purchase rate 140; the 'use text' option keeps a free-text item; item-0-stock-warning shows when qty is above on hand and hides at a valid qty; there is no warning on a credit note; on hand drops after saving. Reports Stock Summary tab shows the totals. Reminders page: the UPI warning shows when there is no UPI and hides after the UPI is set in Settings > Invoice Branding; the expand rows show the bills; the Remind popup was captured: api.whatsapp.com/send?phone=919812345678 with the overdue amount, the bill, due date and the /pay/<token> link; Last reminder updates to '1 sent'. The PayPage on mobile 390px shows the amount, the upi:// link (pa, pn, am, cu, tn), a QR, the bills, no horizontal overflow, and an inline error for a bad token; it shows 'No dues pending' after full payment. The ledger dialog credit days field persists (7). Settings company credit days shows 30. Gupta (read-only) Stock and Reminders pages and Trial Balance (balanced) checked. No page errors.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "PUT /api/settings", "issue": "Code review: upd always includes gstin (blank if not sent) and gst_rates (the default list if not sent). Unlike upi_id and bank_ifsc, these are not guarded with model_fields_set, so a partial PUT (e.g. only default_credit_days) would wipe the GSTIN and custom GST rates. The UI sends the full body, so it is not hit today."},
+      {"endpoint": "GET /api/stock-items", "issue": "avg_cost counts only purchases. Debit notes (purchase returns) reduce on hand but not the cost basis. Acceptable for an MVP."},
+      {"endpoint": "GET /api/public/pay/{token}", "issue": "Tokens never expire or get revoked. Each Remind click creates a new token. Fine for now, but consider an expiry or index on reminders.token."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Stock table", "issues": ["The In and Out columns show only purchased_qty and sold_qty, not credit or debit notes. When there are returns, opening + In - Out does not equal On hand, which is confusing. Include returns, or rename the columns to Purchased and Sold."]},
+      {"screen": "Reminders expanded bill rows", "issues": ["The bill sub-rows don't line up with the headers. The due date shows under 'Overdue (₹)' and the 'Not due' or 'x days late' status shows under 'Oldest overdue'."]},
+      {"screen": "PayPage", "issues": ["<a data-testid=pay-upi-link> wraps a <Button>, which nests interactive elements (invalid HTML). Use <Button asChild><a/></Button>."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_round4_stock_reminders.py", "/app/backend/tests/test_round2_multitenant.py", "/app/test_reports/pytest/pytest_round4.xml", "/app/test_reports/pytest/pytest_regression_r4.xml"],
+  "action_items": [
+    "Optional: guard gstin and gst_rates in PUT /settings with model_fields_set, like upi_id and bank_ifsc",
+    "Optional: make the Stock table In and Out columns include returns, or rename them",
+    "Optional: line up the Reminders expanded bill row cells with the column headers"
+  ],
+  "critical_code_review_comments": [
+    "stock.py: _moves aggregation and the unwind are correct and scoped to active vouchers. There is a vouchers index on (business_id, items.item_id). remove_item blocks deletion even if the only uses are cancelled vouchers. That is defensible.",
+    "routes_vouchers._prepare: unknown, foreign and inactive item_ids all give 400. Unit is always overwritten from the stock item, which is good.",
+    "reminders.py: FIFO is correct. Opening-balance bills are always treated as overdue with days_overdue null. A payment voucher refunding a customer (debit) is treated as a new bill, which is acceptable.",
+    "whatsapp.js sendReminder opens about:blank first, so the popup is not blocked. The phone number is normalised to 91XXXXXXXXXX."
+  ],
+  "updated_files": ["/app/backend/tests/test_round4_stock_reminders.py", "/app/backend/tests/test_round2_multitenant.py (Gupta Oct-2026 GST expected values updated to 120/40 for the Round 4 seed)"],
+  "success_rate": {"backend": "100% (18/18 new + 48/48 regression)", "frontend": "100% of requested flows (minor design notes only)"},
+  "test_credentials": "admin@easybooks.in/Admin@123, ravi@gupta.in/secret1, expired@test.in/secret1 all worked. None were modified.",
+  "seed_data_creation": "Created fresh signup businesses TEST_r4a, TEST_r4b (pytest; safe to rerun) and TEST_r4ui Traders (test_r4ui_5f66fa@example.com / secret1). TEST_r4ui has the stock item TEST Mustard Oil (on hand 2, low), customers TEST UICust (paid in full, reminder token tW1nxGLzD0KekYm4PBanXA) and TEST UICust2 (7 credit days), supplier TEST UISupp, UPI guptakirana@okhdfcbank, and a viewer user. Gupta Kirana was only read, nothing changed.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run: cd /app/backend && REACT_APP_BACKEND_URL=<url> pytest tests/test_round4_stock_reminders.py tests/test_round3_share_public_fixes.py tests/test_round2_multitenant.py tests/test_easybooks_api.py -n 0. test_round2 TestGST checks Gupta's Oct-2026 numbers, so update them if the Gupta seed changes. For the WhatsApp popup, use context.expect_page() and it lands on api.whatsapp.com/send. The container date is 2026-11-07, so the tests use dates relative to today.",
+  "rca of the issue": "The only failure was the stale regression assertion in test_round2_multitenant.py::TestGST. The Round 4 seed added SAL/2026-27/0004 (Late Payer, 2 x 150 @5%, dated 2026-10-25) to Gupta, which raised Oct CGST and SGST from 112.5 to 120. This is not a product bug, and the test was updated."
+}

@@ -49,6 +49,9 @@ export default function VoucherEntry() {
   const [vno, setVno] = useState("");
   const [busy, setBusy] = useState(false);
   const [last, setLast] = useState(null);
+  const [stock, setStock] = useState([]);
+  const loadStock = () => api.get("/stock-items").then((r) => setStock(r.data.items)).catch(() => {});
+  useEffect(() => { loadStock(); }, []);
 
   useEffect(() => { api.get("/ledgers").then((r) => setLedgers(r.data)); }, []);
   useEffect(() => setLast(null), [pType]);
@@ -74,6 +77,7 @@ export default function VoucherEntry() {
       toast.success(`${VT[type].label} ${data.voucher_no} saved`);
       const fresh = await api.get("/ledgers");
       setLedgers(fresh.data);
+      loadStock();
       if (id) nav("/vouchers");
       else { setLast(data); setF(blank(type, f.date, fresh.data)); }
     } catch (e) { toast.error(errMsg(e)); } finally { setBusy(false); }
@@ -125,7 +129,7 @@ export default function VoucherEntry() {
             <Switch checked={f.advanced} onCheckedChange={(advanced) => setF({ ...f, advanced })} data-testid="advanced-mode-switch" /> Multi-line entry
           </label>
         )}
-        {isItem ? <ItemsForm type={type} ledgers={ledgers} value={f} onChange={setF} />
+        {isItem ? <ItemsForm type={type} ledgers={ledgers} value={f} onChange={setF} stock={stock} />
           : SIMPLE[type] && !f.advanced ? <SimpleForm type={type} ledgers={ledgers} value={f.simple} onChange={(simple) => setF({ ...f, simple })} />
           : <JournalGrid ledgers={ledgers} lines={f.lines} setLines={(lines) => setF({ ...f, lines })} />}
         <div className="space-y-2"><Label>Narration</Label><Textarea rows={2} value={f.narration} onChange={(e) => setF({ ...f, narration: e.target.value })} placeholder="Being..." data-testid="voucher-narration-input" /></div>

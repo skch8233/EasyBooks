@@ -20,6 +20,7 @@ class LedgerIn(BaseModel):
     phone: str = ""
     email: str = ""
     address: str = ""
+    credit_days: Optional[int] = Field(None, ge=0, le=365)
 
 
 @router.get("/groups")

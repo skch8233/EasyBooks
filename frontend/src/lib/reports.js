@@ -115,6 +115,11 @@ export const REPORTS = [
   { id: "payables", label: "Payables", filter: "asof", load: outstanding("payables") },
   { id: "sales-register", label: "Sales Register", filter: "range", load: register("sales") },
   { id: "purchase-register", label: "Purchase Register", filter: "range", load: register("purchase") },
+  { id: "stock-summary", label: "Stock Summary", filter: "asof", load: async (p) => {
+    const { data } = await api.get("/stock-items", { params: { to_date: p.to } });
+    return { sections: [{ columns: [C("name", "Item"), C("hsn", "HSN"), C("unit", "Unit"), N("purchased_qty", "Purchased"), N("sold_qty", "Sold"), N("on_hand", "On hand"), N("avg_cost", "Avg cost"), N("value", "Value")],
+      rows: data.items.map((s) => ({ ...s, _bold: s.low || s.negative })), footer: { name: "Total stock value", value: data.total_value } }] };
+  } },
   { id: "gstr-1", label: "GSTR-1", filter: "month", load: gstr1 },
   { id: "gstr-3b", label: "GSTR-3B", filter: "month", load: gstr3b },
 ];

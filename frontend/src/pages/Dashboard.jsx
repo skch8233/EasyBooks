@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { TrendingUp, TrendingDown, Wallet, Landmark, Users, Truck, PiggyBank } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, Landmark, Users, Truck, PiggyBank, BellRing, Package } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { api } from "@/lib/api";
 import { useApp } from "@/context/AppContext";
@@ -21,10 +21,16 @@ const Kpi = ({ label, value, icon: I, tone, testid, to }) => (
 export default function Dashboard() {
   const { fy, canWrite } = useApp();
   const [d, setD] = useState(null);
+  const [alerts, setAlerts] = useState(null);
   const nav = useNavigate();
   useEffect(() => {
     if (fy) api.get("/reports/dashboard", { params: { from_date: fy.start_date, to_date: fy.end_date } }).then((r) => setD(r.data));
   }, [fy]);
+  useEffect(() => {
+    Promise.all([api.get("/stock-items"), api.get("/reminders/overdue")])
+      .then(([s, o]) => setAlerts({ low: s.data.low_count, stockValue: s.data.total_value, overdue: o.data.total_overdue, overdueCount: o.data.overdue_customers }))
+      .catch(() => {});
+  }, []);
   if (!d) return <div className="text-slate-500" data-testid="dashboard-loading">Loading dashboard...</div>;
   const chart = d.monthly.map((m) => ({ ...m, name: MONTHS[Number(m.month.slice(5)) - 1] }));
 
@@ -60,6 +66,14 @@ export default function Dashboard() {
         <Kpi label="Customer Outstanding" value={d.receivables} icon={Users} tone="bg-teal-50 text-teal-700" testid="kpi-receivables" to="/reports/receivables" />
         <Kpi label="Supplier Outstanding" value={d.payables} icon={Truck} tone="bg-rose-50 text-rose-700" testid="kpi-payables" to="/reports/payables" />
       </div>
+      {alerts && (alerts.overdue > 0 || alerts.low > 0) && (
+        <div className="grid gap-4 sm:grid-cols-2" data-testid="dashboard-alerts">
+          {alerts.overdue > 0 && <Link to="/reminders" className="flex items-center gap-4 rounded-xl border border-red-200 bg-red-50 p-5 hover:shadow-md transition-shadow" data-testid="alert-overdue">
+            <BellRing className="h-6 w-6 text-red-600" /><div><div className="font-semibold text-red-800">{inr(alerts.overdue)} overdue from {alerts.overdueCount} customer{alerts.overdueCount === 1 ? "" : "s"}</div><div className="text-sm text-red-700">Send WhatsApp reminders with a UPI payment link</div></div></Link>}
+          {alerts.low > 0 && <Link to="/stock" className="flex items-center gap-4 rounded-xl border border-amber-200 bg-amber-50 p-5 hover:shadow-md transition-shadow" data-testid="alert-low-stock">
+            <Package className="h-6 w-6 text-amber-600" /><div><div className="font-semibold text-amber-900">{alerts.low} item{alerts.low === 1 ? "" : "s"} low or out of stock</div><div className="text-sm text-amber-800">Stock value {inr(alerts.stockValue)}</div></div></Link>}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
         <div className="xl:col-span-3 rounded-xl border bg-white p-5" data-testid="monthly-chart">

@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { api, errMsg } from "@/lib/api";
 import { STATES } from "@/lib/format";
 
-const EMPTY = { name: "", group: "sundry_debtors", opening_balance: 0, opening_type: "Dr", gstin: "", state: "", phone: "", email: "", address: "" };
+const EMPTY = { name: "", group: "sundry_debtors", opening_balance: 0, opening_type: "Dr", gstin: "", state: "", phone: "", email: "", address: "", credit_days: "" };
 const NATURE_DEFAULT = { asset: "Dr", expense: "Dr", liability: "Cr", income: "Cr" };
 
 const F = ({ label, children }) => <div className="space-y-1.5"><Label>{label}</Label>{children}</div>;
@@ -23,7 +23,7 @@ export const LedgerDialog = ({ open, ledger, groups, onClose, onSaved }) => {
   const save = async () => {
     setBusy(true);
     try {
-      const body = { ...f, opening_balance: Number(f.opening_balance) || 0 };
+      const body = { ...f, opening_balance: Number(f.opening_balance) || 0, credit_days: f.credit_days === "" || f.credit_days == null ? null : Number(f.credit_days) };
       ledger ? await api.put(`/ledgers/${ledger.id}`, body) : await api.post("/ledgers", body);
       toast.success(`Ledger "${f.name}" saved`);
       onSaved();
@@ -57,7 +57,8 @@ export const LedgerDialog = ({ open, ledger, groups, onClose, onSaved }) => {
                 <SelectContent><SelectItem value="none">Not set</SelectItem>{STATES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
               </Select>
             </F>
-            <F label="Phone"><Input className="h-11" value={f.phone} onChange={set("phone")} data-testid="ledger-phone-input" /></F>
+            <F label="Phone (WhatsApp)"><Input className="h-11" value={f.phone} onChange={set("phone")} data-testid="ledger-phone-input" /></F>
+            {f.group === "sundry_debtors" && <F label="Credit days (blank = company default)"><Input className="h-11 num" type="number" min="0" max="365" value={f.credit_days ?? ""} onChange={set("credit_days")} data-testid="ledger-credit-days-input" /></F>}
             <F label="Email"><Input className="h-11" value={f.email} onChange={set("email")} data-testid="ledger-email-input" /></F>
             <div className="sm:col-span-2"><F label="Address"><Input className="h-11" value={f.address} onChange={set("address")} data-testid="ledger-address-input" /></F></div>
           </>}

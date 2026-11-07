@@ -22,6 +22,11 @@ JWT email/password; roles Admin / Accountant / Viewer; single company + FY manag
 - Razorpay flow complete but DISABLED until RAZORPAY_KEY_ID/RAZORPAY_KEY_SECRET are added.
 - Testing iteration 3: 48/48 backend, ~95% frontend; mobile invoice + minor fixes applied after.
 
+## Round 4 (07-11-2026)
+- Stock management (stock.py): stock items with HSN/unit/GST/rates/opening/reorder level; on hand = opening + purchases + credit notes - sales - debit notes (active vouchers); avg cost value, low/negative flags, movements ledger; ItemPicker in item vouchers with a shortage warning; Stock page, Stock Summary report, dashboard alert.
+- Payment reminders (reminders.py): FIFO bill-wise outstanding, due = bill date + ledger credit_days (default from settings, 30); /reminders page with a WhatsApp Remind button (wa.me + /pay/<token> link); public /pay/:token page with a UPI deep link + QR, live dues; reminders logged + audit.
+- Testing iteration 4: 66/66 backend, 100% frontend flows; minor design fixes applied.
+
 ## Backlog
 - P0: Add Razorpay keys and test live checkout; replace SVG logo with user's real Hannusoft logo file
 - P1: Share-link revocation/expiry; B2CL split in GSTR-1; offline desktop app build

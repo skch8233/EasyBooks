@@ -35,6 +35,14 @@ async def _prepare(v: VoucherIn, bid: str) -> dict:
     items, totals = [], {}
     entries = v.entries
     if v.voucher_type in ITEM_TYPES:
+        item_ids = {it.item_id for it in v.items if it.item_id}
+        stock = {s["id"]: s for s in await db.stock_items.find({"business_id": bid, "id": {"$in": list(item_ids)}, "active": True}, NO_ID).to_list(5000)}
+        if item_ids - set(stock):
+            raise HTTPException(400, "One of the selected stock items does not exist")
+        for it in v.items:
+            if it.item_id:
+                it.description = it.description.strip() or stock[it.item_id]["name"]
+                it.unit = stock[it.item_id].get("unit", "")
         entries, items, totals = build_item_entries(v, ledgers, gst)
     amount = validate_entries(v.voucher_type, entries, ledgers)
     party_id = v.party_ledger_id if v.voucher_type in ITEM_TYPES else None

@@ -46,6 +46,8 @@ class Entry(BaseModel):
 
 
 class Item(BaseModel):
+    item_id: Optional[str] = None
+    unit: str = ""
     description: str = ""
     hsn: str = ""
     qty: float = Field(1, gt=0)

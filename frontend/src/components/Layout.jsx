@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, PlusCircle, ListOrdered, BookUser, BarChart3, Settings, ShieldCheck, LogOut, Menu, X, BookMarked, CreditCard, Building2, AlertTriangle, Landmark } from "lucide-react";
+import { LayoutDashboard, PlusCircle, ListOrdered, BookUser, BarChart3, Settings, ShieldCheck, LogOut, Menu, X, BookMarked, CreditCard, Building2, AlertTriangle, Landmark, Package, BellRing } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,6 +12,8 @@ const NAV = [
   { to: "/voucher/sales", label: "New Voucher", icon: PlusCircle, id: "new-voucher", write: true },
   { to: "/vouchers", label: "Vouchers / Day Book", icon: ListOrdered, id: "vouchers" },
   { to: "/ledgers", label: "Ledgers", icon: BookUser, id: "ledgers" },
+  { to: "/stock", label: "Stock", icon: Package, id: "stock" },
+  { to: "/reminders", label: "Payment Reminders", icon: BellRing, id: "reminders" },
   { to: "/reports/trial-balance", label: "Reports", icon: BarChart3, id: "reports", match: (p) => p.startsWith("/reports") && !p.startsWith("/reports/gstr") },
   { to: "/reports/gstr-3b", label: "GST Returns", icon: Landmark, id: "gst", match: (p) => p.startsWith("/reports/gstr") },
   { to: "/audit", label: "Audit Trail", icon: ShieldCheck, id: "audit", staff: true },

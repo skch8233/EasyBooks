@@ -35,6 +35,21 @@ Branded Invoices: Let traders print sales invoices with their logo, GSTIN and a 
 - Pricing/trial details: see Next Round section above (₹6,500 + 18% GST for 1+1 free user; ₹10,000 + 18% GST for 3 to 8 users; 30-day free trial).
 - Razorpay: user's own Razorpay account; request keys from user via secrets when needed.
 
+## Round 5 — queued (user's words)
+User was offered: (a) installable desktop app that works with internet + download page, (b) fully offline Windows installer like Tally. User said: "both"
+- Fully offline Windows installer is a bigger separate project; the code needs packaging outside Emergent. It must use the existing licence key activation/expiry.
+- Offline version: "stay a completely separate standalone product" (no sync with the online version).
+- Offline pricing (user's words): "offline version use the 12000 annual price and also need compulsory subscription key to work after 1 year which will cast 6500+gst annually"
+  - Interpreted: first year ₹12,000; from year 2, the software requires a renewed annual key at ₹6,500 + 18% GST per year to keep working. (GST on the ₹12,000 to be confirmed.)
+- User's words: "also provide the exe file for offline software download link and get annual subscription key for every plan online from website after payment fees"
+  - Website download page for the offline .exe (file to be packaged outside Emergent, then hosted/linked here).
+  - Every plan (online plans + offline first-year + offline renewal) can be bought on the website and the annual key is shown/sent right after payment.
+
+## Round 4 — user's request (build now)
+"Stock Management: Add stock items so traders see quantity on hand after every sale and purchase
+Payment Reminders: Send customers WhatsApp reminders for overdue bills with a UPI payment link"
+- Then (Round 4b, built separately by mobile specialist after this): "Mobile App: Turn Easy Books into a proper phone app traders can install and use daily"
+
 ## Round 3 — user's request (build now)
 "Hannusoft Branding: Add the Hannusoft logo and "All rights reserved to Hannusoft Private Limited" across the app
 Razorpay Payments: Turn on live UPI and card payments so traders can buy plans themselves

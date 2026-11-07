@@ -5,14 +5,14 @@ from typing import List, Optional
 import requests
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from auth import ANY, ADMIN, ADMIN_WRITE
 from business import fy_doc
 from db import db, NO_ID, new_id, now_iso, audit, clean
 
 router = APIRouter(prefix="/api")
-BACKUP_COLLECTIONS = ["settings", "financial_years", "ledgers", "vouchers", "audit_logs"]
+BACKUP_COLLECTIONS = ["settings", "financial_years", "ledgers", "vouchers", "audit_logs", "stock_items", "reminders"]
 GSTIN_RE = re.compile(r"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$")
 UPI_RE = re.compile(r"^[\w.\-]{2,256}@[a-zA-Z][a-zA-Z0-9.\-]{1,64}$")
 
@@ -54,6 +54,7 @@ class SettingsIn(BaseModel):
     bank_account: str = ""
     bank_ifsc: str = ""
     invoice_terms: str = ""
+    default_credit_days: int = Field(30, ge=0, le=365)
 
 
 class FYIn(BaseModel):
@@ -87,7 +88,7 @@ async def put_settings(body: SettingsIn, user=Depends(ADMIN_WRITE)):
     q = {"business_id": user["business_id"]}
     before = await db.settings.find_one(q, NO_ID)
     upd = {**body.model_dump(exclude_unset=True), "gstin": gstin, "upi_id": upi, "bank_ifsc": body.bank_ifsc.strip().upper(), "gst_rates": rates}
-    for k in ("upi_id", "bank_ifsc"):
+    for k in ("upi_id", "bank_ifsc", "gstin", "gst_rates"):
         if k not in body.model_fields_set:
             upd.pop(k)
     await db.settings.update_one(q, {"$set": upd})

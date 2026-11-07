@@ -35,6 +35,7 @@ export const CompanySettings = () => {
         <div className="space-y-1.5"><Label>Phone</Label><Input className="h-11" value={f.phone} onChange={set("phone")} disabled={!isAdmin} data-testid="company-phone-input" /></div>
         <div className="space-y-1.5"><Label>Email</Label><Input className="h-11" value={f.email} onChange={set("email")} disabled={!isAdmin} data-testid="company-email-input" /></div>
         <div className="space-y-1.5"><Label>Address</Label><Input className="h-11" value={f.address} onChange={set("address")} disabled={!isAdmin} data-testid="company-address-input" /></div>
+        <div className="space-y-1.5"><Label>Default credit days for customers</Label><Input className="h-11 num" type="number" min="0" max="365" value={f.default_credit_days ?? 30} onChange={(e) => setF({ ...f, default_credit_days: Number(e.target.value) || 0 })} disabled={!isAdmin} data-testid="company-credit-days-input" /></div>
       </div>
       <div className="space-y-2">
         <Label>GST rates (%)</Label>

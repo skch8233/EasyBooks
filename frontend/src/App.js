@@ -16,6 +16,9 @@ import Subscription from "@/pages/Subscription";
 import Platform from "@/pages/Platform";
 import Landing from "@/pages/Landing";
 import PublicInvoice from "@/pages/PublicInvoice";
+import Stock from "@/pages/Stock";
+import Reminders from "@/pages/Reminders";
+import PayPage from "@/pages/PayPage";
 
 const Protected = ({ children, write }) => {
   const { user, fy, canWrite } = useApp();
@@ -34,12 +37,15 @@ function App() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/welcome" element={<Landing />} />
           <Route path="/i/:token" element={<PublicInvoice />} />
+          <Route path="/pay/:token" element={<PayPage />} />
           <Route element={<Protected><Layout /></Protected>}>
             <Route index element={<Dashboard />} />
             <Route path="voucher/edit/:id" element={<Protected write><VoucherEntry /></Protected>} />
             <Route path="voucher/:type" element={<Protected write><VoucherEntry /></Protected>} />
             <Route path="vouchers" element={<Vouchers />} />
             <Route path="ledgers" element={<Ledgers />} />
+            <Route path="stock" element={<Stock />} />
+            <Route path="reminders" element={<Reminders />} />
             <Route path="reports" element={<Navigate to="/reports/trial-balance" replace />} />
             <Route path="reports/:report" element={<Reports />} />
             <Route path="audit" element={<AuditLog />} />

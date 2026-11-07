@@ -225,15 +225,16 @@ class TestGST:
         R = sess(*RAVI)
         g3 = R.get(f"{API}/reports/gstr3b", params={"month": "2026-10"}).json()
         print("GSTR3B", g3)
-        assert g3["outward_taxable"]["cgst"] == 112.5 and g3["outward_taxable"]["sgst"] == 112.5
+        # Round 4 seed added SAL/0004 (Late Payer, 2x150 @5%) -> +7.5 CGST/SGST
+        assert g3["outward_taxable"]["cgst"] == 120 and g3["outward_taxable"]["sgst"] == 120
         assert g3["itc"]["igst"] == 80
-        assert g3["cash_payable"] == {"igst": 0.0, "cgst": 32.5, "sgst": 112.5}
+        assert g3["cash_payable"] == {"igst": 0.0, "cgst": 40.0, "sgst": 120.0}
         assert g3["itc_utilised"]["cgst"] == 80
         g1 = R.get(f"{API}/reports/gstr1", params={"month": "2026-10"}).json()
         print("GSTR1 summary", g1["summary"])
         assert "b2b" in g1 and "b2c" in g1 and "cdn" in g1 and "hsn" in g1
         n = g1["summary"]["net"]
-        assert n["cgst"] == 112.5 and n["sgst"] == 112.5
+        assert n["cgst"] == 120 and n["sgst"] == 120
 
     def test_bad_month(self, A):
         assert A.get(f"{API}/reports/gstr1", params={"month": "2026-13"}).status_code == 422

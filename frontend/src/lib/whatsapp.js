@@ -6,6 +6,30 @@ const digits = (p) => {
   return d.length >= 11 ? d : "";
 };
 
+export async function sendReminder(ledgerId, s = {}) {
+  const w = window.open("about:blank", "_blank");
+  try {
+    const { data } = await api.post(`/reminders/${ledgerId}/send`);
+    const link = `${window.location.origin}/pay/${data.token}`;
+    const fmt = (n) => n.toLocaleString("en-IN", { minimumFractionDigits: 2 });
+    const bills = data.bills.slice(0, 5).map((b) => `• ${b.voucher_no}${b.due_date ? ` (due ${b.due_date.split("-").reverse().join("-")})` : ""}: ₹${fmt(b.pending)}`);
+    const lines = [
+      `Dear ${data.customer},`,
+      `This is a friendly reminder from *${data.company_name}*. Payment of *₹${fmt(data.overdue_amount)}* is overdue:`,
+      ...bills, data.bills.length > 5 ? `...and ${data.bills.length - 5} more` : "",
+      data.upi_id ? `Pay instantly by UPI: ${link}` : `View details: ${link}`,
+      "Please ignore if already paid. Thank you!",
+    ].filter(Boolean);
+    const url = `https://wa.me/${digits(data.phone)}?text=${encodeURIComponent(lines.join("\n"))}`;
+    if (w) w.location.href = url;
+    else window.location.href = url;
+    return url;
+  } catch (e) {
+    if (w) w.close();
+    throw e;
+  }
+}
+
 export async function shareOnWhatsApp(v, s = {}) {
   const w = window.open("about:blank", "_blank");
   try {
