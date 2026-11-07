@@ -31,7 +31,7 @@ You don't need a Windows PC or any software. GitHub builds the installer for you
 3. The installer asks no questions. It installs, adds a **desktop shortcut** and opens Easy Books automatically.
 
 ## Changing your website address later (one place)
-When you have a website, open `offline/settings.env` and change this line:
+When you have a website, open `offline/build-settings.txt` and change this line:
 ```
 WEBSITE_URL=https://YOUR-EASYBOOKS-SITE
 ```

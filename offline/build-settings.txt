@@ -1,0 +1,6 @@
+# Easy Books offline build settings - the ONE place to change them. (Plain .txt on purpose: *.env files are not saved to GitHub.)
+# WEBSITE_URL: your live Easy Books website, used by "Activate online" in the offline app.
+# Leave as https://YOUR-EASYBOOKS-SITE until you have a website; customers then use the paste-code option.
+WEBSITE_URL=https://YOUR-EASYBOOKS-SITE
+# MongoDB database engine bundled inside the installer (Windows x64 ZIP).
+MONGODB_ZIP=https://fastdl.mongodb.org/windows/mongodb-windows-x86_64-7.0.14.zip

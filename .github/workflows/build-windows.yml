@@ -36,13 +36,23 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Read offline/settings.env
+      - name: Read offline/build-settings.txt
         run: |
-          Get-Content offline/settings.env | Where-Object { $_ -match '^[A-Z_]+=' } | ForEach-Object {
-            $k, $v = $_ -split '=', 2
-            "$k=$($v.Trim())" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          }
+          $s = @{ WEBSITE_URL = "https://YOUR-EASYBOOKS-SITE"; MONGODB_ZIP = "https://fastdl.mongodb.org/windows/mongodb-windows-x86_64-7.0.14.zip" }
+          if (Test-Path offline/build-settings.txt) {
+            Get-Content offline/build-settings.txt | Where-Object { $_ -match '^[A-Z_]+=' } | ForEach-Object {
+              $k, $v = $_ -split '=', 2
+              if ($v.Trim()) { $s[$k] = $v.Trim() }
+            }
+          } else { Write-Warning "offline/build-settings.txt not found - using default settings" }
+          foreach ($k in $s.Keys) { "$k=$($s[$k])" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8; Write-Host "$k=$($s[$k])" }
           "APP_VERSION=1.0.${{ github.run_number }}" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Check required files are in the repository
+        run: |
+          $need = "frontend/package.json","frontend/yarn.lock","backend/server.py","offline/server/offline_server.py","offline/server/requirements-offline.txt","offline/desktop/package.json","offline/desktop/main.js","offline/desktop/icon.ico"
+          $missing = $need | Where-Object { -not (Test-Path $_) }
+          if ($missing) { Write-Error "Missing from GitHub: $($missing -join ', ')"; exit 1 }
 
       - name: Build the app screens (React)
         working-directory: frontend

@@ -27,7 +27,7 @@ See **`offline/GITHUB-STEPS.md`**. Every **Save to GitHub** runs `.github/workfl
 The installer is one-click: no questions, per-user install, desktop + Start menu shortcut, and it opens Easy Books when done.
 
 ## Before you build: set your website address (one place)
-Edit `offline/settings.env` → `WEBSITE_URL=`. Both the GitHub build and `build_frontend.bat` read it. While it is `https://YOUR-EASYBOOKS-SITE`, the "Activate online" button is disabled and customers use the paste-code option (`/activate` page).
+Edit `offline/build-settings.txt` → `WEBSITE_URL=`. Both the GitHub build and `build_frontend.bat` read it. While it is `https://YOUR-EASYBOOKS-SITE`, the "Activate online" button is disabled and customers use the paste-code option (`/activate` page).
 
 ## Manual build on your own Windows PC (optional)
 

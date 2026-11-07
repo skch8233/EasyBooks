@@ -1,7 +1,7 @@
 @echo off
 REM Builds the React UI for the offline app into frontend\build
-REM Website address comes from offline\settings.env (WEBSITE_URL)
-for /f "usebackq eol=# tokens=1,* delims==" %%a in ("%~dp0settings.env") do set "%%a=%%b"
+REM Website address comes from offline\build-settings.txt (WEBSITE_URL)
+for /f "usebackq eol=# tokens=1,* delims==" %%a in ("%~dp0build-settings.txt") do set "%%a=%%b"
 cd /d %~dp0\..\frontend
 set REACT_APP_BACKEND_URL=http://127.0.0.1:8765
 set REACT_APP_OFFLINE=1
