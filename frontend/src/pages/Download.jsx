@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { dmy } from "@/lib/format";
 import { PublicShell } from "@/components/PublicShell";
 
-const STEPS = ["Buy the first-year licence on the Buy page. Your key and GST invoice are emailed to you.", "Download and run EasyBooksSetup.exe, then follow the installer.",
-  "Open Easy Books from the Start menu and create your admin login.", "Go to Licence, enter your key and click Activate online. The key locks to this one PC.",
+const STEPS = ["Buy the first-year licence on the Buy page. Your key and GST invoice are emailed to you.",
+  "Click Download for Windows and open EasyBooksSetup.exe. If Windows says \"Windows protected your PC\", click More info → Run anyway.",
+  "It installs in one click (no questions), adds a desktop shortcut and opens Easy Books. Create your admin login.", "Go to Licence, enter your key and click Activate online. The key locks to this one PC.",
   "Every year, buy a renewal key with your existing licence key and click Activate online again."];
 
 export default function DownloadPage() {
@@ -21,7 +22,7 @@ export default function DownloadPage() {
             <h1 className="font-heading text-4xl sm:text-5xl font-extrabold tracking-tight">Easy Books for Windows</h1>
             <p className="mt-4 text-lg text-slate-600">Standalone offline accounting software like Tally, with no internet needed. All features of Easy Books, and your data stays on your PC.</p>
             <div className="mt-8 flex flex-wrap gap-3">
-              {d?.url ? <a href={d.url} target="_blank" rel="noreferrer"><Button className="h-12 px-8 text-base" data-testid="download-exe-button"><DlIcon className="h-5 w-5 mr-2" /> Download for Windows</Button></a>
+              {d?.url ? <a href={d.url} download="EasyBooksSetup.exe"><Button className="h-12 px-8 text-base" data-testid="download-exe-button"><DlIcon className="h-5 w-5 mr-2" /> Download for Windows</Button></a>
                 : <Button disabled className="h-12 px-8 text-base" data-testid="download-exe-button">Download coming soon</Button>}
               <Link to="/buy"><Button variant="outline" className="h-12 px-8 text-base" data-testid="download-buy-button"><KeyRound className="h-5 w-5 mr-2" /> Buy licence key</Button></Link>
             </div>

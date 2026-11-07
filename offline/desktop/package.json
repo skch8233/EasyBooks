@@ -19,13 +19,16 @@
     "productName": "Easy Books",
     "win": { "target": "nsis", "icon": "icon.ico" },
     "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
+      "oneClick": true,
+      "perMachine": false,
+      "runAfterFinish": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
       "shortcutName": "Easy Books",
-      "artifactName": "EasyBooksSetup-${version}.exe"
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "EasyBooksSetup.exe"
     },
-    "files": ["main.js", "package.json"],
+    "files": ["main.js", "package.json", "icon.ico"],
     "extraResources": [
       { "from": "../server/dist/easybooks-server", "to": "server" },
       { "from": "../../frontend/build", "to": "frontend" },

@@ -46,3 +46,10 @@ JWT email/password; roles Admin / Accountant / Viewer; single company + FY manag
 - Email keys: Emergent-managed Resend email with licence key + GST tax invoice (HS/FY/NNNNN, SAC 997331, CGST/SGST or IGST) after every offline purchase/renewal, manual issue and online plan payment.
 - Placeholders pending from user: SELLER_GSTIN, SELLER_ADDRESS (backend/.env), REACT_APP_LICENCE_SERVER (offline/build_frontend.bat). Razorpay keys still missing (payments off).
 - Backlog: rate-limit /api/shop/activate, limit PC resets, downloadable invoice PDF.
+
+## Round 7 (Nov 2026) - DONE
+- One-click download & install: GitHub Actions workflow .github/workflows/build-windows.yml (windows-latest) builds UI + PyInstaller server + bundled MongoDB + one-click NSIS installer (no questions, desktop/Start menu shortcut, auto-launch) and publishes EasyBooksSetup.exe to GitHub Releases (v1.0.<run>) on every Save to GitHub.
+- /download links to GitHub releases/latest/download/EasyBooksSetup.exe (Platform admin "Use latest GitHub release" helper).
+- Website address placeholder in ONE place: offline/settings.env WEBSITE_URL. User steps: offline/GITHUB-STEPS.md.
+- Not yet run on real GitHub (needs user's Save to GitHub). Installer unsigned (SmartScreen warning). Repo must be public for customer downloads.
+- Backlog: code-signing certificate, clear/unpublish download link.

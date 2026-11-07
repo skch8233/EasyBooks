@@ -10,10 +10,21 @@ const DownloadLink = () => {
   const [f, setF] = useState({ url: "", version: "1.0.0", size: "", notes: "" });
   useEffect(() => { api.get("/shop/download").then((r) => r.data.url && setF({ url: r.data.url, version: r.data.version || "", size: r.data.size || "", notes: r.data.notes || "" })); }, []);
   const save = async () => { try { await api.put("/platform/download", f); toast.success("Download link saved"); } catch (e) { toast.error(errMsg(e)); } };
+  const [repo, setRepo] = useState("");
+  const useGithub = () => {
+    const r = repo.trim().replace(/^https?:\/\/github\.com\//i, "").replace(/\.git$|\/+$/g, "");
+    if (!/^[\w.-]+\/[\w.-]+$/.test(r)) return toast.error("Enter your GitHub user/repo, e.g. ravi/easybooks");
+    setF({ ...f, url: `https://github.com/${r}/releases/latest/download/EasyBooksSetup.exe`, version: "Latest", notes: "Auto-built on GitHub" });
+    toast.success("Link filled in. Click Save.");
+  };
   return (
     <div className="rounded-xl border bg-white p-6 space-y-3" data-testid="platform-download">
       <h2 className="font-heading text-xl font-bold">Offline .exe download link</h2>
-      <p className="text-sm text-slate-500">Upload EasyBooksSetup.exe to GitHub Releases, Google Drive or any file host, then paste the direct link. It appears on the public /download page.</p>
+      <p className="text-sm text-slate-500">Built automatically on GitHub (see offline/GITHUB-STEPS.md): type your GitHub user/repo and click "Use latest GitHub release". Or paste any direct link to EasyBooksSetup.exe. It appears on the public /download page.</p>
+      <div className="flex flex-wrap gap-2">
+        <Input className="h-11 flex-1 min-w-[220px] font-mono" placeholder="GitHub user/repo, e.g. ravi/easybooks" value={repo} onChange={(e) => setRepo(e.target.value)} data-testid="github-repo-input" />
+        <Button variant="outline" className="h-11" onClick={useGithub} data-testid="github-latest-button">Use latest GitHub release</Button>
+      </div>
       <div className="grid gap-2 sm:grid-cols-[2fr_100px_110px_1fr_auto]">
         <Input className="h-11" placeholder="https://..." value={f.url} onChange={(e) => setF({ ...f, url: e.target.value })} data-testid="download-url-input" />
         <Input className="h-11" placeholder="Version" value={f.version} onChange={(e) => setF({ ...f, version: e.target.value })} data-testid="download-version-input" />

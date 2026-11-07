@@ -35,9 +35,13 @@ Branded Invoices: Let traders print sales invoices with their logo, GSTIN and a 
 - Pricing/trial details: see Next Round section above (₹6,500 + 18% GST for 1+1 free user; ₹10,000 + 18% GST for 3 to 8 users; 30-day free trial).
 - Razorpay: user's own Razorpay account; request keys from user via secrets when needed.
 
-## Round 7 — proposed (awaiting user OK)
+## Round 7 — user's request (build now)
 User: "provide me single click download and install"
-- Proposed: automatic cloud build of the Windows .exe via GitHub Actions (Windows runner) when code is saved to GitHub, published to GitHub Releases; the /download page links to the latest .exe for one-click download; one-click installer (no setup questions, desktop shortcut, auto-launch).
+User approved: "yes but i dont have website now will do it later i have github account"
+- Website address: none yet — keep a placeholder that is easy to change later (one place), and document how to change it.
+- User has a GitHub account; they will use Save to GitHub.
+- Build: automatic cloud build of the Windows .exe via GitHub Actions (Windows runner) when code is saved to GitHub, published to GitHub Releases; the /download page links to the latest .exe for one-click download; one-click installer (no setup questions, desktop shortcut, auto-launch).
+- Give the user simple non-technical steps for what to click on GitHub.
 
 ## Round 6 — user's request (build now)
 "One PC Lock: Make each offline licence work on only one computer so keys can't be shared

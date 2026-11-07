@@ -21,10 +21,15 @@ The app checks the code offline with the public key in `desktop/main.js`. It ref
 
 **Codes issued before the one-PC lock (Round 5) no longer work.** Activate those customers again with their key.
 
-## Before you build: set your website address
-Open `offline\build_frontend.bat` and replace `https://YOUR-EASYBOOKS-SITE` with your live Easy Books website, for example `https://books.hannusoft.com`. "Activate online" uses this address. If it is left as the placeholder, the button is disabled and customers must use the `/activate` page instead.
+## Easiest: automatic build on GitHub (no Windows PC needed)
+See **`offline/GITHUB-STEPS.md`**. Every **Save to GitHub** runs `.github/workflows/build-windows.yml` on a Windows machine at GitHub. It builds the UI, the server, adds MongoDB, makes the one-click installer and publishes `EasyBooksSetup.exe` to GitHub Releases. The version is 1.0.<build number>.
 
-## Build it (one time, about 30 minutes)
+The installer is one-click: no questions, per-user install, desktop + Start menu shortcut, and it opens Easy Books when done.
+
+## Before you build: set your website address (one place)
+Edit `offline/settings.env` → `WEBSITE_URL=`. Both the GitHub build and `build_frontend.bat` read it. While it is `https://YOUR-EASYBOOKS-SITE`, the "Activate online" button is disabled and customers use the paste-code option (`/activate` page).
+
+## Manual build on your own Windows PC (optional)
 
 You need a Windows 10/11 64-bit PC with:
 - Python 3.11 (python.org; tick "Add to PATH")
@@ -38,14 +43,14 @@ Steps (Command Prompt, in the project folder):
 3. **Add MongoDB**:
    - Download "MongoDB Community Server", Windows x64, ZIP from mongodb.com/try/download/community.
    - Copy `bin\mongod.exe` into `offline\desktop\mongodb\mongod.exe`. Keep any DLL files from the same folder with it.
-4. **Add an icon**: put a 256×256 `icon.ico` (for example the Hannusoft logo) in `offline\desktop\`.
+4. **Icon**: `offline\desktop\icon.ico` is included; replace it with your own 256×256 icon if you like.
 5. **Make the installer**:
    ```
    cd offline\desktop
    yarn install
    yarn dist
    ```
-   The installer is created at `offline\desktop\dist\EasyBooksSetup-1.0.0.exe`.
+   The installer is created at `offline\desktop\dist\EasyBooksSetup.exe`.
 6. **Test it**:
    - Install it on a PC, open Easy Books and create the admin login ("Set up your business").
    - Open Licence, enter a licence key and click Activate online. Get a key from Platform Admin → "Issue offline licence" on the website.

@@ -1,0 +1,32 @@
+{
+  "summary": "Round 7 (one-click download/install) frontend + static review. All 4 requested features PASS. Platform 'Offline .exe download link' card: invalid 'abc' -> error toast and URL left empty. 'https://github.com/ravi/easybooks.git' and 'ravi/easybooks' both fill https://github.com/ravi/easybooks/releases/latest/download/EasyBooksSetup.exe, version 'Latest', notes 'Auto-built on GitHub', with a 'Link filled in. Click Save.' toast. Save -> 'Download link saved' toast. /download shows an enabled Download for Windows button inside <a href=GitHub URL download='EasyBooksSetup.exe'> with no target attribute, plus the text 'Version Latest · Updated 07-11-2026 · Auto-built on GitHub'. Regression: /activate ('Activate offline licence') and /buy ('Buy Easy Books') load, and the offline licences table renders on /platform. Static review: workflow YAML parses and is logically sound. I found no concrete defect that would make the CI build fail. Details: the MONGODB_ZIP URL returns HTTP 200 (620MB zip); icon.ico has 16-256px sizes, which meets electron-builder's 256x256 rule; the PyInstaller output dist/easybooks-server matches extraResources ../server/dist/easybooks-server; frontend/yarn.lock and offline/desktop/yarn.lock exist; frontend/build and dist are gitignored but get built in CI; all 17 backend modules plus bcrypt and email_validator are in the hidden imports.",
+  "backend_issues": {"critical": [], "minor": [
+    {"endpoint": "PUT /api/platform/download", "issue": "There is no way to clear or unpublish the download link: url needs at least 8 characters and there is no DELETE endpoint. The admin can't go back to 'Download coming soon'."}
+  ]},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/download How to install", "issues": ["Step 2 says 'then follow the installer', but the installer is now one-click with no questions. Step 3 says 'Open Easy Books from the Start menu', but the app now opens by itself after install and has a desktop shortcut. Update the copy to match GITHUB-STEPS.md, and mention the SmartScreen 'More info -> Run anyway' step."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "(Low risk, runtime not CI) Add '--copy-metadata razorpay' to the pyinstaller command. razorpay 2.0.1 Client._get_version calls importlib.metadata.version('razorpay'). In a frozen exe with no dist-info this raises PackageNotFoundError, and its except tuple refers to DistributionNotFound, which is undefined, so a NameError escapes. This only matters if razorpay.Client is created offline, which is probably never.",
+    "Update the /download STEPS text to match the one-click install, the auto-launch and the SmartScreen step.",
+    "Optional: let the admin clear the download link (DELETE endpoint or allow an empty url).",
+    "Optional: on Windows pwsh, a run step only fails on the exit code of its last command. Add '$ErrorActionPreference=\"Stop\"' and '$PSNativeCommandUseErrorActionPreference=$true', or check $LASTEXITCODE after yarn install and pip install, so failures surface at the right step."
+  ],
+  "critical_code_review_comments": [
+    "Workflow: concurrency cancel-in-progress with a single group cancels an in-progress build when a new Save to GitHub push comes in. That's acceptable, but a quick double save cancels the first build.",
+    "Workflow builds on push to any branch ('**') and publishes a release marked latest. Builds from a non-main branch would become 'Latest'. Consider restricting to main.",
+    "Re-running a job reuses run_number, so the tag v1.0.N already exists. softprops@v2 updates the existing release, which is OK.",
+    "offline_server.py sys.path insert of HERE.parent.parent/backend has no effect when frozen. That's harmless because the modules are bundled via --hidden-import and --paths."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "skipped (frontend only)", "frontend": "100%"},
+  "seed_data_creation": "The test Save upserted db.app_releases {id:'offline-windows'}. Before the test GET /api/shop/download returned {url:null}, meaning no document existed. Because the API can't clear it, I deleted that one document by id with mongosh, and GET /api/shop/download now returns {url:null} again, the original state.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Superadmin admin@easybooks.in / Admin@123. The download link card is data-testid=platform-download on /platform. The download link was put back to the empty state after the test. The Windows CI build can't run in this container, so only a static review was done."
+}
