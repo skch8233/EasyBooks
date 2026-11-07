@@ -27,8 +27,8 @@ async def groups(user=Depends(ANY)):
     return GROUPS
 
 
-async def ledger_balances(to_date: Optional[str] = None) -> dict:
-    match = {"status": "active"}
+async def ledger_balances(bid: str, to_date: Optional[str] = None) -> dict:
+    match = {"business_id": bid, "status": "active"}
     if to_date:
         match["date"] = {"$lte": to_date}
     rows = await db.vouchers.aggregate([
@@ -45,11 +45,11 @@ def opening_signed(led: dict) -> float:
 
 @router.get("/ledgers")
 async def list_ledgers(group: Optional[str] = None, include_inactive: bool = False, user=Depends(ANY)):
-    q = {} if include_inactive else {"active": True}
+    q = {"business_id": user["business_id"]} if include_inactive else {"business_id": user["business_id"], "active": True}
     if group:
         q["group"] = {"$in": group.split(",")}
     ledgers = await db.ledgers.find(q, NO_ID).sort("name", 1).to_list(5000)
-    moves = await ledger_balances()
+    moves = await ledger_balances(user["business_id"])
     for led in ledgers:
         bal = round(opening_signed(led) + moves.get(led["id"], 0), 2)
         led["balance"] = abs(bal)
@@ -58,10 +58,10 @@ async def list_ledgers(group: Optional[str] = None, include_inactive: bool = Fal
     return clean(ledgers)
 
 
-async def _check(body: LedgerIn, exclude_id: Optional[str] = None):
+async def _check(body: LedgerIn, bid: str, exclude_id: Optional[str] = None):
     if body.group not in GROUP_MAP:
         raise HTTPException(400, "Invalid ledger group")
-    q = {"name_lower": body.name.strip().lower(), "active": True}
+    q = {"business_id": bid, "name_lower": body.name.strip().lower(), "active": True}
     if exclude_id:
         q["id"] = {"$ne": exclude_id}
     if await db.ledgers.find_one(q):
@@ -70,8 +70,8 @@ async def _check(body: LedgerIn, exclude_id: Optional[str] = None):
 
 @router.post("/ledgers")
 async def create_ledger(body: LedgerIn, user=Depends(WRITE)):
-    await _check(body)
-    doc = {**body.model_dump(), "name": body.name.strip(), "name_lower": body.name.strip().lower(),
+    await _check(body, user["business_id"])
+    doc = {**body.model_dump(), "business_id": user["business_id"], "name": body.name.strip(), "name_lower": body.name.strip().lower(),
            "gstin": body.gstin.strip().upper(), "id": new_id(), "active": True, "system_key": None,
            "created_at": now_iso()}
     await db.ledgers.insert_one(doc)
@@ -82,18 +82,19 @@ async def create_ledger(body: LedgerIn, user=Depends(WRITE)):
 
 @router.put("/ledgers/{lid}")
 async def update_ledger(lid: str, body: LedgerIn, user=Depends(WRITE)):
-    before = await db.ledgers.find_one({"id": lid}, NO_ID)
+    bid = user["business_id"]
+    before = await db.ledgers.find_one({"id": lid, "business_id": bid}, NO_ID)
     if not before:
         raise HTTPException(404, "Ledger not found")
-    await _check(body, lid)
+    await _check(body, bid, lid)
     if before.get("system_key") and body.group != before["group"]:
         raise HTTPException(400, "Group of a system ledger cannot be changed")
     upd = {**body.model_dump(), "name": body.name.strip(), "name_lower": body.name.strip().lower(),
            "gstin": body.gstin.strip().upper(), "updated_at": now_iso()}
     await db.ledgers.update_one({"id": lid}, {"$set": upd})
-    await db.vouchers.update_many({"entries.ledger_id": lid}, {"$set": {"entries.$[e].ledger_name": upd["name"]}},
+    await db.vouchers.update_many({"business_id": bid, "entries.ledger_id": lid}, {"$set": {"entries.$[e].ledger_name": upd["name"]}},
                                   array_filters=[{"e.ledger_id": lid}])
-    await db.vouchers.update_many({"party_ledger_id": lid}, {"$set": {"party_name": upd["name"]}})
+    await db.vouchers.update_many({"business_id": bid, "party_ledger_id": lid}, {"$set": {"party_name": upd["name"]}})
     after = await db.ledgers.find_one({"id": lid}, NO_ID)
     await audit("ledger", lid, "update", user, before=clean(before), after=clean(after))
     return clean(after)
@@ -101,7 +102,7 @@ async def update_ledger(lid: str, body: LedgerIn, user=Depends(WRITE)):
 
 @router.delete("/ledgers/{lid}")
 async def deactivate_ledger(lid: str, user=Depends(WRITE)):
-    led = await db.ledgers.find_one({"id": lid}, NO_ID)
+    led = await db.ledgers.find_one({"id": lid, "business_id": user["business_id"]}, NO_ID)
     if not led:
         raise HTTPException(404, "Ledger not found")
     if led.get("system_key"):

@@ -26,6 +26,19 @@ Very clean and simple interface. Professional accounting software appearance. Ea
 ## Technical
 Use a proper database. Secure authentication. Role-based access. Reliable accounting calculations. Automatic database validation. Test all debit and credit calculations. Never allow deletion of financial records without maintaining an audit trail.
 
+## Round 2 — user's request (build now)
+"Subscription Plans: Add trader sign-up with 30-day free trial and Razorpay annual plans at ₹6,500 and ₹10,000
+Offline Licence Keys: Add annual licence keys for the offline version, with activation and expiry alerts
+GST Returns Summary: Show GSTR-1 and GSTR-3B summaries so traders can file GST easily every month
+Branded Invoices: Let traders print sales invoices with their logo, GSTIN and a UPI payment QR code"
+- Each trader business gets its own sign-up and separate books (multi-business), per "offer it to other traders and shop owners".
+- Pricing/trial details: see Next Round section above (₹6,500 + 18% GST for 1+1 free user; ₹10,000 + 18% GST for 3 to 8 users; 30-day free trial).
+- Razorpay: user's own Razorpay account; request keys from user via secrets when needed.
+
+## Round 3 — user's request (queued)
+"this is our company hannusoft private limited logo and use all right reserved to hannusoft private limited"
+- Logo: Hannusoft Private Limited (round gradient pink-orange "H" icon, "Hannu" dark navy + "soft" orange, "PRIVATE LIMITED" grey). Show as the software maker's branding, plus "© All rights reserved to Hannusoft Private Limited". Logo image file to be obtained from user upload.
+
 ## Next Round (after MVP) — user's words
 "offer it to other traders and shop owners"
 "I want to make a two version of this software one is offline with annually subscription key and other is online mobile app as well as for dextop with annually subscription fees"

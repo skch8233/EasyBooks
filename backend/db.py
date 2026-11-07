@@ -27,7 +27,7 @@ def now_iso() -> str:
 
 async def audit(entity: str, entity_id: str, action: str, user: dict, before=None, after=None, note: str = ""):
     await db.audit_logs.insert_one({
-        "id": new_id(), "entity": entity, "entity_id": entity_id, "action": action,
+        "id": new_id(), "business_id": user.get("business_id"), "entity": entity, "entity_id": entity_id, "action": action,
         "user_id": user.get("id"), "user_name": user.get("name"), "user_email": user.get("email"),
         "before": before, "after": after, "note": note, "timestamp": now_iso(),
     })

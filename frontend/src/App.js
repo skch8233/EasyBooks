@@ -11,12 +11,15 @@ import Ledgers from "@/pages/Ledgers";
 import Reports from "@/pages/Reports";
 import Settings from "@/pages/Settings";
 import AuditLog from "@/pages/AuditLog";
+import Signup from "@/pages/Signup";
+import Subscription from "@/pages/Subscription";
+import Platform from "@/pages/Platform";
 
 const Protected = ({ children, write }) => {
   const { user, fy, canWrite } = useApp();
   if (user === null || (user && !fy)) return <div className="min-h-screen flex items-center justify-center text-slate-500">Loading...</div>;
   if (!user) return <Navigate to="/login" replace />;
-  if (write && !canWrite) return <Navigate to="/" replace />;
+  if (write && !canWrite) return <Navigate to={user.role === "viewer" ? "/" : "/subscription"} replace />;
   return children;
 };
 
@@ -26,6 +29,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
           <Route element={<Protected><Layout /></Protected>}>
             <Route index element={<Dashboard />} />
             <Route path="voucher/edit/:id" element={<Protected write><VoucherEntry /></Protected>} />
@@ -34,8 +38,10 @@ function App() {
             <Route path="ledgers" element={<Ledgers />} />
             <Route path="reports" element={<Navigate to="/reports/trial-balance" replace />} />
             <Route path="reports/:report" element={<Reports />} />
-            <Route path="audit" element={<Protected write><AuditLog /></Protected>} />
+            <Route path="audit" element={<AuditLog />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="subscription" element={<Subscription />} />
+            <Route path="platform" element={<Platform />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -1,4 +1,5 @@
 import os
+import re
 from datetime import datetime, timezone, timedelta
 from typing import Literal, Optional
 
@@ -8,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr
 
 from db import db, NO_ID, new_id, now_iso, audit, clean
+from business import get_business, status_of, create_business
 
 ALG = "HS256"
 Role = Literal["admin", "accountant", "viewer"]
@@ -46,17 +48,27 @@ async def get_current_user(request: Request) -> dict:
     return user
 
 
-def require_roles(*roles):
+def require_roles(*roles, write=False):
     async def dep(user=Depends(get_current_user)):
         if user["role"] not in roles:
             raise HTTPException(403, "You do not have permission for this action")
+        if write and status_of(await get_business(user["business_id"]))["status"] == "expired":
+            raise HTTPException(402, "Your free trial / subscription has expired. Books are read-only until you renew from Subscription.")
         return user
     return dep
 
 
+async def super_admin(user=Depends(get_current_user)):
+    if not user.get("is_superadmin"):
+        raise HTTPException(403, "Platform admin only")
+    return user
+
+
 ANY = get_current_user
-WRITE = require_roles("admin", "accountant")
+WRITE = require_roles("admin", "accountant", write=True)
 ADMIN = require_roles("admin")
+ADMIN_WRITE = require_roles("admin", write=True)
+SUPER = super_admin
 
 
 class LoginIn(BaseModel):
@@ -76,6 +88,16 @@ class UserUpdate(BaseModel):
     role: Optional[Role] = None
     active: Optional[bool] = None
     password: Optional[str] = None
+
+
+class SignupIn(BaseModel):
+    business_name: str
+    name: str
+    email: EmailStr
+    password: str
+    phone: str = ""
+    state: str = ""
+    gstin: str = ""
 
 
 class PasswordChange(BaseModel):
@@ -98,6 +120,26 @@ async def login(body: LoginIn, request: Request):
         raise HTTPException(401, "Invalid email or password")
     await db.login_attempts.delete_many({"identifier": ident})
     return {"token": create_token(user), "user": clean(user)}
+
+
+@router.post("/signup")
+async def signup(body: SignupIn):
+    email = body.email.lower()
+    if not body.business_name.strip() or not body.name.strip():
+        raise HTTPException(400, "Business name and your name are required")
+    if len(body.password) < 6:
+        raise HTTPException(400, "Password must be at least 6 characters")
+    if await db.users.find_one({"email": email}):
+        raise HTTPException(400, "An account with this email already exists. Please sign in.")
+    if body.gstin.strip() and not re.match(r"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$", body.gstin.strip().upper()):
+        raise HTTPException(400, "Invalid GSTIN format")
+    biz = await create_business(body.business_name, email, body.phone, body.state, body.gstin.strip().upper())
+    user = {"id": new_id(), "business_id": biz["id"], "name": body.name.strip(), "email": email, "role": "admin",
+            "active": True, "password_hash": hash_password(body.password), "created_at": now_iso()}
+    await db.users.insert_one(user)
+    user = clean(user)
+    await audit("business", biz["id"], "signup", user, note="30-day free trial started")
+    return {"token": create_token(user), "user": user}
 
 
 @router.get("/me")
@@ -123,18 +165,19 @@ async def change_password(body: PasswordChange, user=Depends(ANY)):
 
 @users_router.get("")
 async def list_users(user=Depends(ADMIN)):
-    users = await db.users.find({}, {**NO_ID, "password_hash": 0}).sort("created_at", 1).to_list(500)
+    users = await db.users.find({"business_id": user["business_id"]}, {**NO_ID, "password_hash": 0}).sort("created_at", 1).to_list(500)
     return clean(users)
 
 
 @users_router.post("")
-async def create_user(body: UserIn, user=Depends(ADMIN)):
+async def create_user(body: UserIn, user=Depends(ADMIN_WRITE)):
     email = body.email.lower()
     if await db.users.find_one({"email": email}):
         raise HTTPException(400, "A user with this email already exists")
     if len(body.password) < 6:
         raise HTTPException(400, "Password must be at least 6 characters")
-    doc = {"id": new_id(), "name": body.name, "email": email, "role": body.role, "active": True,
+    await check_user_limit(user["business_id"])
+    doc = {"id": new_id(), "business_id": user["business_id"], "name": body.name, "email": email, "role": body.role, "active": True,
            "password_hash": hash_password(body.password), "created_at": now_iso()}
     await db.users.insert_one(doc)
     await audit("user", doc["id"], "create", user, after={"email": email, "role": body.role})
@@ -142,12 +185,14 @@ async def create_user(body: UserIn, user=Depends(ADMIN)):
 
 
 @users_router.put("/{uid}")
-async def update_user(uid: str, body: UserUpdate, user=Depends(ADMIN)):
-    target = await db.users.find_one({"id": uid}, {**NO_ID, "password_hash": 0})
+async def update_user(uid: str, body: UserUpdate, user=Depends(ADMIN_WRITE)):
+    target = await db.users.find_one({"id": uid, "business_id": user["business_id"]}, {**NO_ID, "password_hash": 0})
     if not target:
         raise HTTPException(404, "User not found")
     if uid == user["id"] and (body.role not in (None, "admin") or body.active is False):
         raise HTTPException(400, "You cannot demote or disable your own account")
+    if body.active and not target.get("active", True):
+        await check_user_limit(user["business_id"])
     upd = {k: v for k, v in body.model_dump().items() if v is not None and k != "password"}
     if body.password:
         if len(body.password) < 6:
@@ -159,8 +204,17 @@ async def update_user(uid: str, body: UserUpdate, user=Depends(ADMIN)):
     return clean(updated)
 
 
+async def check_user_limit(bid: str):
+    limit = status_of(await get_business(bid))["max_users"]
+    if await db.users.count_documents({"business_id": bid, "active": True}) >= limit:
+        raise HTTPException(400, f"Your plan allows {limit} active users. Upgrade your plan to add more users.")
+
+
 async def seed_admin():
     email = os.environ["ADMIN_EMAIL"].lower()
     if not await db.users.find_one({"email": email}):
-        await db.users.insert_one({"id": new_id(), "name": "Admin", "email": email, "role": "admin", "active": True,
+        biz = await create_business("Easy Books Demo", email)
+        await db.users.insert_one({"id": new_id(), "business_id": biz["id"], "name": "Admin", "email": email, "role": "admin",
+                                   "active": True, "is_superadmin": True,
                                    "password_hash": hash_password(os.environ["ADMIN_PASSWORD"]), "created_at": now_iso()})
+    await db.users.update_one({"email": email}, {"$set": {"is_superadmin": True}})

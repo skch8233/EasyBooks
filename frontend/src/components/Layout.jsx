@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, PlusCircle, ListOrdered, BookUser, BarChart3, Settings, ShieldCheck, LogOut, Menu, X, BookMarked } from "lucide-react";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { LayoutDashboard, PlusCircle, ListOrdered, BookUser, BarChart3, Settings, ShieldCheck, LogOut, Menu, X, BookMarked, CreditCard, Building2, AlertTriangle, Landmark } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useHotkeys } from "@/hooks/useHotkeys";
@@ -10,13 +11,18 @@ const NAV = [
   { to: "/voucher/sales", label: "New Voucher", icon: PlusCircle, id: "new-voucher", write: true },
   { to: "/vouchers", label: "Vouchers / Day Book", icon: ListOrdered, id: "vouchers" },
   { to: "/ledgers", label: "Ledgers", icon: BookUser, id: "ledgers" },
-  { to: "/reports/trial-balance", label: "Reports", icon: BarChart3, id: "reports", match: "/reports" },
-  { to: "/audit", label: "Audit Trail", icon: ShieldCheck, id: "audit", write: true },
+  { to: "/reports/trial-balance", label: "Reports", icon: BarChart3, id: "reports", match: (p) => p.startsWith("/reports") && !p.startsWith("/reports/gstr") },
+  { to: "/reports/gstr-3b", label: "GST Returns", icon: Landmark, id: "gst", match: (p) => p.startsWith("/reports/gstr") },
+  { to: "/audit", label: "Audit Trail", icon: ShieldCheck, id: "audit", staff: true },
   { to: "/settings", label: "Settings", icon: Settings, id: "settings" },
+  { to: "/subscription", label: "Subscription", icon: CreditCard, id: "subscription", admin: true },
+  { to: "/platform", label: "Platform Admin", icon: Building2, id: "platform", superadmin: true },
 ];
 
 const SideNav = ({ onNav }) => {
-  const { canWrite, settings } = useApp();
+  const { canWrite, settings, user, isAdmin } = useApp();
+  const { pathname } = useLocation();
+  const show = (n) => (!n.write || canWrite) && (!n.admin || isAdmin) && (!n.superadmin || user?.is_superadmin) && (!n.staff || user?.role !== "viewer");
   return (
     <div className="flex h-full flex-col">
       <div className="px-5 py-6 flex items-center gap-3">
@@ -27,7 +33,7 @@ const SideNav = ({ onNav }) => {
         </div>
       </div>
       <nav className="flex-1 px-3 space-y-1">
-        {NAV.filter((n) => !n.write || canWrite).map((n) => (
+        {NAV.filter(show).map((n) => (
           <NavLink
             key={n.id}
             to={n.to}
@@ -36,7 +42,7 @@ const SideNav = ({ onNav }) => {
             data-testid={`sidebar-nav-${n.id}`}
             className={({ isActive }) =>
               `flex items-center gap-3 rounded-lg px-3 py-3 text-[15px] font-medium transition-colors ${
-                isActive || (n.match && window.location.pathname.startsWith(n.match)) ? "bg-white/10 text-white" : "text-slate-300 hover:bg-white/5 hover:text-white"
+                (n.match ? n.match(pathname) : isActive) ? "bg-white/10 text-white" : "text-slate-300 hover:bg-white/5 hover:text-white"
               }`
             }
           >
@@ -79,6 +85,20 @@ const TopBar = ({ onMenu }) => {
   );
 };
 
+const PlanBanner = () => {
+  const { biz, isAdmin } = useApp();
+  if (!biz?.alert) return null;
+  const expired = biz.status === "expired";
+  const msg = expired ? `Your ${biz.plan === "trial" ? "free trial" : "subscription"} has expired. Books are read-only.`
+    : biz.status === "trial" ? `Free trial: ${biz.days_left} day${biz.days_left === 1 ? "" : "s"} left.` : `Your annual subscription expires in ${biz.days_left} days.`;
+  return (
+    <div className={`no-print flex flex-wrap items-center gap-3 px-4 lg:px-8 py-2.5 text-sm border-b ${expired ? "bg-red-50 text-red-800 border-red-200" : "bg-amber-50 text-amber-900 border-amber-200"}`} data-testid="plan-banner">
+      <AlertTriangle className="h-4 w-4" /> <span data-testid="plan-banner-text">{msg}</span>
+      {isAdmin ? <Link to="/subscription" className="font-semibold underline" data-testid="plan-banner-upgrade">{expired ? "Renew now" : "Choose a plan"}</Link> : <span>Ask your admin to renew.</span>}
+    </div>
+  );
+};
+
 export default function Layout() {
   const [open, setOpen] = useState(false);
   const { canWrite } = useApp();
@@ -96,6 +116,7 @@ export default function Layout() {
         </div>
       )}
       <TopBar onMenu={() => setOpen(true)} />
+      <PlanBanner />
       <main className="px-4 py-6 lg:px-8 lg:py-8 max-w-[1600px]"><Outlet /></main>
     </div>
   );

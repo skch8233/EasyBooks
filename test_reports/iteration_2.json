@@ -1,0 +1,49 @@
+{
+  "summary": "Round 2 (multi-tenant SaaS) tested end to end. Backend: a new 16-case suite (tests/test_round2_multitenant.py) passes 100%, and the old 18-case regression suite also passes. Covered: signup with trial, seeded ledgers and FY; duplicate signup and validation; cross-tenant isolation for ledgers, vouchers, reports, users, audit, settings, FY and backup; trial user limit of 2 (plus reactivation blocked); expired business gets 402 on writes and reads still work; plan totals 7670 and 11800 with payments_enabled=false and order 503; platform 403 for normal users; extend plan and issue key; licence activate up to 2 devices then 400, validate with alert, deactivate frees a slot, revoke makes the key invalid, key lookup is case-insensitive; GSTR-1 and GSTR-3B (Gupta Oct-2026 gives exactly cgst 32.5 and sgst 112.5 cash, plus a hand-built B2B/B2C/CN/purchase/DN case); UPI validation; logo upload type and size checks with byte-exact retrieval; logo isolated per business. Frontend: signup page and link from login, amber trial banner, red expired banner with New Voucher and quick actions hidden, /voucher/sales redirects to /subscription, Subscription page notice and disabled pay buttons, licence table, activation tester and device deactivate, Platform extend with a key toast, Branding logo upload and preview, UPI/bank fields saved, branded TAX INVOICE popup (logo, both GSTINs, HSN, CGST/SGST, amount in words, bank details, UPI QR), GSTR-1/3B tabs with month picker, admin TB/BS balanced. Found 1 high bug (restore not atomic), 1 medium UI bug (/platform for non-superadmin crashes with an overlay) and several minor ones.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/restore", "issue": "Restore is not atomic, and it fails with 500 when the backup has ids already in the DB (for example, restoring business Y's backup into business X). It runs delete_many and then insert_many one collection at a time. The unique index on financial_years.id raises BulkWriteError after settings and financial_years were already deleted. Reproduced: X was left with 0 financial years, so the frontend stays on 'Loading...' forever, and X's settings were replaced by a doc carrying Y's settings id. Fix: validate first, give each restored doc a new id (or map ids), wrap the restore in try/except and roll back from restore_snapshots on failure, and return 400 instead of 500.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "PUT /api/settings, POST/DELETE /api/settings/logo, POST /api/users, PUT /api/users/{id}, POST/PUT /api/financial-years", "issue": "These use ADMIN, not ADMIN_WRITE, so an expired business can still write here. Verified: settings PUT and FY create return 200 for expired@test.in. Decide whether this is intended. At least FY create and users should probably return 402."},
+      {"endpoint": "PUT /api/settings", "issue": "SettingsIn defaults every branding field to ''. An API client that sends only the company fields wipes upi_id, bank details and terms. The UI sends the full object, so the UI is not affected."},
+      {"endpoint": "POST /api/auth/signup", "issue": "The GSTIN at signup is not checked against GSTIN_RE, while PUT /settings does check it. An invalid GSTIN can be stored."},
+      {"endpoint": "POST /api/licence/activate", "issue": "Race: the device-count check and the $push are separate steps, so parallel activations can exceed max_devices. Use a conditional update_one with {'$expr': {'$lt': [{'$size': '$activations'}, max]}}."},
+      {"endpoint": "GET /api/reports/gstr1", "issue": "The 'Docs' count for B2C in the summary counts aggregated rows (place of supply + rate), not invoices. One B2C invoice with 0% and 18% items shows Docs=2. B2C Large (inter-state over 2.5 lakh) is not split out."},
+      {"endpoint": "POST /api/platform/licences/{lid}/revoke", "issue": "Revoke writes no audit entry, and the Platform UI has no revoke button (API only)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Platform.jsx route", "issue": "A non-superadmin who opens /platform directly gets the page shell. api.get('/platform/businesses') then rejects with 403 without being caught, which shows an 'Unhandled rejection' error overlay that blocks clicks (logout could not be clicked). Guard the route with user.is_superadmin and add .catch to load().", "selector": "[data-testid='platform-page']", "priority": "MEDIUM"},
+      {"component": "App.js /audit route", "issue": "Audit Trail is wrapped in <Protected write>. An expired admin still sees it in the sidebar, but it redirects to /subscription. Audit is read-only and should stay readable while books are read-only.", "selector": "[data-testid='sidebar-nav-audit']", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Reports / GST Returns tabs", "issues": ["At 1920px the last tab 'GSTR-3B' is cut off at the right edge of the horizontally scrolling tab bar. Wrap the tabs or split the GST tabs into their own group."]},
+      {"screen": "Subscription > Licence tester", "issues": ["If activation fails (device limit), the result box clears and only a toast shows. Consider showing the error inline in licence-result."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_round2_multitenant.py", "/app/backend/tests/test_easybooks_api.py", "/app/test_reports/pytest/pytest_round2.xml"],
+  "action_items": [
+    "Make POST /api/restore atomic and id-safe: no 500, and no data left half-deleted when ids collide or a backup from another business is restored",
+    "Guard /platform in the frontend for non-superadmins and catch the 403 in Platform.jsx load()",
+    "Allow /audit for expired (read-only) businesses",
+    "Decide on and enforce 402 for admin writes in expired businesses (settings, logo, users, FY)",
+    "Validate GSTIN at signup; make the licence activation device limit atomic; fix the GSTR-1 B2C doc count"
+  ],
+  "critical_code_review_comments": [
+    "routes_admin.restore: delete_many then insert_many per collection with no transaction or rollback. A restore_snapshot is saved but never used automatically on failure.",
+    "get_business raises 401 'Business not found'. On platform extend of an unknown id this returns 401, which can look like a logout to the frontend interceptor. 404 is better.",
+    "CORS_ORIGINS='*' with Bearer auth works, but use explicit origins for production.",
+    "Auth is Bearer token in localStorage, not httpOnly cookies (the playbook checks for cookies). bcrypt hashes are $2b$. Lockout was verified in iteration 1."
+  ],
+  "updated_files": ["/app/backend/tests/test_round2_multitenant.py"],
+  "success_rate": {"backend": "100% of the 34 pytest cases (16 new + 18 regression); 1 high bug found by an extra probe (restore)", "frontend": "~92% (all requested flows work; /platform crash for non-superadmin and /audit redirect for expired)"},
+  "test_credentials": "From /app/memory/test_credentials.md: admin@easybooks.in/Admin@123, ravi@gupta.in/secret1, expired@test.in/secret1. All worked; none were locked or modified.",
+  "seed_data_creation": "Created TEST_ businesses through signup: several 'TEST_a/b Traders' (pytest, one extended to basic with a revoked licence), 'TEST_rx/ry Traders' (restore probe; TEST_rx is now corrupted with 0 FYs) and 'TEST_UI Stores' (test_ui_1869b1@example.com / secret1, basic till 07-11-2027, licence EB-JV7S-VCBL-SW7D-5G4N, logo + UPI testuistores@okhdfcbank, sales SAL/2026-27/0001 to TEST_Mehta Stores). There is no delete-business endpoint, so these remain. Seeded businesses were not changed, except one 2099-00 FY created by mistake in Expired Traders, which I deleted by its id right away.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run: cd /app/backend && REACT_APP_BACKEND_URL=<url> pytest tests/test_round2_multitenant.py tests/test_easybooks_api.py -n 0. The round2 suite creates fresh signup businesses, so it is safe to rerun. Server date is Nov 2026 (FY 2026-27). Gupta's licence already has 2/2 devices (Shop PC/PC1, PC2), so don't activate more on it. Use TEST_UI Stores for UI licence/branding/print tests. To retest restore, sign up 2 new businesses and restore Y's backup into X.",
+  "rca of the issue": "Restore 500: routes_admin.restore loops over BACKUP_COLLECTIONS, runs delete_many for this business and then insert_many of the backup docs with their original 'id'. financial_years has a unique index on id, so if the docs' ids already exist anywhere (another business, or a stale duplicate in the backup), BulkWriteError is raised partway through. The earlier deletes are not rolled back, which leaves the business without an FY (the UI cannot load). Repro: signup X and Y; GET Y /api/backup; POST it to X /api/restore -> 500; X /api/financial-years -> []. Fix: regenerate ids (keeping internal references: ledger ids in vouchers, fy_id, counters), or pre-check collisions and return 400, and on any exception restore from the saved snapshot."
+}

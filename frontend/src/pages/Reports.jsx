@@ -3,10 +3,11 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { FileSpreadsheet, FileText, Printer, CheckCircle2, AlertTriangle } from "lucide-react";
 import { api, errMsg } from "@/lib/api";
 import { useApp } from "@/context/AppContext";
-import { dmy } from "@/lib/format";
+import { dmy, todayIso } from "@/lib/format";
 import { REPORTS } from "@/lib/reports";
 import { exportExcel, exportPdf } from "@/lib/export";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DateInput } from "@/components/DateInput";
 import { LedgerSelect } from "@/components/LedgerSelect";
@@ -19,7 +20,8 @@ export default function Reports() {
   const nav = useNavigate();
   const { fy, settings } = useApp();
   const cfg = REPORTS.find((r) => r.id === report) || REPORTS[0];
-  const [p, setP] = useState({ from: fy?.start_date, to: fy?.end_date });
+  const monthFor = (f) => { const m = todayIso().slice(0, 7); return f && m >= f.start_date.slice(0, 7) && m <= f.end_date.slice(0, 7) ? m : f?.start_date.slice(0, 7); };
+  const [p, setP] = useState({ from: fy?.start_date, to: fy?.end_date, month: monthFor(fy) });
   const [ledgers, setLedgers] = useState([]);
   const [res, setRes] = useState(null);
   const [err, setErr] = useState("");
@@ -27,7 +29,7 @@ export default function Reports() {
   const ledger = sp.get("ledger") || "";
 
   useEffect(() => { api.get("/ledgers").then((r) => setLedgers(r.data)); }, []);
-  useEffect(() => { if (fy) setP({ from: fy.start_date, to: fy.end_date }); }, [fy]);
+  useEffect(() => { if (fy) setP({ from: fy.start_date, to: fy.end_date, month: monthFor(fy) }); }, [fy]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (cfg.groups && ledgers.length && !ledgers.some((l) => l.id === ledger && cfg.groups.includes(l.group))) {
       const first = ledgers.find((l) => cfg.groups.includes(l.group));
@@ -43,12 +45,12 @@ export default function Reports() {
     return () => { alive = false; };
   }, [cfg, p, ledger]);
 
-  const sub = cfg.filter === "asof" ? `As on ${dmy(p.to)}` : `${dmy(p.from)} to ${dmy(p.to)}`;
+  const sub = cfg.filter === "month" ? `Return period ${p.month?.split("-").reverse().join("-")}` : cfg.filter === "asof" ? `As on ${dmy(p.to)}` : `${dmy(p.from)} to ${dmy(p.to)}`;
   const title = `${cfg.label}${res?.note ? ` - ${res.note}` : ""}`;
 
   return (
     <div className="space-y-6" data-testid="reports-page">
-      <div className="no-print flex gap-2 overflow-x-auto pb-1" data-testid="report-tabs">
+      <div className="no-print flex flex-wrap gap-2" data-testid="report-tabs">
         {REPORTS.map((r) => (
           <button key={r.id} onClick={() => nav(`/reports/${r.id}`)} data-testid={`report-tab-${r.id}`}
             className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${r.id === cfg.id ? "bg-primary text-white border-primary" : "bg-white hover:bg-slate-50"}`}>{r.label}</button>
@@ -66,8 +68,13 @@ export default function Reports() {
         </div>
       </div>
       <div className="no-print grid gap-3 rounded-xl border bg-white p-4 sm:grid-cols-2 lg:grid-cols-[170px_170px_1fr]">
+        {cfg.filter === "month" ? (
+          <div><div className="text-xs font-semibold text-slate-500 mb-1">Return month</div>
+            <Input type="month" className="h-11 font-mono" value={p.month || ""} onChange={(e) => e.target.value && setP({ ...p, month: e.target.value })} data-testid="report-filter-month" /></div>
+        ) : <>
         {cfg.filter !== "asof" && <div><div className="text-xs font-semibold text-slate-500 mb-1">From</div><DateInput value={p.from} onChange={(from) => setP({ ...p, from })} testid="report-filter-date-from" /></div>}
         <div><div className="text-xs font-semibold text-slate-500 mb-1">{cfg.filter === "asof" ? "As on" : "To"}</div><DateInput value={p.to} onChange={(to) => setP({ ...p, to })} testid="report-filter-date-to" /></div>
+        </>}
         {cfg.filter === "ledger" && <div><div className="text-xs font-semibold text-slate-500 mb-1">Ledger</div>
           <LedgerSelect ledgers={ledgers} groups={cfg.groups} value={ledger} onChange={(id) => setSp({ ledger: id })} testid="report-ledger-select" /></div>}
       </div>

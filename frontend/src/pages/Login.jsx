@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { BookMarked, Loader2, ShieldCheck, IndianRupee, Scale } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { errMsg } from "@/lib/api";
@@ -52,6 +52,7 @@ export default function Login() {
               {busy && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Sign in
             </Button>
           </div>
+          <p className="mt-6 text-sm text-slate-600">New trader or shop owner? <Link to="/signup" className="text-primary font-semibold hover:underline" data-testid="goto-signup-link">Start your 30-day free trial</Link></p>
         </form>
       </div>
     </div>

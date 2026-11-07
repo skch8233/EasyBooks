@@ -11,12 +11,12 @@ from routes_ledgers import opening_signed
 router = APIRouter(prefix="/api/reports")
 
 
-async def _ledgers():
-    return {l["id"]: l for l in await db.ledgers.find({}, NO_ID).to_list(10000)}
+async def _ledgers(bid):
+    return {l["id"]: l for l in await db.ledgers.find({"business_id": bid}, NO_ID).to_list(10000)}
 
 
-async def _moves(from_date=None, to_date=None, before=None) -> dict:
-    match = {"status": "active"}
+async def _moves(bid, from_date=None, to_date=None, before=None) -> dict:
+    match = {"business_id": bid, "status": "active"}
     d = {k: v for k, v in (("$gte", from_date), ("$lte", to_date), ("$lt", before)) if v}
     if d:
         match["date"] = d
@@ -31,16 +31,16 @@ def _nature(led):
     return GROUP_MAP.get(led["group"], {}).get("nature", "asset")
 
 
-async def closing_signed(to_date: Optional[str]) -> tuple:
-    ledgers = await _ledgers()
-    moves = await _moves(to_date=to_date)
+async def closing_signed(bid, to_date: Optional[str]) -> tuple:
+    ledgers = await _ledgers(bid)
+    moves = await _moves(bid, to_date=to_date)
     bal = {lid: round(opening_signed(l) + moves.get(lid, (0, 0))[0] - moves.get(lid, (0, 0))[1], 2) for lid, l in ledgers.items()}
     return ledgers, bal
 
 
 @router.get("/trial-balance")
 async def trial_balance(to_date: Optional[str] = None, user=Depends(ANY)):
-    ledgers, bal = await closing_signed(to_date)
+    ledgers, bal = await closing_signed(user["business_id"], to_date)
     rows, tdr, tcr = [], 0.0, 0.0
     for g in GROUPS:
         for l in sorted([l for l in ledgers.values() if l["group"] == g["key"]], key=lambda x: x["name"]):
@@ -61,9 +61,9 @@ async def trial_balance(to_date: Optional[str] = None, user=Depends(ANY)):
             "balanced": abs(tdr - tcr) < 0.01, "opening_difference": diff}
 
 
-async def _pl(from_date, to_date):
-    ledgers = await _ledgers()
-    moves = await _moves(from_date=from_date, to_date=to_date)
+async def _pl(bid, from_date, to_date):
+    ledgers = await _ledgers(bid)
+    moves = await _moves(bid, from_date=from_date, to_date=to_date)
     sec = defaultdict(list)
     for lid, l in ledgers.items():
         g = GROUP_MAP.get(l["group"], {})
@@ -83,12 +83,12 @@ async def _pl(from_date, to_date):
 
 @router.get("/profit-loss")
 async def profit_loss(from_date: Optional[str] = None, to_date: Optional[str] = None, user=Depends(ANY)):
-    return await _pl(from_date, to_date)
+    return await _pl(user["business_id"], from_date, to_date)
 
 
 @router.get("/balance-sheet")
 async def balance_sheet(to_date: Optional[str] = None, user=Depends(ANY)):
-    ledgers, bal = await closing_signed(to_date)
+    ledgers, bal = await closing_signed(user["business_id"], to_date)
     assets, liabs, profit = defaultdict(list), defaultdict(list), 0.0
     for lid, l in ledgers.items():
         n, b = _nature(l), bal[lid]
@@ -113,14 +113,14 @@ async def balance_sheet(to_date: Optional[str] = None, user=Depends(ANY)):
 
 @router.get("/ledger-statement")
 async def ledger_statement(ledger_id: str, from_date: Optional[str] = None, to_date: Optional[str] = None, user=Depends(ANY)):
-    led = await db.ledgers.find_one({"id": ledger_id}, NO_ID)
+    led = await db.ledgers.find_one({"id": ledger_id, "business_id": user["business_id"]}, NO_ID)
     if not led:
         raise HTTPException(404, "Ledger not found")
     opening = opening_signed(led)
     if from_date:
-        dr, cr = (await _moves(before=from_date)).get(ledger_id, (0, 0))
+        dr, cr = (await _moves(user["business_id"], before=from_date)).get(ledger_id, (0, 0))
         opening += dr - cr
-    q = {"status": "active", "entries.ledger_id": ledger_id}
+    q = {"business_id": user["business_id"], "status": "active", "entries.ledger_id": ledger_id}
     d = {k: v for k, v in (("$gte", from_date), ("$lte", to_date)) if v}
     if d:
         q["date"] = d
@@ -144,7 +144,7 @@ async def ledger_statement(ledger_id: str, from_date: Optional[str] = None, to_d
 @router.get("/outstanding")
 async def outstanding(kind: str = "receivables", to_date: Optional[str] = None, user=Depends(ANY)):
     group = "sundry_debtors" if kind == "receivables" else "sundry_creditors"
-    ledgers, bal = await closing_signed(to_date)
+    ledgers, bal = await closing_signed(user["business_id"], to_date)
     rows = []
     for lid, l in ledgers.items():
         if l["group"] != group or abs(bal[lid]) < 0.005:
@@ -157,13 +157,13 @@ async def outstanding(kind: str = "receivables", to_date: Optional[str] = None, 
 
 @router.get("/register")
 async def register(voucher_type: str = "sales", from_date: Optional[str] = None, to_date: Optional[str] = None, user=Depends(ANY)):
-    q = {"status": "active", "voucher_type": voucher_type}
+    q = {"business_id": user["business_id"], "status": "active", "voucher_type": voucher_type}
     d = {k: v for k, v in (("$gte", from_date), ("$lte", to_date)) if v}
     if d:
         q["date"] = d
     vs = await db.vouchers.find(q, NO_ID).sort([("date", 1), ("seq", 1)]).to_list(20000)
     party_ids = list({v["party_ledger_id"] for v in vs})
-    gst = {l["id"]: l.get("gstin", "") for l in await db.ledgers.find({"id": {"$in": party_ids}}, NO_ID).to_list(10000)}
+    gst = {l["id"]: l.get("gstin", "") for l in await db.ledgers.find({"business_id": user["business_id"], "id": {"$in": party_ids}}, NO_ID).to_list(10000)}
     rows = []
     for v in vs:
         t = v.get("totals") or {}
@@ -176,11 +176,11 @@ async def register(voucher_type: str = "sales", from_date: Optional[str] = None,
 
 @router.get("/dashboard")
 async def dashboard(from_date: str = Query(pattern=r"^\d{4}-\d{2}-\d{2}$"), to_date: str = Query(pattern=r"^\d{4}-\d{2}-\d{2}$"), user=Depends(ANY)):
-    ledgers, bal = await closing_signed(to_date)
+    ledgers, bal = await closing_signed(user["business_id"], to_date)
     sumg = lambda g: round(sum(bal[i] for i, l in ledgers.items() if l["group"] == g), 2)
-    pl = await _pl(from_date, to_date)
+    pl = await _pl(user["business_id"], from_date, to_date)
     t = pl["totals"]
-    vs = await db.vouchers.find({"status": "active", "date": {"$gte": from_date, "$lte": to_date}}, NO_ID).to_list(50000)
+    vs = await db.vouchers.find({"business_id": user["business_id"], "status": "active", "date": {"$gte": from_date, "$lte": to_date}}, NO_ID).to_list(50000)
     months = defaultdict(lambda: {"income": 0.0, "expense": 0.0})
     for v in vs:
         m = v["date"][:7]
@@ -198,7 +198,7 @@ async def dashboard(from_date: str = Query(pattern=r"^\d{4}-\d{2}-\d{2}$"), to_d
         mo += 1
         if mo > 12:
             y, mo = y + 1, 1
-    recent = await db.vouchers.find({"status": "active"}, {**NO_ID, "items": 0}).sort([("date", -1), ("created_at", -1)]).to_list(8)
+    recent = await db.vouchers.find({"business_id": user["business_id"], "status": "active"}, {**NO_ID, "items": 0}).sort([("date", -1), ("created_at", -1)]).to_list(8)
     return {"total_sales": t.get("sales", 0), "total_purchases": t.get("purchase", 0),
             "cash_balance": sumg("cash"), "bank_balance": sumg("bank"),
             "receivables": sumg("sundry_debtors"), "payables": round(-sumg("sundry_creditors"), 2),

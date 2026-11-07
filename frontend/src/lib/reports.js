@@ -36,6 +36,43 @@ const outstanding = (kind) => async (p) => {
 
 const plRows = (d, keys, names) => keys.flatMap((k, i) => (d.sections[k]?.length ? [{ particulars: names[i], amount: d.totals[k], _bold: true }, ...d.sections[k].map((r) => ({ particulars: `    ${r.ledger}`, amount: r.amount }))] : []));
 
+const gstCols = [N("taxable", "Taxable"), N("igst", "IGST"), N("cgst", "CGST"), N("sgst", "SGST")];
+
+const gstr1 = async (p) => {
+  const { data: d } = await api.get("/reports/gstr1", { params: { month: p.month } });
+  const s = d.summary;
+  const inv = [C("gstin", "GSTIN"), C("party", "Party"), C("voucher_no", "Invoice No"), C("date", "Date"), C("place_of_supply", "Place of Supply"), N("rate", "Rate %"), ...gstCols];
+  const fix = (rows) => rows.map((r) => ({ ...r, date: dmy(r.date) }));
+  return { note: d.gstin ? `GSTIN ${d.gstin}` : "Set your GSTIN in Settings", sections: [
+    { title: "Summary", columns: [C("section", "Section"), C("count", "Docs"), ...gstCols], rows: [
+      { section: "4A - B2B invoices (registered)", count: String(s.b2b_count), ...s.b2b },
+      { section: "7 - B2C supplies (unregistered)", count: String(s.b2c_count), ...s.b2c },
+      { section: "9B - Credit notes (less)", count: String(s.note_count), ...s.cdn },
+    ], footer: { section: "Net outward supplies", count: String(s.invoice_count), ...s.net } },
+    { title: "B2B Invoices", columns: inv, rows: fix(d.b2b), footer: { gstin: "Total", ...s.b2b } },
+    { title: "B2C Summary (by place of supply & rate)", columns: [C("place_of_supply", "Place of Supply"), N("rate", "Rate %"), ...gstCols], rows: d.b2c, footer: { place_of_supply: "Total", ...s.b2c } },
+    { title: "Credit / Debit Notes", columns: inv, rows: fix(d.cdn), footer: { gstin: "Total", ...s.cdn } },
+    { title: "HSN-wise Summary", columns: [C("hsn", "HSN/SAC"), N("rate", "Rate %"), N("qty", "Qty"), ...gstCols, N("total", "Total Value")], rows: d.hsn },
+  ] };
+};
+
+const gstr3b = async (p) => {
+  const { data: d } = await api.get("/reports/gstr3b", { params: { month: p.month } });
+  const heads = [["igst", "Integrated Tax (IGST)"], ["cgst", "Central Tax (CGST)"], ["sgst", "State/UT Tax (SGST)"]];
+  return { note: d.gstin ? `GSTIN ${d.gstin}` : "Set your GSTIN in Settings", sections: [
+    { title: "3.1 Outward supplies", columns: [C("nature", "Nature of supplies"), ...gstCols], rows: [
+      { nature: "(a) Outward taxable supplies (net of credit notes)", ...d.outward_taxable },
+      { nature: "(c) Nil rated / exempted", ...d.outward_nil },
+    ] },
+    { title: "4 Eligible ITC (purchases net of debit notes)", columns: [C("nature", "Details"), ...gstCols], rows: [
+      { nature: "(A)(5) All other ITC", ...d.itc }, { nature: "Nil rated / exempt inward supplies", ...d.inward_nil },
+    ] },
+    { title: "6.1 Payment of tax", columns: [C("head", "Tax head"), N("liability", "Tax payable"), N("itc", "Paid through ITC"), N("cash", "Paid in cash"), N("carry", "ITC carried forward")],
+      rows: heads.map(([k, l]) => ({ head: l, liability: d.outward_taxable[k], itc: d.itc_utilised[k], cash: d.cash_payable[k], carry: d.itc_carry_forward[k] })),
+      footer: { head: "Total cash payable", cash: d.total_cash_payable } },
+  ] };
+};
+
 export const REPORTS = [
   { id: "day-book", label: "Day Book", filter: "range", load: async (p) => {
     const { data } = await api.get("/vouchers", { params: { from_date: p.from, to_date: p.to, status: "active", limit: 5000 } });
@@ -78,4 +115,6 @@ export const REPORTS = [
   { id: "payables", label: "Payables", filter: "asof", load: outstanding("payables") },
   { id: "sales-register", label: "Sales Register", filter: "range", load: register("sales") },
   { id: "purchase-register", label: "Purchase Register", filter: "range", load: register("purchase") },
+  { id: "gstr-1", label: "GSTR-1", filter: "month", load: gstr1 },
+  { id: "gstr-3b", label: "GSTR-3B", filter: "month", load: gstr3b },
 ];

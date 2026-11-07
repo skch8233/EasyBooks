@@ -17,10 +17,10 @@ class CancelIn(BaseModel):
     reason: str = ""
 
 
-async def _fy_for(date: str) -> dict:
+async def _fy_for(date: str, bid: str) -> dict:
     if not DATE_RE.match(date):
         raise HTTPException(400, "Invalid date")
-    fy = await db.financial_years.find_one({"start_date": {"$lte": date}, "end_date": {"$gte": date}}, NO_ID)
+    fy = await db.financial_years.find_one({"business_id": bid, "start_date": {"$lte": date}, "end_date": {"$gte": date}}, NO_ID)
     if not fy:
         raise HTTPException(400, "No financial year found for this date. Create it in Settings.")
     if fy.get("locked"):
@@ -28,9 +28,9 @@ async def _fy_for(date: str) -> dict:
     return fy
 
 
-async def _prepare(v: VoucherIn) -> dict:
+async def _prepare(v: VoucherIn, bid: str) -> dict:
     ids = {e.ledger_id for e in v.entries} | {v.party_ledger_id, v.account_ledger_id} - {None}
-    ledgers = {l["id"]: l for l in await db.ledgers.find({"active": True}, NO_ID).to_list(10000) if l["id"] in ids or l.get("system_key") in ("cgst", "sgst", "igst")}
+    ledgers = {l["id"]: l for l in await db.ledgers.find({"business_id": bid, "active": True}, NO_ID).to_list(10000) if l["id"] in ids or l.get("system_key") in ("cgst", "sgst", "igst")}
     gst = {l["system_key"]: l["id"] for l in ledgers.values() if l.get("system_key") in ("cgst", "sgst", "igst")}
     items, totals = [], {}
     entries = v.entries
@@ -54,7 +54,7 @@ async def _prepare(v: VoucherIn) -> dict:
 
 @router.get("/next-number")
 async def next_number(voucher_type: VoucherType, date: str, user=Depends(ANY)):
-    fy = await _fy_for(date)
+    fy = await _fy_for(date, user["business_id"])
     c = await db.counters.find_one({"_id": f"{fy['id']}:{voucher_type}"})
     seq = (c["seq"] if c else 0) + 1
     return {"voucher_no": f"{VOUCHER_TYPES[voucher_type]}/{fy['name']}/{seq:04d}"}
@@ -62,11 +62,11 @@ async def next_number(voucher_type: VoucherType, date: str, user=Depends(ANY)):
 
 @router.post("")
 async def create_voucher(v: VoucherIn, user=Depends(WRITE)):
-    fy = await _fy_for(v.date)
-    data = await _prepare(v)
+    fy = await _fy_for(v.date, user["business_id"])
+    data = await _prepare(v, user["business_id"])
     c = await db.counters.find_one_and_update({"_id": f"{fy['id']}:{v.voucher_type}"}, {"$inc": {"seq": 1}},
                                               upsert=True, return_document=ReturnDocument.AFTER)
-    doc = {**data, "id": new_id(), "fy_id": fy["id"], "seq": c["seq"],
+    doc = {**data, "id": new_id(), "business_id": user["business_id"], "fy_id": fy["id"], "seq": c["seq"],
            "voucher_no": f"{VOUCHER_TYPES[v.voucher_type]}/{fy['name']}/{c['seq']:04d}",
            "status": "active", "created_by": user["name"], "created_at": now_iso(), "updated_at": now_iso()}
     await db.vouchers.insert_one(doc)
@@ -77,7 +77,7 @@ async def create_voucher(v: VoucherIn, user=Depends(WRITE)):
 
 @router.put("/{vid}")
 async def update_voucher(vid: str, v: VoucherIn, user=Depends(WRITE)):
-    before = await db.vouchers.find_one({"id": vid}, NO_ID)
+    before = await db.vouchers.find_one({"id": vid, "business_id": user["business_id"]}, NO_ID)
     if not before:
         raise HTTPException(404, "Voucher not found")
     if before["status"] != "active":
@@ -87,10 +87,10 @@ async def update_voucher(vid: str, v: VoucherIn, user=Depends(WRITE)):
     old_fy = await db.financial_years.find_one({"id": before["fy_id"]}, NO_ID)
     if old_fy and old_fy.get("locked"):
         raise HTTPException(400, f"Financial year {old_fy['name']} is locked")
-    fy = await _fy_for(v.date)
+    fy = await _fy_for(v.date, user["business_id"])
     if fy["id"] != before["fy_id"]:
         raise HTTPException(400, "Voucher date must stay within its financial year")
-    data = await _prepare(v)
+    data = await _prepare(v, user["business_id"])
     await db.vouchers.update_one({"id": vid}, {"$set": {**data, "updated_at": now_iso(), "updated_by": user["name"]}})
     after = await db.vouchers.find_one({"id": vid}, NO_ID)
     await audit("voucher", vid, "update", user, before=clean(before), after=clean(after))
@@ -99,7 +99,7 @@ async def update_voucher(vid: str, v: VoucherIn, user=Depends(WRITE)):
 
 @router.post("/{vid}/cancel")
 async def cancel_voucher(vid: str, body: CancelIn, user=Depends(WRITE)):
-    before = await db.vouchers.find_one({"id": vid}, NO_ID)
+    before = await db.vouchers.find_one({"id": vid, "business_id": user["business_id"]}, NO_ID)
     if not before:
         raise HTTPException(404, "Voucher not found")
     if before["status"] == "cancelled":
@@ -117,7 +117,7 @@ async def cancel_voucher(vid: str, body: CancelIn, user=Depends(WRITE)):
 async def list_vouchers(from_date: Optional[str] = None, to_date: Optional[str] = None, voucher_type: Optional[str] = None,
                         ledger_id: Optional[str] = None, q: Optional[str] = None, status: Optional[str] = None,
                         limit: int = 500, user=Depends(ANY)):
-    query = {}
+    query = {"business_id": user["business_id"]}
     if from_date or to_date:
         query["date"] = {k: v for k, v in (("$gte", from_date), ("$lte", to_date)) if v}
     if voucher_type:
@@ -135,7 +135,7 @@ async def list_vouchers(from_date: Optional[str] = None, to_date: Optional[str] 
 
 @router.get("/{vid}")
 async def get_voucher(vid: str, user=Depends(ANY)):
-    v = await db.vouchers.find_one({"id": vid}, NO_ID)
+    v = await db.vouchers.find_one({"id": vid, "business_id": user["business_id"]}, NO_ID)
     if not v:
         raise HTTPException(404, "Voucher not found")
     history = await db.audit_logs.find({"entity_id": vid}, {**NO_ID, "before": 0, "after": 0}).sort("timestamp", 1).to_list(200)

@@ -1,8 +1,10 @@
 import { amt, dmy, VT } from "@/lib/format";
+import { printInvoice } from "@/lib/invoice";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
 export function printVoucher(v, s = {}) {
+  if (v.voucher_type === "sales" && v.items?.length) return printInvoice(v, s);
   const items = v.items?.length
     ? `<table><thead><tr><th>#</th><th>Item</th><th>HSN/SAC</th><th class=r>Qty</th><th class=r>Rate</th><th class=r>GST%</th><th class=r>Taxable</th><th class=r>Total</th></tr></thead><tbody>
       ${v.items.map((i, n) => `<tr><td>${n + 1}</td><td>${esc(i.description)}</td><td>${esc(i.hsn)}</td><td class=r>${i.qty}</td><td class=r>${amt(i.rate)}</td><td class=r>${i.gst_rate}</td><td class=r>${amt(i.amount)}</td><td class=r>${amt(i.total)}</td></tr>`).join("")}
