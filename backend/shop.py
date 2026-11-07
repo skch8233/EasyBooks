@@ -3,16 +3,19 @@ from datetime import date, datetime, timedelta
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from auth import ADMIN, SUPER
 from billing import _rzp, new_key
 from business import OFFLINE_PLANS
 from db import db, NO_ID, new_id, now_iso, audit, clean
-from licensing import OFFLINE, offline_status, save_code, sign_code, verify_code
+from emailer import create_invoice, email_purchase
+from licensing import OFFLINE, check_pc, offline_status, save_code, sign_code, verify_code
 
 router = APIRouter(prefix="/api")
 OfflinePlan = Literal["offline_first", "offline_renewal"]
+MACHINE_RE = re.compile(r"^[0-9A-F]{4}(-[0-9A-F]{4}){3}$")
+GSTIN_RE = re.compile(r"^[0-3][0-9][A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$")
 KEY_RE = re.compile(r"^EB-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$")
 
 
@@ -23,6 +26,20 @@ class Buyer(BaseModel):
     phone: str = ""
     business_name: str = ""
     licence_key: str = ""
+    gstin: str = Field(default="", max_length=15)
+
+    @field_validator("gstin")
+    @classmethod
+    def _gstin(cls, v: str) -> str:
+        v = v.strip().upper()
+        if v and not GSTIN_RE.match(v):
+            raise ValueError("Enter a valid 15-character GSTIN (e.g. 27ABCDE1234F1Z5) or leave it blank")
+        return v
+
+
+class BindIn(BaseModel):
+    key: str = Field(min_length=5, max_length=40)
+    machine_id: str = Field(max_length=40)
 
 
 class VerifyIn(BaseModel):
@@ -49,6 +66,11 @@ async def _existing(key: str, email: str = "") -> dict:
     return lic
 
 
+def _sign(key: str, name: str, biz: str, plan: str, expires: str, mid: str | None) -> str | None:
+    return sign_code({"k": key, "n": name, "b": biz, "p": plan, "i": date.today().isoformat(), "e": expires,
+                      "d": OFFLINE_PLANS[plan]["max_users"], "m": mid}) if mid else None
+
+
 async def issue_offline(b: Buyer, source: str, payment_id: str = "") -> dict:
     today = date.today()
     if b.plan == "offline_renewal":
@@ -58,14 +80,60 @@ async def issue_offline(b: Buyer, source: str, payment_id: str = "") -> dict:
     else:
         lic, key, expires = None, new_key(), (today + timedelta(days=365)).isoformat()
     name, biz = (lic or {}).get("name") or b.name, (lic or {}).get("business_name") or b.business_name or b.name
-    code = sign_code({"k": key, "n": name, "b": biz, "p": b.plan, "i": today.isoformat(), "e": expires, "d": OFFLINE_PLANS[b.plan]["max_users"]})
-    entry = {"plan": b.plan, "issued": now_iso(), "expires": expires, "code": code, "source": source, "payment_id": payment_id}
+    mid = (lic or {}).get("machine_id")
+    code = _sign(key, name, biz, b.plan, expires, mid)
+    entry = {"plan": b.plan, "issued": now_iso(), "expires": expires, "source": source, "payment_id": payment_id}
     if lic:
-        await db.offline_licences.update_one({"key": key}, {"$set": {"expires": expires, "code": code}, "$push": {"history": entry}})
+        await db.offline_licences.update_one({"key": key}, {"$set": {"expires": expires, "code": code, "plan": b.plan}, "$push": {"history": entry}})
     else:
-        await db.offline_licences.insert_one({"id": new_id(), "key": key, "name": name, "email": b.email.lower(), "phone": b.phone,
-                                              "business_name": biz, "expires": expires, "code": code, "history": [entry], "created_at": now_iso()})
-    return {"key": key, "code": code, "expires": expires, "plan": b.plan, "name": name, "business_name": biz}
+        await db.offline_licences.insert_one({"id": new_id(), "key": key, "name": name, "email": b.email.lower(), "phone": b.phone, "gstin": b.gstin.strip().upper(),
+                                              "business_name": biz, "plan": b.plan, "expires": expires, "code": None, "machine_id": None,
+                                              "history": [entry], "created_at": now_iso()})
+    plan = OFFLINE_PLANS[b.plan]
+    to = (lic or {}).get("email") or b.email.lower()
+    inv = await create_invoice(buyer={"name": name, "business_name": biz, "email": to, "phone": b.phone, "gstin": b.gstin or (lic or {}).get("gstin", "")},
+                               item=plan["name"], base=plan["price"], licence_key=key, payment_id=payment_id, source=source)
+    mail = await email_purchase(to=to, name=name, inv=inv, expires=expires, code=code, offline=True)
+    await db.offline_licences.update_one({"key": key}, {"$set": {"last_invoice": inv["number"], "last_email": mail}})
+    return {"key": key, "code": code, "expires": expires, "plan": b.plan, "name": name, "business_name": biz, "machine_id": mid,
+            "invoice_no": inv["number"], "email_status": mail["status"], "email": to}
+
+
+@router.post("/shop/activate")
+async def shop_activate(body: BindIn):
+    mid = body.machine_id.strip().upper()
+    if not MACHINE_RE.match(mid):
+        raise HTTPException(400, "Enter the Machine ID exactly as shown on the Licence screen (XXXX-XXXX-XXXX-XXXX)")
+    lic = await _existing(body.key)
+    if lic["expires"] < date.today().isoformat():
+        raise HTTPException(400, f"This licence expired on {lic['expires']}. Buy a renewal key first.")
+    res = await db.offline_licences.update_one({"key": lic["key"], "machine_id": {"$in": [None, mid]}}, {"$set": {"machine_id": mid}})
+    if not res.matched_count:
+        raise HTTPException(409, "This licence is already activated on another computer. Each key works on one PC only. Contact Hannusoft to move it to a new PC.")
+    code = _sign(lic["key"], lic["name"], lic["business_name"], lic.get("plan", "offline_first"), lic["expires"], mid)
+    await db.offline_licences.update_one({"key": lic["key"]}, {"$set": {"code": code, "bound_at": lic.get("bound_at") or now_iso()}})
+    return {"key": lic["key"], "code": code, "expires": lic["expires"], "machine_id": mid, "name": lic["name"], "business_name": lic["business_name"]}
+
+
+@router.post("/platform/offline-licences/{key}/reset-pc")
+async def reset_pc(key: str, user=Depends(SUPER)):
+    lic = await _existing(key)
+    await db.offline_licences.update_one({"key": lic["key"]}, {"$set": {"machine_id": None, "code": None, "bound_at": None}})
+    await audit("offline_licence", lic["key"], "reset_pc", user, note=f"was {lic.get('machine_id')}")
+    return {"ok": True}
+
+
+@router.post("/platform/offline-licences/{key}/resend")
+async def resend(key: str, user=Depends(SUPER)):
+    lic = await _existing(key)
+    inv = await db.hs_invoices.find_one({"number": lic.get("last_invoice")}, NO_ID)
+    if not inv:
+        raise HTTPException(404, "No invoice found for this licence")
+    mail = await email_purchase(to=lic["email"], name=lic["name"], inv=inv, expires=lic["expires"], code=lic.get("code"), offline=True)
+    await db.offline_licences.update_one({"key": lic["key"]}, {"$set": {"last_email": mail}})
+    if mail["status"] != "sent":
+        raise HTTPException(502, "Email could not be sent. Try again later.")
+    return mail
 
 
 @router.post("/shop/order")
@@ -155,6 +223,10 @@ async def offline_activate(body: CodeIn, user=Depends(ADMIN)):
         p = verify_code(body.code)
     except ValueError:
         raise HTTPException(400, "Invalid activation code. Copy the full code starting with EBOL1.")
+    try:
+        check_pc(p)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
     if p["e"] < date.today().isoformat():
         raise HTTPException(400, f"This activation code expired on {p['e']}. Buy a renewal key.")
     save_code(body.code)

@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { dmy } from "@/lib/format";
 import { PublicShell } from "@/components/PublicShell";
 
-const STEPS = ["Buy the first-year licence on the Buy page and save your activation code.", "Download and run EasyBooksSetup.exe, then follow the installer.",
-  "Open Easy Books from the Start menu and create your admin login.", "Go to Licence and paste your activation code. That's it.",
-  "Every year, buy a renewal key with your existing licence key and paste the new code."];
+const STEPS = ["Buy the first-year licence on the Buy page. Your key and GST invoice are emailed to you.", "Download and run EasyBooksSetup.exe, then follow the installer.",
+  "Open Easy Books from the Start menu and create your admin login.", "Go to Licence, enter your key and click Activate online. The key locks to this one PC.",
+  "Every year, buy a renewal key with your existing licence key and click Activate online again."];
 
 export default function DownloadPage() {
   const [d, setD] = useState(null);

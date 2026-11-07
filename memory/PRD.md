@@ -40,3 +40,9 @@ JWT email/password; roles Admin / Accountant / Viewer; single company + FY manag
 - P1: Stock/inventory items with HSN master; GSTR-1/3B summaries; aging buckets on receivables
 - P1: Multi-company support; FY deletion for empty years
 - P2: Invoice templates/logo, email/WhatsApp invoices, bank reconciliation, cheque printing
+
+## Round 6 (Nov 2026) - DONE
+- One PC lock: offline keys bind to a Machine ID on first activation (/api/shop/activate, /activate page, offline Licence "Activate online"); other PCs 409; codes carry machine id "m" and offline app rejects codes for another PC or unbound (Round 5) codes. Admin Reset PC / Resend email.
+- Email keys: Emergent-managed Resend email with licence key + GST tax invoice (HS/FY/NNNNN, SAC 997331, CGST/SGST or IGST) after every offline purchase/renewal, manual issue and online plan payment.
+- Placeholders pending from user: SELLER_GSTIN, SELLER_ADDRESS (backend/.env), REACT_APP_LICENCE_SERVER (offline/build_frontend.bat). Razorpay keys still missing (payments off).
+- Backlog: rate-limit /api/shop/activate, limit PC resets, downloadable invoice PDF.

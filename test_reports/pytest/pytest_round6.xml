@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="11" time="7.787" timestamp="2026-11-07T17:50:17.556792+00:00" hostname="agent-env-791b9ae1-b059-4d64-a811-a4045fcba215"><testcase classname="tests.test_round6_pc_lock_email.TestPcLockEmail" name="test_01_issue" time="1.163" /><testcase classname="tests.test_round6_pc_lock_email.TestPcLockEmail" name="test_02_list_and_invoice" time="0.157" /><testcase classname="tests.test_round6_pc_lock_email.TestPcLockEmail" name="test_03_activate_validation" time="0.863" /><testcase classname="tests.test_round6_pc_lock_email.TestPcLockEmail" name="test_04_first_pc_binds" time="0.378" /><testcase classname="tests.test_round6_pc_lock_email.TestPcLockEmail" name="test_05_same_pc_again_and_other_pc_409" time="0.290" /><testcase classname="tests.test_round6_pc_lock_email.TestPcLockEmail" name="test_06_reset_auth" time="0.759" /><testcase classname="tests.test_round6_pc_lock_email.TestPcLockEmail" name="test_07_reset_then_new_pc" time="0.751" /><testcase classname="tests.test_round6_pc_lock_email.TestPcLockEmail" name="test_08_resend" time="0.698" /><testcase classname="tests.test_round6_pc_lock_email.TestPcLockEmail" name="test_09_renewal_bound" time="2.020" /><testcase classname="tests.test_round6_pc_lock_email.TestPcLockEmail" name="test_10_expired_400" time="0.263" /><testcase classname="tests.test_round6_pc_lock_email.TestTaxes" name="test_igst_cgst" time="0.236"><failure message="KeyError: 'MONGO_URL'">tests/test_round6_pc_lock_email.py:170: in test_igst_cgst
+    import emailer
+emailer.py:13: in &lt;module&gt;
+    from db import db, new_id, now_iso
+db.py:6: in &lt;module&gt;
+    client = AsyncIOMotorClient(os.environ["MONGO_URL"])
+                                ^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen os&gt;:679: in __getitem__
+    ???
+E   KeyError: 'MONGO_URL'</failure></testcase></testsuite></testsuites>

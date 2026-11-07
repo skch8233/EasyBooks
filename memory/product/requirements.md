@@ -35,6 +35,11 @@ Branded Invoices: Let traders print sales invoices with their logo, GSTIN and a 
 - Pricing/trial details: see Next Round section above (₹6,500 + 18% GST for 1+1 free user; ₹10,000 + 18% GST for 3 to 8 users; 30-day free trial).
 - Razorpay: user's own Razorpay account; request keys from user via secrets when needed.
 
+## Round 6 — user's request (build now)
+"One PC Lock: Make each offline licence work on only one computer so keys can't be shared
+Email Keys: Send every buyer their licence key and GST invoice by email right after payment"
+- Email: use Resend (Emergent-managed).
+
 ## Round 5 — user's request (build now)
 "Offline Windows Version: Build the standalone offline version with licence keys and a website download page
 Online Key Purchase: Let traders buy every plan on the website and get their key right away"

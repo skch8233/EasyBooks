@@ -1,0 +1,43 @@
+{
+  "summary": "Round 6 (one-PC lock and purchase emails) tested on backend and frontend. All test emails went only to delivered@resend.dev: about 7 in total, all returned 202 from the Emergent email API. Backend: the new tests/test_round6_pc_lock_email.py passes 11/11. The round 5 harness, updated for machine-bound codes plus a new PC-lock test, passes 9/9. The full online regression (rounds 1-5, with round 5 updated for Round 6 behaviour) passes 81/81. Verified: (1) A superadmin issue returns code=null, machine_id=null, invoice HS/2026-27/NNNNN and email_status 'sent'. The GSTIN is stored uppercased. The hs_invoices doc has CGST 1080 + SGST 1080, total 14160, SAC 997331 and email.status sent. The list row has machine_id null, last_invoice and last_email {status sent, to}. (2) shop/activate: a bad hex or unhyphenated machine id gives 400, under 5 characters gives 422, a missing machine_id gives 422, and an unknown key gives 404. The first PC (lowercase key and machine id accepted) gives 200 with an EBOL1 code that verifies, with m=PC_A, k, e and d=8. The same PC gives 200 again, and another PC gives 409. An expired licence gives 400 'expired'. A legacy row with no machine_id field still binds. (3) reset-pc: a non-super user gets 403, no auth gets 401/403, and an unknown key gets 404. A superadmin reset clears machine_id and code, then PC_B activates and PC_A gets 409. (4) resend: a non-super user gets 403, an unknown key gets 404, and a superadmin gets 200 {status sent, to}. (5) A renewal on the bound licence returns a code bound to PC_B with p=offline_renewal and expiry +365. It gets a new invoice number (base 6500, total 7670), email sent, and the list is updated. (6) Unit test of _taxes: IGST when the buyer and seller states differ, CGST+SGST when they match, when there is no buyer GSTIN, or when SELLER_GSTIN is blank. (7) Offline harness (EB_MACHINE_ID set): /offline/status reports the expected machine_id. A code for another machine gives 400 'another computer', a code without m gives 400 'not locked', and a bound valid code activates. Frontend: Platform Admin: Issue is disabled until filled. Issuing shows KeyResult with the note 'Licence key and GST invoice HS/2026-27/00007 emailed to delivered@resend.dev' and the 'Works on one computer' steps (no code box). The table shows 'Not activated', 'Sent' + the invoice number, and a disabled Reset PC. /activate: the key is uppercased. It shows the EBOL1 code, the show full / less toggle, copy, and a download named EasyBooks-<key>.lic, with no email note. Another PC shows a 409 toast with a clear message. Back on Platform the PC column shows ABCD-EF01-2345-6789. Reset PC shows the confirm dialog, then the row returns to 'Not activated'. Resend email returned 200 (backend log); the toast had already gone before it was checked. /buy has the new buy-offline_first-gstin field, the pay button is disabled at ₹14,160.00, and /activate on mobile 390 has no overflow. There were no page errors. OfflineLicence.jsx was checked by code review only.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/shop/activate", "issue": "A machine_id under 5 characters fails Pydantic min_length, so the UI toast shows the raw message 'String should have at least 5 characters' instead of the friendly XXXX-XXXX-XXXX-XXXX message. Drop min_length on machine_id (the regex already covers it) or validate on the client."},
+      {"endpoint": "POST /api/shop/activate", "issue": "This is a public endpoint with no rate limit. It returns name and business_name for any valid key. Keys are high-entropy, so the risk is low, but consider throttling."},
+      {"endpoint": "POST /api/platform/offline-licences/{key}/reset-pc", "issue": "By design the old PC's signed code stays valid until expiry. After a reset plus a new activation, two PCs run until renewal. This is a business risk; consider a reset limit and audit review. The audit entry is written."},
+      {"endpoint": "Buyer.gstin", "issue": "Only max_length=15 is checked; there is no GSTIN format validation. A wrong state prefix silently changes IGST to CGST+SGST once SELLER_GSTIN is set."},
+      {"endpoint": "hs_invoices counter", "issue": "Testing on this DB consumed GST invoice numbers in the real HS/2026-27 series (00001 to 0000x; the test invoices were deleted, leaving gaps). Reset counters.hs_invoice_2026-27 before go-live so the series has no gaps."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Platform Admin > Issue offline licence", "issues": ["There is no GSTIN input (the /buy form has one), so manual or cash B2B sales can't put the buyer GSTIN on the emailed GST invoice. Add issue-gstin-input for first year."]},
+      {"screen": "/activate", "issues": ["There is no client-side format hint or validation for the Machine ID, so the raw Pydantic message can appear (see backend minor)."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_round6_pc_lock_email.py", "/app/backend/tests/test_round5_offline_shop.py", "/app/backend/tests/test_round5_offline_harness.py", "/app/test_reports/pytest/pytest_round6.xml", "/app/test_reports/pytest/pytest_regression_r6.xml"],
+  "action_items": [
+    "Add a GSTIN field to the admin Issue offline licence form (OfflineLicencesAdmin.jsx state + input)",
+    "Return the friendly 400 for short machine ids (remove min_length on BindIn.machine_id) and/or add client-side pattern validation on /activate",
+    "Optional: validate the GSTIN format (15 characters, 2-digit state code) in Buyer",
+    "Optional: rate-limit /api/shop/activate; consider limiting reset-pc usage",
+    "Before go-live: reset the hs_invoice counter so the GST invoice series starts clean"
+  ],
+  "critical_code_review_comments": [
+    "shop_activate binding is atomic (update_one with machine_id $in [None, mid]). None also matches a missing field, so legacy round 5 rows bind. This was verified.",
+    "issue_offline renewal: it keeps the original email, name and business and re-signs for the bound machine. An unbound renewal returns code=null, which is correct. The invoice uses b.phone from the renewal form, not the stored phone (minor).",
+    "email_purchase never raises. A failure is recorded as status 'failed' and the issue still succeeds, which is good. Resend gives 502 on failure. send_email uses async httpx with the safety scan.",
+    "OfflineLicence.jsx (code review only): it shows the Machine ID with copy, Activate online (disabled with an amber note while REACT_APP_LICENCE_SERVER is a placeholder), and the paste-code / .lic fallback. The online flow posts {key, machine_id} to SERVER/api/shop/activate and then /offline/licence. CORS '*' allows it. It looks correct.",
+    "Test-file writes under /app/backend/tests trigger the backend WatchFiles reload. This only affects dev."
+  ],
+  "updated_files": ["/app/backend/tests/test_round6_pc_lock_email.py (new)", "/app/backend/tests/test_round5_offline_shop.py (email changed to delivered@resend.dev, code is now null, invoice cleanup)", "/app/backend/tests/test_round5_offline_harness.py (signs its own machine-bound codes with EB_MACHINE_ID, adds the PC-lock test, no longer needs /tmp/eb_r5_code.txt)"],
+  "success_rate": {"backend": "100% (11/11 round 6 + 81/81 regression + 9/9 offline harness)", "frontend": "100% of requested flows"},
+  "test_credentials": "admin@easybooks.in / Admin@123 (superadmin, $2b$ bcrypt hash), ravi@gupta.in / secret1",
+  "seed_data_creation": "None left behind. The test offline licences and their hs_invoices were deleted by key. Invoice counter numbers were consumed (gaps). Audit entries remain. The existing non-test licence EB-74TN-UFTK-VBKK-F83E (main agent's) was not touched.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Export REACT_APP_BACKEND_URL and run with -n 0. test_round6_pc_lock_email.py sends 3 emails (issue, resend, renewal) and round5_offline_shop sends 2, all to delivered@resend.dev. Avoid re-running them needlessly. The round 5 harness is now independent: it uses EB_MACHINE_ID=TEST_R5_PC and signs codes with LICENCE_SIGNING_KEY from backend/.env. The system date is 2026-11-07 (FY 2026-27)."
+}

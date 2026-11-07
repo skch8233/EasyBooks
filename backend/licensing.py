@@ -1,5 +1,7 @@
 import base64
+import hashlib
 import json
+import uuid
 import os
 from datetime import date
 from pathlib import Path
@@ -35,6 +37,31 @@ def verify_code(code: str) -> dict:
         raise ValueError("Invalid activation code")
 
 
+def _raw_machine() -> str:
+    try:
+        import winreg
+        k = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Cryptography", 0, winreg.KEY_READ | winreg.KEY_WOW64_64KEY)
+        return winreg.QueryValueEx(k, "MachineGuid")[0]
+    except Exception:
+        pass
+    for p in ("/etc/machine-id", "/var/lib/dbus/machine-id"):
+        if Path(p).exists():
+            return Path(p).read_text().strip()
+    return str(uuid.getnode())
+
+
+def machine_id() -> str:
+    h = hashlib.sha256(f"easybooks:{os.environ.get('EB_MACHINE_ID') or _raw_machine()}".encode()).hexdigest().upper()[:16]
+    return "-".join(h[i:i + 4] for i in range(0, 16, 4))
+
+
+def check_pc(payload: dict) -> None:
+    if not payload.get("m"):
+        raise ValueError("This code is not locked to a computer. Use Activate online with your licence key to get a code for this PC.")
+    if payload["m"] != machine_id():
+        raise ValueError("This activation code belongs to another computer. Each licence works on one PC only.")
+
+
 def _state_path() -> Path:
     d = Path(os.environ.get("EB_DATA_DIR", "."))
     d.mkdir(parents=True, exist_ok=True)
@@ -48,6 +75,7 @@ def read_state() -> dict:
 
 def save_code(code: str) -> dict:
     payload = verify_code(code)
+    check_pc(payload)
     st = read_state()
     st.update({"code": code.strip(), "last_seen": max(date.today().isoformat(), st.get("last_seen", ""))})
     _state_path().write_text(json.dumps(st))
@@ -56,13 +84,14 @@ def save_code(code: str) -> dict:
 
 def offline_status() -> dict:
     st = read_state()
-    base = {"status": "expired", "ends_at": None, "days_left": 0, "max_users": 8, "plan": "offline", "licence": None}
+    base = {"status": "expired", "ends_at": None, "days_left": 0, "max_users": 8, "plan": "offline", "licence": None, "machine_id": machine_id()}
     if not st.get("code"):
         return base
     try:
         p = verify_code(st["code"])
-    except ValueError:
-        return base
+        check_pc(p)
+    except ValueError as exc:
+        return {**base, "reason": str(exc)}
     today = date.today()
     last = date.fromisoformat(st["last_seen"]) if st.get("last_seen") else today
     if today > last:

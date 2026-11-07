@@ -42,6 +42,7 @@ def _cleanup():
     db = MongoClient(env["MONGO_URL"])[env["DB_NAME"]]
     if CREATED_KEYS:
         db.offline_licences.delete_many({"key": {"$in": CREATED_KEYS}})
+        db.hs_invoices.delete_many({"licence_key": {"$in": CREATED_KEYS}})
     db.app_releases.delete_many({"id": "offline-windows", "url": "https://example.com/TEST_EasyBooks.exe"})
 
 
@@ -90,39 +91,35 @@ class TestOfflineLicences:
 
     def test_issue_first(self, sa):
         r = requests.post(f"{BASE_URL}/api/platform/offline-licences", headers=sa,
-                          json={"plan": "offline_first", "name": "TEST_Offline Buyer", "email": "TEST_off@example.com", "business_name": "TEST_Off Biz"})
+                          json={"plan": "offline_first", "name": "TEST_Offline Buyer", "email": "delivered@resend.dev", "business_name": "TEST_Off Biz"})
         assert r.status_code == 200, r.text
         d = r.json()
         import re
         assert re.match(r"^EB-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$", d["key"])
-        assert d["code"].startswith("EBOL1.")
+        assert d["code"] is None  # Round 6: code only after PC binding
         assert d["expires"] == (date.today() + timedelta(days=365)).isoformat()
-        p = _payload(d["code"])
-        assert p["k"] == d["key"] and p["e"] == d["expires"] and p["d"] == 8 and p["p"] == "offline_first"
-        assert p["b"] == "TEST_Off Biz"
+        assert d["business_name"] == "TEST_Off Biz"
         TestOfflineLicences.state.update(d)
         CREATED_KEYS.append(d["key"])
-        with open("/tmp/eb_r5_code.txt", "w") as f:
-            f.write(d["code"])
 
     def test_list(self, sa):
         r = requests.get(f"{BASE_URL}/api/platform/offline-licences", headers=sa)
         assert r.status_code == 200
         rows = r.json()
         row = next(x for x in rows if x["key"] == self.state["key"])
-        assert row["email"] == "test_off@example.com"
+        assert row["email"] == "delivered@resend.dev"
         assert "history" not in row and "_id" not in row
 
     def test_renew_extends(self, sa):
         r = requests.post(f"{BASE_URL}/api/platform/offline-licences", headers=sa,
-                          json={"plan": "offline_renewal", "name": "x", "email": "TEST_off@example.com", "licence_key": self.state["key"].lower()})
+                          json={"plan": "offline_renewal", "name": "x", "email": "delivered@resend.dev", "licence_key": self.state["key"].lower()})
         assert r.status_code == 200, r.text
         d = r.json()
         assert d["key"] == self.state["key"]
         exp = date.fromisoformat(self.state["expires"]) + timedelta(days=365)
         assert d["expires"] == exp.isoformat()
         assert d["name"] == "TEST_Offline Buyer"  # original name kept
-        assert _payload(d["code"])["p"] == "offline_renewal"
+        assert d["code"] is None and d["plan"] == "offline_renewal"
         rows = requests.get(f"{BASE_URL}/api/platform/offline-licences", headers=sa).json()
         assert next(x for x in rows if x["key"] == d["key"])["expires"] == exp.isoformat()
 
@@ -143,7 +140,7 @@ class TestOfflineLicences:
     def test_online_offline_endpoints(self, sa):
         r = requests.get(f"{BASE_URL}/api/offline/status")
         assert r.status_code == 200 and r.json()["offline"] is False
-        r = requests.post(f"{BASE_URL}/api/offline/licence", headers=sa, json={"code": self.state["code"]})
+        r = requests.post(f"{BASE_URL}/api/offline/licence", headers=sa, json={"code": "EBOL1.x.y"})
         assert r.status_code == 400 and "offline version" in r.json()["detail"]
 
 

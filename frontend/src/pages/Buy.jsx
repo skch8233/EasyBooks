@@ -16,7 +16,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const price = (p) => `₹${amt(p.price).replace(".00", "")}`;
 
 const OfflineForm = ({ plan, enabled, onDone }) => {
-  const [f, setF] = useState({ name: "", email: "", phone: "", business_name: "", licence_key: "" });
+  const [f, setF] = useState({ name: "", email: "", phone: "", business_name: "", licence_key: "", gstin: "" });
   const [busy, setBusy] = useState(false);
   const renewal = plan.key === "offline_renewal";
   const pay = async (e) => {
@@ -33,7 +33,7 @@ const OfflineForm = ({ plan, enabled, onDone }) => {
       }).open();
     } catch (er) { toast.error(errMsg(er)); setBusy(false); }
   };
-  const fields = [["name", "Your name", true], ["email", "Email", true], ["phone", "Mobile", false], ...(renewal ? [["licence_key", "Existing licence key (EB-XXXX-...)", true]] : [["business_name", "Business name (printed on licence)", false]])];
+  const fields = [["name", "Your name", true], ["email", "Email", true], ["phone", "Mobile", false], ...(renewal ? [["licence_key", "Existing licence key (EB-XXXX-...)", true]] : [["business_name", "Business name (printed on licence)", false], ["gstin", "GSTIN for invoice (optional)", false]])];
   return (
     <form onSubmit={pay} className="grid gap-3 sm:grid-cols-2" data-testid={`buy-form-${plan.key}`}>
       {fields.map(([k, l, req]) => (
@@ -70,7 +70,7 @@ export default function Buy() {
     <PublicShell>
       <div className="max-w-6xl mx-auto px-5 py-14 space-y-12" data-testid="buy-page">
         <div><h1 className="font-heading text-4xl sm:text-5xl font-extrabold tracking-tight">Buy Easy Books</h1>
-          <p className="text-slate-500 mt-3 text-lg">Pick online (browser and mobile) or the standalone offline Windows software. Your annual key appears right after payment.</p></div>
+          <p className="text-slate-500 mt-3 text-lg">Pick online (browser and mobile) or the standalone offline Windows software. Your annual key appears right after payment and is emailed to you with a GST invoice.</p></div>
         {!d.payments_enabled && <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" data-testid="buy-payments-disabled">Online payment is being set up. To buy a key today, contact Hannusoft. Keys can be issued manually.</div>}
         {result && <KeyResult r={result} />}
         <section className="space-y-4">

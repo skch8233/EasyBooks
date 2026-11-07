@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from auth import ANY, ADMIN, SUPER
 from business import PLANS, TRIAL_USERS, get_business, status_of, extend_subscription
 from db import db, NO_ID, new_id, now_iso, audit, clean
+from emailer import create_invoice, email_purchase
 
 router = APIRouter(prefix="/api")
 PlanKey = Literal["basic", "pro"]
@@ -137,7 +138,12 @@ async def verify_payment(body: VerifyIn, user=Depends(ADMIN)):
     lic = await issue_licence(user["business_id"], pay["plan"], sub["subscription_ends"], "payment")
     await db.payments.update_one({"order_id": body.razorpay_order_id}, {"$set": {"licence_key": lic["key"], "valid_till": sub["subscription_ends"]}})
     await audit("subscription", user["business_id"], "payment", user, note=f"{pay['plan']} plan paid, valid till {sub['subscription_ends'][:10]}")
-    return {"ok": True, **sub, "licence_key": lic["key"]}
+    b = await get_business(user["business_id"])
+    inv = await create_invoice(buyer={"name": user["name"], "business_name": b["name"], "email": user["email"], "gstin": b.get("gstin", "")},
+                               item=f"Easy Books Online - {PLANS[pay['plan']]['name']}", base=PLANS[pay["plan"]]["price"],
+                               licence_key=lic["key"], payment_id=body.razorpay_payment_id, source="payment")
+    mail = await email_purchase(to=user["email"], name=user["name"], inv=inv, expires=sub["subscription_ends"])
+    return {"ok": True, **sub, "licence_key": lic["key"], "invoice_no": inv["number"], "email_status": mail["status"]}
 
 
 @router.get("/licences")

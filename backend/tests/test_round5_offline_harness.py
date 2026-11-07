@@ -18,11 +18,30 @@ DATA = Path("/tmp/ebdt")
 DB = "eb_off_t"
 
 
+MACHINE_SEED = "TEST_R5_PC"
+
+
 def _sign(payload):
     sys.path.insert(0, str(BACKEND))
     os.environ["LICENCE_SIGNING_KEY"] = dotenv_values(BACKEND / ".env")["LICENCE_SIGNING_KEY"]
     import licensing
     return licensing.sign_code(payload)
+
+
+def _mid():
+    sys.path.insert(0, str(BACKEND))
+    import licensing
+    old = os.environ.get("EB_MACHINE_ID")
+    os.environ["EB_MACHINE_ID"] = MACHINE_SEED
+    try:
+        return licensing.machine_id()
+    finally:
+        os.environ.pop("EB_MACHINE_ID", None) if old is None else os.environ.__setitem__("EB_MACHINE_ID", old)
+
+
+def _valid_code():
+    return _sign({"k": "EB-TR5A-TR5A-TR5A-TR5A", "n": "TEST", "b": "TEST_Off", "p": "offline_first", "i": date.today().isoformat(),
+                  "e": (date.today() + timedelta(days=365)).isoformat(), "d": 8, "m": _mid()})
 
 
 @pytest.fixture(scope="module")
@@ -35,7 +54,7 @@ def srv():
     subprocess.run(["mongosh", DB, "--quiet", "--eval", "db.dropDatabase()"], check=False)
     env = {**os.environ, "MONGO_URL": "mongodb://localhost:27017", "DB_NAME": DB, "JWT_SECRET": "x",
            "LICENCE_PUBLIC_KEY": "G8Jy7VEVHgl6Vp6oRf645qoqsqcoEf3XqWXiJG8-E_g", "EB_DATA_DIR": str(DATA),
-           "FRONTEND_DIR": str(FRONT), "EB_PORT": str(PORT)}
+           "FRONTEND_DIR": str(FRONT), "EB_PORT": str(PORT), "EB_MACHINE_ID": MACHINE_SEED}
     env.pop("LICENCE_SIGNING_KEY", None)
     p = subprocess.Popen([sys.executable, "offline_server.py"], cwd="/app/offline/server", env=env,
                          stdout=open("/tmp/eb_off.log", "w"), stderr=subprocess.STDOUT)
@@ -75,7 +94,7 @@ class TestOfflineHarness:
         assert r.status_code == 402, r.text
 
     def test_04_invalid_codes(self, srv):
-        code = open("/tmp/eb_r5_code.txt").read().strip()
+        code = _valid_code()
         pre, body, sig = code.split(".")
         bad = [
             "garbage",
@@ -94,14 +113,28 @@ class TestOfflineHarness:
             assert r.status_code == 400, (c[:30], r.status_code, r.text)
         assert requests.get(f"{URL}/api/offline/status").json()["status"] == "expired"
 
+    # Round 6: one-PC lock in the offline app (check_pc)
+    def test_04b_pc_lock(self, srv):
+        s = requests.get(f"{URL}/api/offline/status").json()
+        assert s["machine_id"] == _mid()
+        base = {"k": "EB-TR5B-TR5B-TR5B-TR5B", "n": "x", "b": "x", "p": "offline_first", "i": date.today().isoformat(),
+                "e": (date.today() + timedelta(days=365)).isoformat(), "d": 8}
+        other = _sign({**base, "m": "AAAA-BBBB-CCCC-DDDD"})
+        r = requests.post(f"{URL}/api/offline/licence", headers=self.st["h"], json={"code": other})
+        assert r.status_code == 400 and "another computer" in r.json()["detail"], r.text
+        unbound = _sign(base)
+        r = requests.post(f"{URL}/api/offline/licence", headers=self.st["h"], json={"code": unbound})
+        assert r.status_code == 400 and "not locked" in r.json()["detail"], r.text
+        assert requests.get(f"{URL}/api/offline/status").json()["status"] == "expired"
+
     def test_05_expired_code(self, srv):
         past = (date.today() - timedelta(days=1)).isoformat()
-        c = _sign({"k": "EB-TEST-TEST-TEST-TEST", "n": "x", "b": "x", "p": "offline_first", "i": "2024-01-01", "e": past, "d": 8})
+        c = _sign({"k": "EB-TEST-TEST-TEST-TEST", "n": "x", "b": "x", "p": "offline_first", "i": "2024-01-01", "e": past, "d": 8, "m": _mid()})
         r = requests.post(f"{URL}/api/offline/licence", headers=self.st["h"], json={"code": c})
         assert r.status_code == 400 and "expired" in r.json()["detail"]
 
     def test_06_valid_code(self, srv):
-        code = open("/tmp/eb_r5_code.txt").read().strip()
+        code = _valid_code()
         r = requests.post(f"{URL}/api/offline/licence", headers=self.st["h"], json={"code": code})
         assert r.status_code == 200, r.text
         d = r.json()

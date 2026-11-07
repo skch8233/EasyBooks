@@ -9,7 +9,20 @@ Easy Books.exe (Electron window)
  └── frontend\                     the React UI built in offline mode
 ```
 
-Licences use the keys sold on the website (/buy). Each purchase or renewal gives an **activation code** (`EBOL1....`). The code is signed by the website. The app checks it offline with the public key in `desktop/main.js`, so no internet is needed. Without a valid, unexpired code the books are read-only. A renewal key (₹6,500 + GST) is needed every year after the first.
+Licences use the keys sold on the website (/buy). **Each licence key works on one PC only.** The buyer gets the key (`EB-XXXX-XXXX-XXXX-XXXX`) and a GST invoice by email right after payment. Activation:
+
+1. The offline app shows this PC's **Machine ID** on the Licence screen.
+2. **Activate online:** enter the key and click Activate online. The website locks the key to that Machine ID and sends back a signed **activation code** (`EBOL1....`). Internet is needed only for this one step.
+3. **No internet on the PC:** on any phone or PC, open `<your site>/activate`, enter the key and Machine ID, then paste the code (or open the .lic file) on the Licence screen.
+
+The app checks the code offline with the public key in `desktop/main.js`. It refuses codes made for another computer. Without a valid, unexpired code for this PC, the books are read-only. A renewal key (₹6,500 + GST) is needed every year after the first. After renewing, click Activate online again on the same PC.
+
+**Moving to a new PC:** on the website, open Platform Admin → offline licences → **Reset PC**, then activate on the new PC. The old PC keeps working until its current code expires, because offline codes can't be cancelled remotely.
+
+**Codes issued before the one-PC lock (Round 5) no longer work.** Activate those customers again with their key.
+
+## Before you build: set your website address
+Open `offline\build_frontend.bat` and replace `https://YOUR-EASYBOOKS-SITE` with your live Easy Books website, for example `https://books.hannusoft.com`. "Activate online" uses this address. If it is left as the placeholder, the button is disabled and customers must use the `/activate` page instead.
 
 ## Build it (one time, about 30 minutes)
 
@@ -35,7 +48,7 @@ Steps (Command Prompt, in the project folder):
    The installer is created at `offline\desktop\dist\EasyBooksSetup-1.0.0.exe`.
 6. **Test it**:
    - Install it on a PC, open Easy Books and create the admin login ("Set up your business").
-   - Open Licence and paste an activation code. Get one from Platform Admin → "Issue offline licence" on the website.
+   - Open Licence, enter a licence key and click Activate online. Get a key from Platform Admin → "Issue offline licence" on the website.
 7. **Publish it**:
    - Upload the .exe to GitHub Releases, Google Drive (set it to "Anyone with the link") or any file host.
    - On the website, open Platform Admin → "Offline .exe download link", paste the link and save.
@@ -48,4 +61,5 @@ Change `version` in `offline/desktop/package.json`, repeat steps 1, 2 and 5, the
 - **Keep the signing key secret.** `LICENCE_SIGNING_KEY` lives only on the website server (backend/.env). Never put it in the offline app.
 - **If you change the signing key pair,** update `LICENCE_PUBLIC_KEY` in both `backend/.env` and `offline/desktop/main.js`. All earlier activation codes will stop working.
 - **Prices** are set in `backend/business.py` (`PLANS` and `OFFLINE_PLANS`).
+- **Invoice seller details:** fill `SELLER_GSTIN` and `SELLER_ADDRESS` in `backend/.env`. While they are blank, invoices don't show them and always use CGST + SGST.
 - **Backups:** customers should back up from Settings → Backup & Restore.

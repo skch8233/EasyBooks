@@ -22,6 +22,7 @@ import PayPage from "@/pages/PayPage";
 import Buy from "@/pages/Buy";
 import DownloadPage from "@/pages/Download";
 import OfflineLicence from "@/pages/OfflineLicence";
+import Activate from "@/pages/Activate";
 import { OFFLINE } from "@/lib/offline";
 
 const Protected = ({ children, write }) => {
@@ -42,6 +43,7 @@ function App() {
           <Route path="/welcome" element={OFFLINE ? <Navigate to="/login" replace /> : <Landing />} />
           <Route path="/buy" element={<Buy />} />
           <Route path="/download" element={<DownloadPage />} />
+          <Route path="/activate" element={<Activate />} />
           <Route path="/i/:token" element={<PublicInvoice />} />
           <Route path="/pay/:token" element={<PayPage />} />
           <Route element={<Protected><Layout /></Protected>}>
