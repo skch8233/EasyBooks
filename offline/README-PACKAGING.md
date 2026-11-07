@@ -68,3 +68,11 @@ Change `version` in `offline/desktop/package.json`, repeat steps 1, 2 and 5, the
 - **Prices** are set in `backend/business.py` (`PLANS` and `OFFLINE_PLANS`).
 - **Invoice seller details:** fill `SELLER_GSTIN` and `SELLER_ADDRESS` in `backend/.env`. While they are blank, invoices don't show them and always use CGST + SGST.
 - **Backups:** customers should back up from Settings → Backup & Restore.
+
+## Lock files
+The platform's Save to GitHub does not upload `yarn.lock` files. Copies are kept in `offline/locks/` (`frontend-yarn-lock.txt`, `desktop-yarn-lock.txt`), and the GitHub build restores them before installing. If you add or upgrade packages, refresh the copies:
+```
+cp frontend/yarn.lock offline/locks/frontend-yarn-lock.txt
+cp offline/desktop/yarn.lock offline/locks/desktop-yarn-lock.txt
+```
+If a copy is missing, the build still works. It installs the latest versions allowed by package.json.

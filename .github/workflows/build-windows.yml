@@ -50,9 +50,16 @@ jobs:
 
       - name: Check required files are in the repository
         run: |
-          $need = "frontend/package.json","frontend/yarn.lock","backend/server.py","offline/server/offline_server.py","offline/server/requirements-offline.txt","offline/desktop/package.json","offline/desktop/main.js","offline/desktop/icon.ico"
+          $need = "frontend/package.json","backend/server.py","offline/server/offline_server.py","offline/server/requirements-offline.txt","offline/desktop/package.json","offline/desktop/main.js","offline/desktop/icon.ico"
           $missing = $need | Where-Object { -not (Test-Path $_) }
           if ($missing) { Write-Error "Missing from GitHub: $($missing -join ', ')"; exit 1 }
+
+      - name: Restore yarn lock files (saved as .txt because yarn.lock is not uploaded)
+        run: |
+          foreach ($p in @(@("offline/locks/frontend-yarn-lock.txt","frontend/yarn.lock"), @("offline/locks/desktop-yarn-lock.txt","offline/desktop/yarn.lock"))) {
+            if (-not (Test-Path $p[1]) -and (Test-Path $p[0])) { Copy-Item $p[0] $p[1]; Write-Host "Restored $($p[1])" }
+            elseif (-not (Test-Path $p[1])) { Write-Warning "$($p[1]) not found - installing latest matching versions" }
+          }
 
       - name: Build the app screens (React)
         working-directory: frontend
