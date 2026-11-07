@@ -1,0 +1,41 @@
+{
+  "summary": "Round 3 and the interrupted Round 2 retest are done. Backend: a new suite (tests/test_round3_share_public_fixes.py, 14 cases) passes 100%. The regression suites test_round2_multitenant.py and test_easybooks_api.py also pass (34/34), so 48/48 overall. Checked: public /api/public/plans (6500 -> 7670, 10000 -> 11800, payments_enabled=false, trial 30); POST /vouchers/{id}/share (token is stable on repeat calls, returns the party phone, 400 for non-sales, 404 cross-tenant, 401/403 without auth); public invoice GET returns no entries, id, business_id or share_token, and only whitelisted settings and party fields; the logo returns 404 when there is none; an invalid token gives 404; Gupta SAL/2026-27/0002 returns Gupta's own invoice. Round 2 fixes all verified: a foreign backup restore gives 400 both with and without business_id, and the data stays intact; own restore gives 200 with TB balanced; the expired business gets 402 on settings PUT, logo, FY create/update, and users create/update, while audit-logs stays readable; an invalid signup GSTIN gives 400; 10 parallel activations on a new licence give exactly 2x200 and 8x400; revoke writes an audit entry in the owner's business; GSTR-1 b2b_count/b2c_count count unique invoices; a settings PUT with only company fields keeps upi, bank and terms. Frontend: logged-out / goes to /welcome with hero, features, both plans and Hannusoft footer; all 5 trial CTAs go to /signup and Sign in goes to /login; Hannusoft logo and copyright show on login, signup, the sidebar (made-by-hannusoft), the app footer and the public invoice page; the invoice HTML footer has the Hannusoft text. WhatsApp was verified by capturing the popup: the row icon, dialog button and post-save banner each call /share (200) and open wa.me (redirected to api.whatsapp.com) with phone=91XXXXXXXXXX (a leading 0 is stripped), the invoice number, amount and the /i/<token> link. There is no button for cancelled, receipt or expired vouchers. The public /i/<token> page works without login, shows TAX INVOICE in an iframe with Print enabled, shows a CANCELLED marker on cancelled invoices, and shows an inline error for a bad token. /platform as ravi redirects to / with no overlay. Expired admin can open /audit. The licence tester shows 'Device limit reached' and 'Invalid licence key' inline. Report tabs wrap (13 tabs, none overflow). Subscription shows 'payments not configured' with both pay buttons disabled. Trial Balance balanced. No page errors.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/vouchers/{id}/share", "issue": "A cancelled sales voucher can still be shared (200, a token is issued). The UI hides the button, but the API does not block it. Old links to cancelled invoices still resolve (they show a CANCELLED marker). Consider returning 400 for status=cancelled."},
+      {"endpoint": "POST /api/vouchers/{id}/share", "issue": "Uses ANY, so viewers and expired (read-only) businesses can create share tokens, which is a DB write. Probably acceptable, but it is a write that bypasses ADMIN_WRITE/WRITE."},
+      {"endpoint": "GET /api/public/invoice/{token}", "issue": "The response exposes the internal party_ledger_id (a UUID). It is harmless but not needed. Share tokens never expire and cannot be revoked."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "PublicInvoice iframe (mobile 390px)", "issue": "Customers open the WhatsApp link on their phones, but the 10-column item table in the invoice HTML is wider than the viewport. The CGST/SGST/Total columns are cut off on the right, and the 'Amount in words' box squeezes into a narrow column. Add responsive CSS to renderInvoice (overflow-x:auto wrapper, or a smaller font/stacked layout below 600px), or scale the iframe.", "selector": "[data-testid='public-invoice-frame']", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Invoice header (lib/invoice.js line 55)", "issues": ["When the company has no phone, the header shows a stray leading '· ' before the email."]},
+      {"screen": "Public invoice page", "issues": ["The header just says 'Invoice'. Consider showing the company name and invoice number.", "On an invalid token, the Print and Save as PDF buttons still show (disabled). Hiding them would be cleaner."]},
+      {"screen": "Voucher entry post-save banner", "issues": ["The WhatsApp button uses the default size, but Print is size=sm, so the two buttons have different heights."]},
+      {"screen": "Login left panel", "issues": ["The 11px slate-500 copyright text on the dark navy panel has low contrast. Use slate-400."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_round3_share_public_fixes.py", "/app/backend/tests/test_round2_multitenant.py", "/app/backend/tests/test_easybooks_api.py", "/app/test_reports/pytest/pytest_round3.xml", "/app/test_reports/pytest/pytest_regression_r3.xml"],
+  "action_items": [
+    "Make the shared invoice HTML responsive on mobile phones (the item table is cut off at 390px)",
+    "Optional: block /share for cancelled vouchers, and remove the stray '· ' in the invoice header when there is no phone"
+  ],
+  "critical_code_review_comments": [
+    "whatsapp.js opens about:blank before the API call so the popup is not blocked. That is good. When the popup is blocked it falls back to window.location, which navigates away from the app. This is acceptable.",
+    "public.py imports _storage from routes_admin, which is fine. Share tokens have 16 bytes of entropy, which is OK. Consider an index on vouchers.share_token for lookup speed.",
+    "Restore now checks ids against other businesses for collisions, and rolls back from the snapshot on insert failure. Verified."
+  ],
+  "updated_files": ["/app/backend/tests/test_round3_share_public_fixes.py"],
+  "success_rate": {"backend": "100% (48/48 pytest: 14 new + 34 regression)", "frontend": "~95% (all requested flows pass; the mobile public invoice layout is cut off)"},
+  "test_credentials": "admin@easybooks.in/Admin@123, ravi@gupta.in/secret1, expired@test.in/secret1 all worked. None were locked or modified.",
+  "seed_data_creation": "Created new TEST_ signup businesses: TEST_r3a, TEST_r3b, TEST_r3lic (basic +30d, revoked licence), and TEST_r3probe Traders (test_r3probe_1a1bcd@example.com / secret1, party TEST_P, SAL/0001 cancelled, SAL/0002 shared with token tECFYffbpQv8aBSfRbQJoQ, SAL/0003 made through the UI, RCT/0001). The cancelled-invoice token is xBthjXMIRQ9lIMzzQcx6IA. Gupta Kirana: only called /share on SAL/0002, which already had a token, so nothing changed. One activation attempt on Gupta's full licence was correctly rejected, so nothing changed there either.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run: cd /app/backend && REACT_APP_BACKEND_URL=<url> pytest tests/test_round3_share_public_fixes.py tests/test_round2_multitenant.py tests/test_easybooks_api.py -n 0. All suites create fresh signup businesses, so they are safe to rerun. To verify WhatsApp in headless mode, use context.expect_page() around the click. The popup lands on api.whatsapp.com/send?phone=... Use the TEST_r3probe business for UI share tests.",
+  "rca of the issue": "Mobile public invoice: renderInvoice outputs fixed desktop A4-style HTML (a 10-column table with no viewport meta or media queries). The iframe is w-full, so at 390px the table overflows the iframe body and the right columns are cut off."
+}

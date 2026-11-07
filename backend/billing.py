@@ -216,8 +216,9 @@ async def platform_extend(bid: str, body: ExtendIn, user=Depends(SUPER)):
 
 @router.post("/platform/licences/{lid}/revoke")
 async def revoke(lid: str, user=Depends(SUPER)):
-    res = await db.licences.update_one({"id": lid}, {"$set": {"status": "revoked"}})
-    if not res.matched_count:
+    lic = await db.licences.find_one({"id": lid}, NO_ID)
+    if not lic:
         raise HTTPException(404, "Licence not found")
-    await audit("licence", lid, "revoke", user)
+    await db.licences.update_one({"id": lid}, {"$set": {"status": "revoked"}})
+    await audit("licence", lid, "revoke", {**user, "business_id": lic["business_id"]}, note=f"Revoked by platform admin {user['email']}")
     return {"ok": True}

@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DateInput } from "@/components/DateInput";
 import { LedgerSelect } from "@/components/LedgerSelect";
 import { VoucherDialog } from "@/components/VoucherDialog";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 
 const COLS = [
   { key: "date", label: "Date" }, { key: "voucher_no", label: "Voucher No" }, { key: "type", label: "Type" },
@@ -75,7 +76,8 @@ export default function Vouchers() {
                 <td className="font-medium">{r.party_name}</td>
                 <td className="text-slate-500 truncate max-w-[240px]">{r.narration}</td>
                 <td className={`text-right num ${r.status === "cancelled" ? "line-through" : ""}`}>{amt(r.amount)}</td>
-                <td>{r.status === "cancelled" ? <span className="text-xs font-semibold text-red-600">Cancelled</span> : <span className="text-xs font-semibold text-emerald-700">Active</span>}</td>
+                <td className="whitespace-nowrap">{r.status === "cancelled" ? <span className="text-xs font-semibold text-red-600">Cancelled</span> : <span className="text-xs font-semibold text-emerald-700">Active</span>}
+                  <WhatsAppButton voucher={r} compact testid={`row-whatsapp-${r.voucher_no}`} /></td>
               </tr>
             ))}
           </tbody>

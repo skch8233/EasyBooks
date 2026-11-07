@@ -6,6 +6,7 @@ import { api, errMsg } from "@/lib/api";
 import { useApp } from "@/context/AppContext";
 import { VTYPES, VT, ITEM_TYPES, todayIso } from "@/lib/format";
 import { printVoucher } from "@/lib/print";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -109,7 +110,8 @@ export default function VoucherEntry() {
       {last && !id && (
         <div className="flex flex-wrap items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm" data-testid="last-saved-banner">
           <CheckCircle2 className="h-5 w-5 text-emerald-600" /> Saved <b className="font-mono">{last.voucher_no}</b> for {last.party_name}
-          <Button size="sm" variant="outline" className="ml-auto" onClick={() => printVoucher(last, settings)} data-testid="print-last-voucher-button"><Printer className="h-4 w-4 mr-1" /> Print</Button>
+          <span className="ml-auto flex gap-2"><WhatsAppButton voucher={last} testid="whatsapp-last-voucher-button" />
+          <Button variant="outline" onClick={() => printVoucher(last, settings)} data-testid="print-last-voucher-button"><Printer className="h-4 w-4 mr-1" /> Print</Button></span>
         </div>
       )}
       <div className="rounded-xl border bg-white p-5 sm:p-6 space-y-6">

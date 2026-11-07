@@ -17,13 +17,14 @@ import routes_reports
 import routes_admin
 import billing
 import gst
+import public
 import business
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Easy Books Accounting")
-for r in (auth.router, auth.users_router, routes_ledgers.router, routes_vouchers.router, routes_reports.router, routes_admin.router, billing.router, gst.router):
+for r in (auth.router, auth.users_router, routes_ledgers.router, routes_vouchers.router, routes_reports.router, routes_admin.router, billing.router, gst.router, public.router):
     app.include_router(r)
 
 
@@ -63,6 +64,7 @@ async def startup():
             await db[c].create_index("business_id")
         await db.vouchers.create_index([("business_id", ASCENDING), ("status", ASCENDING), ("date", ASCENDING)])
         await db.licences.create_index("key", unique=True)
+        await db.vouchers.create_index("share_token", sparse=True)
         await db.payments.create_index("order_id")
     except Exception as exc:
         logger.error("index creation: %s", exc)

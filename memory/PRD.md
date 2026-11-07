@@ -13,7 +13,18 @@ JWT email/password; roles Admin / Accountant / Viewer; single company + FY manag
 ## Implemented (07-11-2026)
 - All Phase 1 + listed features; testing iteration 1: the backend passed 94% and the frontend about 95%. All issues found were fixed afterwards and checked by hand (lockout, report race, next-number/dashboard validation, banner reset, decimal storage, restore snapshot).
 
+## Round 2 (07-11-2026)
+- Multi-business signup + 30-day trial (business.py), plans basic ₹6,500+GST (2 users) / pro ₹10,000+GST (8 users), read-only (402) when expired, Razorpay order/verify (billing.py), licence keys + public activate/validate, Platform admin, GSTR-1/3B (gst.py), branded invoices with logo (object storage) + UPI QR.
+## Round 3 (07-11-2026)
+- Hannusoft branding (SVG recreation in components/Hannusoft.jsx) + copyright on sidebar, footer, login/signup, landing, invoices.
+- Public landing/pricing at /welcome (GET /api/public/plans); logged-out users redirected there.
+- WhatsApp sharing: POST /api/vouchers/{id}/share -> token; public invoice page /i/:token (GET /api/public/invoice/{token}); buttons in list rows, dialog, post-save banner.
+- Razorpay flow complete but DISABLED until RAZORPAY_KEY_ID/RAZORPAY_KEY_SECRET are added.
+- Testing iteration 3: 48/48 backend, ~95% frontend; mobile invoice + minor fixes applied after.
+
 ## Backlog
+- P0: Add Razorpay keys and test live checkout; replace SVG logo with user's real Hannusoft logo file
+- P1: Share-link revocation/expiry; B2CL split in GSTR-1; offline desktop app build
 - P1: Stock/inventory items with HSN master; GSTR-1/3B summaries; aging buckets on receivables
 - P1: Multi-company support; FY deletion for empty years
 - P2: Invoice templates/logo, email/WhatsApp invoices, bank reconciliation, cheque printing

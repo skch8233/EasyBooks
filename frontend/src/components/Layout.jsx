@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useHotkeys } from "@/hooks/useHotkeys";
+import { MadeBy, Copyright } from "@/components/Hannusoft";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, id: "dashboard" },
@@ -50,8 +51,9 @@ const SideNav = ({ onNav }) => {
           </NavLink>
         ))}
       </nav>
-      <div className="px-5 py-4 text-[11px] text-slate-500 leading-relaxed">
-        Shortcuts: Alt+S Sales · Alt+P Purchase · Alt+R Receipt · Alt+Y Payment · Alt+C Contra · Alt+J Journal
+      <div className="px-5 py-4 text-[11px] text-slate-500 leading-relaxed space-y-4">
+        <div>Shortcuts: Alt+S Sales · Alt+P Purchase · Alt+R Receipt · Alt+Y Payment · Alt+C Contra · Alt+J Journal</div>
+        <MadeBy dark />
       </div>
     </div>
   );
@@ -118,6 +120,8 @@ export default function Layout() {
       <TopBar onMenu={() => setOpen(true)} />
       <PlanBanner />
       <main className="px-4 py-6 lg:px-8 lg:py-8 max-w-[1600px]"><Outlet /></main>
+      <footer className="no-print px-4 lg:px-8 py-6 border-t lg:hidden"><MadeBy /></footer>
+      <footer className="no-print hidden lg:block px-8 py-4 border-t"><Copyright /></footer>
     </div>
   );
 }

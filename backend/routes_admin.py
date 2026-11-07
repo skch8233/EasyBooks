@@ -201,6 +201,10 @@ async def restore(body: RestoreIn, user=Depends(ADMIN_WRITE)):
         raise HTTPException(400, "This backup belongs to a different business and cannot be restored here")
     if not cols["financial_years"]:
         raise HTTPException(400, "Backup has no financial years")
+    for c in BACKUP_COLLECTIONS:
+        ids = [d.get("id") for d in (cols.get(c) or []) if d.get("id")]
+        if ids and await db[c].count_documents({"id": {"$in": ids}, "business_id": {"$ne": bid}}):
+            raise HTTPException(400, "This backup belongs to a different business and cannot be restored here")
     snapshot = {c: await db[c].find({"business_id": bid}, NO_ID).to_list(None) for c in BACKUP_COLLECTIONS}
     await db.restore_snapshots.insert_one({"id": new_id(), "business_id": bid, "created_at": now_iso(), "by": user["email"], "data": snapshot})
     try:

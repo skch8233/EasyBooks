@@ -6,6 +6,7 @@ import { errMsg } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { HannusoftLogo, Copyright, MadeBy } from "@/components/Hannusoft";
 
 export default function Login() {
   const { user, login } = useApp();
@@ -39,6 +40,8 @@ export default function Login() {
           </div>
         </div>
         <div className="text-xs text-slate-500">₹ INR · DD-MM-YYYY · CGST / SGST / IGST</div>
+        <div className="flex items-center gap-4 rounded-xl bg-white px-4 py-3 w-fit"><HannusoftLogo size={30} /></div>
+        <Copyright className="!text-slate-400" />
       </div>
       <div className="flex items-center justify-center p-6">
         <form onSubmit={submit} className="w-full max-w-md fade-up" data-testid="login-form">
@@ -53,6 +56,8 @@ export default function Login() {
             </Button>
           </div>
           <p className="mt-6 text-sm text-slate-600">New trader or shop owner? <Link to="/signup" className="text-primary font-semibold hover:underline" data-testid="goto-signup-link">Start your 30-day free trial</Link></p>
+          <p className="mt-2 text-sm"><Link to="/welcome" className="text-slate-500 hover:underline" data-testid="goto-landing-link">See features & pricing</Link></p>
+          <div className="mt-10 lg:hidden"><MadeBy /></div>
         </form>
       </div>
     </div>

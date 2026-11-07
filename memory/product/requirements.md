@@ -35,7 +35,14 @@ Branded Invoices: Let traders print sales invoices with their logo, GSTIN and a 
 - Pricing/trial details: see Next Round section above (₹6,500 + 18% GST for 1+1 free user; ₹10,000 + 18% GST for 3 to 8 users; 30-day free trial).
 - Razorpay: user's own Razorpay account; request keys from user via secrets when needed.
 
-## Round 3 — user's request (queued)
+## Round 3 — user's request (build now)
+"Hannusoft Branding: Add the Hannusoft logo and "All rights reserved to Hannusoft Private Limited" across the app
+Razorpay Payments: Turn on live UPI and card payments so traders can buy plans themselves
+Pricing Landing Page: Make a public Easy Books page showing features, both plans and a free-trial button
+WhatsApp Invoice Sharing: Let traders send any sales invoice to customers on WhatsApp in one tap"
+- Also finish the interrupted retest of Round 2 fixes.
+- Razorpay keys: user will add via secure secrets card (RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET).
+- Logo image file is not available in the environment yet; recreate it faithfully from the description below until the user uploads the file.
 "this is our company hannusoft private limited logo and use all right reserved to hannusoft private limited"
 - Logo: Hannusoft Private Limited (round gradient pink-orange "H" icon, "Hannu" dark navy + "soft" orange, "PRIVATE LIMITED" grey). Show as the software maker's branding, plus "© All rights reserved to Hannusoft Private Limited". Logo image file to be obtained from user upload.
 

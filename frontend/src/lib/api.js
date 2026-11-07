@@ -11,7 +11,7 @@ api.interceptors.request.use((c) => {
 api.interceptors.response.use(
   (r) => r,
   (e) => {
-    if (e.response?.status === 401 && !e.config?.url?.includes("/auth/login")) {
+    if (e.response?.status === 401 && !e.config?.url?.includes("/auth/login") && !e.config?.url?.includes("/public/")) {
       localStorage.removeItem("eb_token");
       if (window.location.pathname !== "/login") window.location.href = "/login";
     }

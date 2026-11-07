@@ -14,11 +14,13 @@ import AuditLog from "@/pages/AuditLog";
 import Signup from "@/pages/Signup";
 import Subscription from "@/pages/Subscription";
 import Platform from "@/pages/Platform";
+import Landing from "@/pages/Landing";
+import PublicInvoice from "@/pages/PublicInvoice";
 
 const Protected = ({ children, write }) => {
   const { user, fy, canWrite } = useApp();
   if (user === null || (user && !fy)) return <div className="min-h-screen flex items-center justify-center text-slate-500">Loading...</div>;
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/welcome" replace />;
   if (write && !canWrite) return <Navigate to={user.role === "viewer" ? "/" : "/subscription"} replace />;
   return children;
 };
@@ -30,6 +32,8 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/welcome" element={<Landing />} />
+          <Route path="/i/:token" element={<PublicInvoice />} />
           <Route element={<Protected><Layout /></Protected>}>
             <Route index element={<Dashboard />} />
             <Route path="voucher/edit/:id" element={<Protected write><VoucherEntry /></Protected>} />

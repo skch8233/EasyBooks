@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Printer, Pencil, Ban } from "lucide-react";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,6 +72,7 @@ export const VoucherDialog = ({ id, onClose, onChanged }) => {
               </div>
             )}
             <div className="flex flex-wrap justify-end gap-2 pt-2">
+              <WhatsAppButton voucher={v} testid="dialog-whatsapp-button" />
               <Button variant="outline" onClick={() => printVoucher(v, settings)} data-testid="dialog-print-button"><Printer className="h-4 w-4 mr-1" /> Print</Button>
               {canWrite && v.status === "active" && <>
                 <Button variant="outline" onClick={() => nav(`/voucher/edit/${v.id}`)} data-testid="dialog-edit-button"><Pencil className="h-4 w-4 mr-1" /> Edit</Button>

@@ -7,6 +7,7 @@ import { STATES } from "@/lib/format";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { HannusoftLogo, Copyright } from "@/components/Hannusoft";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const FIELDS = [
@@ -67,6 +68,7 @@ export default function Signup() {
           <Button type="submit" disabled={busy} className="mt-6 w-full h-12 text-base" data-testid="signup-submit-button">
             {busy && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Start Free Trial
           </Button>
+          <div className="mt-10 flex flex-wrap items-center justify-between gap-3"><HannusoftLogo size={28} /><Copyright /></div>
         </form>
       </div>
     </div>
