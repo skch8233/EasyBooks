@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useApp } from "@/context/AppContext";
+import { OfflineLicencesAdmin } from "@/components/OfflineLicencesAdmin";
 import { api, errMsg } from "@/lib/api";
 import { dmy } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ export default function Platform() {
           <tbody>{rows.map((b) => <Row key={b.id} b={b} onDone={load} />)}</tbody>
         </table>
       </div>
+      <OfflineLicencesAdmin />
     </div>
   );
 }

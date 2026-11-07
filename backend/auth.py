@@ -131,6 +131,8 @@ async def signup(body: SignupIn):
         raise HTTPException(400, "Password must be at least 6 characters")
     if await db.users.find_one({"email": email}):
         raise HTTPException(400, "An account with this email already exists. Please sign in.")
+    if os.environ.get("OFFLINE_MODE") == "1" and await db.users.count_documents({}):
+        raise HTTPException(403, "This offline installation is already set up. Ask the admin to add users.")
     if body.gstin.strip() and not re.match(r"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$", body.gstin.strip().upper()):
         raise HTTPException(400, "Invalid GSTIN format")
     biz = await create_business(body.business_name, email, body.phone, body.state, body.gstin.strip().upper())

@@ -19,12 +19,16 @@ import PublicInvoice from "@/pages/PublicInvoice";
 import Stock from "@/pages/Stock";
 import Reminders from "@/pages/Reminders";
 import PayPage from "@/pages/PayPage";
+import Buy from "@/pages/Buy";
+import DownloadPage from "@/pages/Download";
+import OfflineLicence from "@/pages/OfflineLicence";
+import { OFFLINE } from "@/lib/offline";
 
 const Protected = ({ children, write }) => {
   const { user, fy, canWrite } = useApp();
   if (user === null || (user && !fy)) return <div className="min-h-screen flex items-center justify-center text-slate-500">Loading...</div>;
-  if (!user) return <Navigate to="/welcome" replace />;
-  if (write && !canWrite) return <Navigate to={user.role === "viewer" ? "/" : "/subscription"} replace />;
+  if (!user) return <Navigate to={OFFLINE ? "/login" : "/welcome"} replace />;
+  if (write && !canWrite) return <Navigate to={user.role === "viewer" ? "/" : OFFLINE ? "/licence" : "/subscription"} replace />;
   return children;
 };
 
@@ -35,7 +39,9 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          <Route path="/welcome" element={<Landing />} />
+          <Route path="/welcome" element={OFFLINE ? <Navigate to="/login" replace /> : <Landing />} />
+          <Route path="/buy" element={<Buy />} />
+          <Route path="/download" element={<DownloadPage />} />
           <Route path="/i/:token" element={<PublicInvoice />} />
           <Route path="/pay/:token" element={<PayPage />} />
           <Route element={<Protected><Layout /></Protected>}>
@@ -52,6 +58,7 @@ function App() {
             <Route path="settings" element={<Settings />} />
             <Route path="subscription" element={<Subscription />} />
             <Route path="platform" element={<Platform />} />
+            <Route path="licence" element={<OfflineLicence />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

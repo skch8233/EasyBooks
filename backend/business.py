@@ -4,6 +4,7 @@ from datetime import date, datetime, timedelta, timezone
 from fastapi import HTTPException
 
 from db import db, NO_ID, new_id, now_iso
+from licensing import OFFLINE, offline_status
 
 TRIAL_DAYS = 30
 TRIAL_USERS = 2
@@ -12,7 +13,12 @@ PLANS = {
     "basic": {"key": "basic", "name": "Single User Plan", "users_label": "1 user + 1 free user", "price": 6500, "max_users": 2},
     "pro": {"key": "pro", "name": "Multi User Plan", "users_label": "3 to 8 users", "price": 10000, "max_users": 8},
 }
-for p in PLANS.values():
+# Offline (standalone Windows) plans - edit prices here
+OFFLINE_PLANS = {
+    "offline_first": {"key": "offline_first", "name": "Offline Windows - First Year", "users_label": "Standalone PC software, up to 8 users", "price": 12000, "max_users": 8},
+    "offline_renewal": {"key": "offline_renewal", "name": "Offline Annual Renewal Key", "users_label": "Required every year after the first", "price": 6500, "max_users": 8},
+}
+for p in list(PLANS.values()) + list(OFFLINE_PLANS.values()):
     p["gst"] = round(p["price"] * GST_RATE / 100, 2)
     p["total"] = round(p["price"] + p["gst"], 2)
 
@@ -36,6 +42,8 @@ def _days_left(iso: str) -> int:
 
 
 def status_of(b: dict) -> dict:
+    if OFFLINE:
+        return offline_status()
     now = now_iso()
     if b.get("subscription_ends") and b["subscription_ends"] > now:
         return {"status": "active", "ends_at": b["subscription_ends"], "days_left": _days_left(b["subscription_ends"]),

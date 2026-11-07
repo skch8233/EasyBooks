@@ -27,7 +27,14 @@ JWT email/password; roles Admin / Accountant / Viewer; single company + FY manag
 - Payment reminders (reminders.py): FIFO bill-wise outstanding, due = bill date + ledger credit_days (default from settings, 30); /reminders page with a WhatsApp Remind button (wa.me + /pay/<token> link); public /pay/:token page with a UPI deep link + QR, live dues; reminders logged + audit.
 - Testing iteration 4: 66/66 backend, 100% frontend flows; minor design fixes applied.
 
+## Round 5 (07-11-2026)
+- Offline Windows product (standalone, no sync): OFFLINE_MODE backend (licence from a signed Ed25519 activation code, licensing.py; read-only without a valid code; local logo storage; first-run signup only), /app/offline (Electron shell + bundled mongod + PyInstaller server + packaging README).
+- Offline plans: first year ₹12,000 + GST, compulsory renewal ₹6,500 + GST/yr (business.OFFLINE_PLANS). Website /buy (all plans, Razorpay checkout -> key + activation code + .lic download), /download page (link set in Platform Admin), Platform manual issue + list.
+- Testing iteration 5: 81/81 online + 8/8 offline harness; fixes applied after.
+
 ## Backlog
+- P0: Razorpay keys; package & upload the .exe; email the key after purchase
+- P1: Bind offline activation to a machine id; relax email validation offline
 - P0: Add Razorpay keys and test live checkout; replace SVG logo with user's real Hannusoft logo file
 - P1: Share-link revocation/expiry; B2CL split in GSTR-1; offline desktop app build
 - P1: Stock/inventory items with HSN master; GSTR-1/3B summaries; aging buckets on receivables

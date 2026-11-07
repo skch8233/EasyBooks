@@ -32,7 +32,25 @@ def init_storage(force: bool = False):
     return _storage_key
 
 
+class _LocalResp:
+    def __init__(self, path: str, content: bytes = b""):
+        self.content, self._path = content, path
+
+    def json(self):
+        return {"path": self._path}
+
+
 def _storage(method: str, path: str, **kw):
+    if os.environ.get("OFFLINE_MODE") == "1":
+        from pathlib import Path
+        f = Path(os.environ.get("EB_DATA_DIR", ".")) / "files" / path
+        if method == "PUT":
+            f.parent.mkdir(parents=True, exist_ok=True)
+            f.write_bytes(kw["data"])
+            return _LocalResp(path)
+        if not f.exists():
+            raise FileNotFoundError(path)
+        return _LocalResp(path, f.read_bytes())
     for attempt in (0, 1):
         r = requests.request(method, f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": init_storage(force=attempt == 1), **kw.pop("headers", {})}, timeout=60, **kw)
         if r.status_code != 404 or attempt == 1:

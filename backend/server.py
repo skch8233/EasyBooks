@@ -20,13 +20,14 @@ import gst
 import public
 import stock
 import reminders
+import shop
 import business
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Easy Books Accounting")
-for r in (auth.router, auth.users_router, routes_ledgers.router, routes_vouchers.router, routes_reports.router, routes_admin.router, billing.router, gst.router, public.router, stock.router, reminders.router):
+for r in (auth.router, auth.users_router, routes_ledgers.router, routes_vouchers.router, routes_reports.router, routes_admin.router, billing.router, gst.router, public.router, stock.router, reminders.router, shop.router):
     app.include_router(r)
 
 
@@ -72,9 +73,13 @@ async def startup():
         await db.reminders.create_index("token")
         await db.reminders.create_index([("business_id", ASCENDING), ("ledger_id", ASCENDING)])
         await db.payments.create_index("order_id")
+        await db.offline_licences.create_index("key", unique=True)
+        await db.shop_orders.create_index("order_id")
     except Exception as exc:
         logger.error("index creation: %s", exc)
     await business.migrate_legacy()
+    if os.environ.get("OFFLINE_MODE") == "1":
+        return
     await auth.seed_admin()
     try:
         routes_admin.init_storage()

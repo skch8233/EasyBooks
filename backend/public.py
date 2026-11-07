@@ -5,7 +5,7 @@ from fastapi.responses import Response
 
 from auth import ANY
 from billing import _rzp
-from business import PLANS, TRIAL_DAYS, TRIAL_USERS
+from business import PLANS, OFFLINE_PLANS, TRIAL_DAYS, TRIAL_USERS
 from db import db, NO_ID, clean
 from routes_admin import _storage
 
@@ -18,7 +18,7 @@ VOUCHER_FIELDS = ("voucher_type", "voucher_no", "date", "party_name", "party_led
 @router.get("/public/plans")
 async def public_plans():
     _, kid = _rzp()
-    return {"plans": list(PLANS.values()), "trial_days": TRIAL_DAYS, "trial_users": TRIAL_USERS, "payments_enabled": bool(kid)}
+    return {"plans": list(PLANS.values()), "offline_plans": list(OFFLINE_PLANS.values()), "trial_days": TRIAL_DAYS, "trial_users": TRIAL_USERS, "payments_enabled": bool(kid)}
 
 
 @router.post("/vouchers/{vid}/share")

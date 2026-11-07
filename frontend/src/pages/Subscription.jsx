@@ -24,7 +24,7 @@ const PlanCard = ({ p, current, onPay, busy, enabled }) => (
     <div><span className="num text-3xl font-semibold">₹{amt(p.price).replace(".00", "")}</span><span className="text-slate-500"> + 18% GST / year</span></div>
     <div className="text-sm text-slate-600 num" data-testid={`plan-total-${p.key}`}>GST ₹{amt(p.gst)} · Total ₹{amt(p.total)}</div>
     <ul className="text-sm space-y-1.5 text-slate-700">
-      {["All vouchers, ledgers & reports", "GSTR-1 & GSTR-3B summaries", "Branded invoices with UPI QR", `Offline licence key (${p.max_users} devices)`].map((t) => <li key={t} className="flex gap-2"><Check className="h-4 w-4 text-emerald-600" />{t}</li>)}
+      {["All vouchers, ledgers & reports", "GSTR-1 & GSTR-3B summaries", "Branded invoices with UPI QR", `Up to ${p.max_users} users`].map((t) => <li key={t} className="flex gap-2"><Check className="h-4 w-4 text-emerald-600" />{t}</li>)}
     </ul>
     <Button className="mt-auto h-12" disabled={busy || !enabled} onClick={() => onPay(p.key)} data-testid={`pay-${p.key}-button`}>
       {busy ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}{current ? "Renew for 1 year" : "Pay with UPI / Card"}

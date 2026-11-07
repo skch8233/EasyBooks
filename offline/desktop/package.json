@@ -1,0 +1,35 @@
+{
+  "name": "easybooks-offline",
+  "productName": "Easy Books",
+  "version": "1.0.0",
+  "description": "Easy Books offline accounting for Windows - Hannusoft Private Limited",
+  "author": "Hannusoft Private Limited",
+  "copyright": "© All rights reserved to Hannusoft Private Limited",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis --x64"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "in.hannusoft.easybooks",
+    "productName": "Easy Books",
+    "win": { "target": "nsis", "icon": "icon.ico" },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Easy Books",
+      "artifactName": "EasyBooksSetup-${version}.exe"
+    },
+    "files": ["main.js", "package.json"],
+    "extraResources": [
+      { "from": "../server/dist/easybooks-server", "to": "server" },
+      { "from": "../../frontend/build", "to": "frontend" },
+      { "from": "mongodb", "to": "mongodb" }
+    ]
+  }
+}

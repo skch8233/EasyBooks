@@ -6,6 +6,7 @@ import { useApp } from "@/context/AppContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useHotkeys } from "@/hooks/useHotkeys";
 import { MadeBy, Copyright } from "@/components/Hannusoft";
+import { OFFLINE } from "@/lib/offline";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, id: "dashboard" },
@@ -18,14 +19,16 @@ const NAV = [
   { to: "/reports/gstr-3b", label: "GST Returns", icon: Landmark, id: "gst", match: (p) => p.startsWith("/reports/gstr") },
   { to: "/audit", label: "Audit Trail", icon: ShieldCheck, id: "audit", staff: true },
   { to: "/settings", label: "Settings", icon: Settings, id: "settings" },
-  { to: "/subscription", label: "Subscription", icon: CreditCard, id: "subscription", admin: true },
-  { to: "/platform", label: "Platform Admin", icon: Building2, id: "platform", superadmin: true },
+  { to: "/subscription", label: "Subscription", icon: CreditCard, id: "subscription", admin: true, online: true },
+  { to: "/licence", label: "Licence", icon: CreditCard, id: "licence", offline: true },
+  { to: "/platform", label: "Platform Admin", icon: Building2, id: "platform", superadmin: true, online: true },
 ];
 
 const SideNav = ({ onNav }) => {
   const { canWrite, settings, user, isAdmin } = useApp();
   const { pathname } = useLocation();
-  const show = (n) => (!n.write || canWrite) && (!n.admin || isAdmin) && (!n.superadmin || user?.is_superadmin) && (!n.staff || user?.role !== "viewer");
+  const show = (n) => (!n.write || canWrite) && (!n.admin || isAdmin) && (!n.superadmin || user?.is_superadmin) && (!n.staff || user?.role !== "viewer")
+    && (!n.online || !OFFLINE) && (!n.offline || OFFLINE);
   return (
     <div className="flex h-full flex-col">
       <div className="px-5 py-6 flex items-center gap-3">
@@ -93,12 +96,13 @@ const PlanBanner = () => {
   const { biz, isAdmin } = useApp();
   if (!biz?.alert) return null;
   const expired = biz.status === "expired";
-  const msg = expired ? `Your ${biz.plan === "trial" ? "free trial" : "subscription"} has expired. Books are read-only.`
+  const msg = OFFLINE ? (expired ? "No active licence. The software is read-only until you activate or renew your licence." : `Your licence expires in ${biz.days_left} days. Buy a renewal key.`)
+    : expired ? `Your ${biz.plan === "trial" ? "free trial" : "subscription"} has expired. Books are read-only.`
     : biz.status === "trial" ? `Free trial: ${biz.days_left} day${biz.days_left === 1 ? "" : "s"} left.` : `Your annual subscription expires in ${biz.days_left} days.`;
   return (
     <div className={`no-print flex flex-wrap items-center gap-3 px-4 lg:px-8 py-2.5 text-sm border-b ${expired ? "bg-red-50 text-red-800 border-red-200" : "bg-amber-50 text-amber-900 border-amber-200"}`} data-testid="plan-banner">
       <AlertTriangle className="h-4 w-4" /> <span data-testid="plan-banner-text">{msg}</span>
-      {isAdmin ? <Link to="/subscription" className="font-semibold underline" data-testid="plan-banner-upgrade">{expired ? "Renew now" : "Choose a plan"}</Link> : <span>Ask your admin to renew.</span>}
+      {isAdmin ? <Link to={OFFLINE ? "/licence" : "/subscription"} className="font-semibold underline" data-testid="plan-banner-upgrade">{OFFLINE ? "Open Licence" : expired ? "Renew now" : "Choose a plan"}</Link> : <span>Ask your admin to renew.</span>}
     </div>
   );
 };

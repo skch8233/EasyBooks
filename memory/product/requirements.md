@@ -35,6 +35,14 @@ Branded Invoices: Let traders print sales invoices with their logo, GSTIN and a 
 - Pricing/trial details: see Next Round section above (₹6,500 + 18% GST for 1+1 free user; ₹10,000 + 18% GST for 3 to 8 users; 30-day free trial).
 - Razorpay: user's own Razorpay account; request keys from user via secrets when needed.
 
+## Round 5 — user's request (build now)
+"Offline Windows Version: Build the standalone offline version with licence keys and a website download page
+Online Key Purchase: Let traders buy every plan on the website and get their key right away"
+- See all offline details below (standalone, no sync; ₹12,000 first year, then ₹6,500 + GST renewal key required yearly; .exe download page; keys from website after payment).
+- GST on ₹12,000 not confirmed by user — default assumed: ₹12,000 + 18% GST (consistent with other plans); keep it easy to change.
+- The .exe itself must be packaged outside Emergent: provide the offline app source ready to package, plus simple step-by-step packaging instructions for the user, and a download page where the .exe can be uploaded/linked.
+- Razorpay keys still not added; payments stay off until added.
+
 ## Round 5 — queued (user's words)
 User was offered: (a) installable desktop app that works with internet + download page, (b) fully offline Windows installer like Tally. User said: "both"
 - Fully offline Windows installer is a bigger separate project; the code needs packaging outside Emergent. It must use the existing licence key activation/expiry.

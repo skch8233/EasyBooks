@@ -7,6 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { HannusoftLogo, Copyright, MadeBy } from "@/components/Hannusoft";
+import { OFFLINE } from "@/lib/offline";
+import { api } from "@/lib/api";
+import { useEffect } from "react";
+
+const OfflineSetupLink = () => {
+  const [needed, setNeeded] = useState(false);
+  useEffect(() => { api.get("/offline/status").then((r) => setNeeded(!r.data.has_users)).catch(() => {}); }, []);
+  return needed ? <p className="mt-6 text-sm text-slate-600">First time on this computer? <Link to="/signup" className="text-primary font-semibold hover:underline" data-testid="offline-setup-link">Set up your business</Link></p>
+    : <p className="mt-6 text-xs text-slate-500">Easy Books Offline for Windows</p>;
+};
 
 export default function Login() {
   const { user, login } = useApp();
@@ -55,8 +65,9 @@ export default function Login() {
               {busy && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Sign in
             </Button>
           </div>
+          {OFFLINE ? <OfflineSetupLink /> : <>
           <p className="mt-6 text-sm text-slate-600">New trader or shop owner? <Link to="/signup" className="text-primary font-semibold hover:underline" data-testid="goto-signup-link">Start your 30-day free trial</Link></p>
-          <p className="mt-2 text-sm"><Link to="/welcome" className="text-slate-500 hover:underline" data-testid="goto-landing-link">See features & pricing</Link></p>
+          <p className="mt-2 text-sm"><Link to="/welcome" className="text-slate-500 hover:underline" data-testid="goto-landing-link">See features & pricing</Link></p></>}
           <div className="mt-10 lg:hidden"><MadeBy /></div>
         </form>
       </div>

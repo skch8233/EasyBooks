@@ -25,7 +25,7 @@ const Plan = ({ p, trialDays }) => (
     <div className="text-slate-600">{p.users_label}</div>
     <div><span className="num text-4xl font-semibold">₹{amt(p.price).replace(".00", "")}</span><span className="text-slate-500"> + 18% GST / year</span></div>
     <div className="text-sm text-slate-500 num" data-testid={`landing-plan-total-${p.key}`}>₹{amt(p.gst)} GST · ₹{amt(p.total)} total per year</div>
-    <ul className="space-y-2 text-sm">{["All features included", "Online & offline licence", `Up to ${p.max_users} users / devices`, "Free updates during the year"].map((t) => <li key={t} className="flex gap-2"><Check className="h-4 w-4 text-emerald-600" /> {t}</li>)}</ul>
+    <ul className="space-y-2 text-sm">{["All features included", "Mobile & desktop browser access", `Up to ${p.max_users} users`, "Free updates during the year"].map((t) => <li key={t} className="flex gap-2"><Check className="h-4 w-4 text-emerald-600" /> {t}</li>)}</ul>
     <Link to="/signup" className="mt-auto"><Button className="w-full h-12 text-base" variant={p.key === "pro" ? "default" : "outline"} data-testid={`landing-plan-${p.key}-cta`}>Start {trialDays}-day free trial</Button></Link>
   </div>
 );
@@ -45,6 +45,8 @@ export default function Landing() {
           <span className="font-heading text-xl font-extrabold">Easy Books</span>
           <nav className="ml-auto flex items-center gap-2">
             <a href="#pricing" className="hidden sm:inline px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-900" data-testid="landing-nav-pricing">Pricing</a>
+            <Link to="/download" className="px-2 sm:px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-900" data-testid="landing-nav-download"><span className="sm:hidden">Offline</span><span className="hidden sm:inline">Windows offline</span></Link>
+            <Link to="/buy" className="px-2 sm:px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-900" data-testid="landing-nav-buy">Buy</Link>
             <Link to="/login"><Button variant="ghost" data-testid="landing-signin-button">Sign in</Button></Link>
             <Link to="/signup"><Button data-testid="landing-header-trial-button">Free trial</Button></Link>
           </nav>
@@ -87,6 +89,14 @@ export default function Landing() {
           <h2 className="font-heading text-3xl font-bold tracking-tight">Simple annual pricing</h2>
           <p className="text-slate-500 mt-2">Try everything free for {days} days. Then pick a plan and pay by UPI or card.</p>
           <div className="mt-10 grid gap-6 md:grid-cols-2">{plans?.plans.map((p) => <Plan key={p.key} p={p} trialDays={days} />)}</div>
+          {plans?.offline_plans && (
+            <div className="mt-8 rounded-2xl border bg-white p-6 flex flex-wrap items-center justify-between gap-4" data-testid="landing-offline-plan">
+              <div><h3 className="font-heading text-xl font-bold">Offline Windows software</h3>
+                <p className="text-sm text-slate-600 mt-1">Standalone, no internet needed. First year ₹{amt(plans.offline_plans[0].price).replace(".00", "")} + GST, then a compulsory renewal key at ₹{amt(plans.offline_plans[1].price).replace(".00", "")} + GST / year.</p></div>
+              <div className="flex gap-2"><Link to="/download"><Button variant="outline" className="h-11" data-testid="landing-offline-download">Download</Button></Link>
+                <Link to="/buy"><Button className="h-11" data-testid="landing-offline-buy">Buy licence</Button></Link></div>
+            </div>
+          )}
         </div>
       </section>
 

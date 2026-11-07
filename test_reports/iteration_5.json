@@ -1,0 +1,42 @@
+{
+  "summary": "Round 5 (offline Windows version, licence keys, shop and download page) tested on backend and frontend. Backend: the new tests/test_round5_offline_shop.py passes 15/15, the new offline harness tests/test_round5_offline_harness.py passes 8/8, and the full regression (all earlier suites plus round 5 online) passes 81/81. Verified: public plans gives offline_first 12000 + 2160 = 14160 and offline_renewal 6500 + 1170 = 7670, with payments_enabled false. shop/order and shop/verify return 503, and an invalid plan gives 422. A superadmin issue returns an EB-XXXX-XXXX-XXXX-XXXX key and an EBOL1. code whose payload has k, e = today+365, d = 8 and b. A renewal (lowercase key accepted) keeps the key and the original name and sets expiry to the old expiry + 365, and the list shows it. An unknown key gives 404, ravi gets 403, and no auth gives 401. The online /offline/status shows offline false, and /offline/licence gives 400 'offline version'. PUT /platform/download: ftp gives 400, a non-superadmin gets 403, and after a save the public GET returns the url, version and size with no _id. Offline harness (offline_server.py on :8768, DB eb_off_t, LICENCE_SIGNING_KEY removed from env): fresh status is offline true, has_users false, expired. The first signup works and the second gives 403. A write gives 402 before activation. Garbage, a wrong prefix, a tampered body, a tampered signature, and a forged payload (e changed to 2099) with the original signature all give 400. An expired signed code gives 400 'expired'. A valid code from the online superadmin gives active with days_left about 365 and max_users 8, then ledger writes work and billing/status is active. The SPA fallback serves index.html for /, /dashboard and deep routes, /static is served, and path traversal is blocked. Frontend: /buy has the notice, 4 online buttons (trial goes to /signup, sign-in goes to /login), the tabs, the forms, the renewal licence_key field, disabled pay buttons with ₹14,160.00 / ₹7,670.00, ?plan=offline_renewal deep link, and no overflow on mobile 390px. /download shows a disabled 'Download coming soon' button with no link. After the superadmin saves a link in Platform Admin (a bad URL shows an error toast), it becomes a link with 'Version 1.0.1 · 85 MB · Updated'. Platform Admin: the issue button is disabled until filled. Issuing shows KeyResult (key, EBOL1 code, expiry 07-11-2027), the copy and download buttons work (the .lic download is EasyBooks-<key>.lic), and the table lists it. A UI renewal kept the key and set expiry to 06-11-2028, and an unknown key shows a 404 toast. Landing has the nav links to /download and /buy and the offline block with its buttons. Regression as ravi: login, dashboard, subscription, reminders and stock all load. There were no page errors. Cleanup: the app_releases docs, the 3 TEST offline licences (by key), the eb_off_t DB and the /tmp harness dirs were all deleted. OfflineLicence.jsx was checked by code review only.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/shop/verify", "issue": "The order is set to 'processing' before issue_offline runs. If issue_offline or the DB write throws, the order stays 'processing' forever. Each retry then gives 409, and a paying customer never gets a key. Wrap it in try/except and roll back to 'created', or let 'processing' orders older than N seconds be retried."},
+      {"endpoint": "offline_server.py SPA catch-all", "issue": "GET /api/<unknown> returns index.html with 200 instead of a JSON 404, because the /{path:path} route catches /api paths. Skip the fallback when path starts with 'api/'."},
+      {"endpoint": "POST /api/auth/signup (offline)", "issue": "EmailStr rejects reserved or local domains (e.g. owner@shop.local or .test). Offline single-PC users often don't have a real email. Consider relaxing validation in OFFLINE_MODE."},
+      {"endpoint": "licensing / offline activation", "issue": "By design the activation code is not bound to a machine. The same code can activate any number of standalone PCs. There is no device binding or count. This is a business risk to accept or address (e.g. bind to a machine id or add an online first activation)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Landing pricing cards / Subscription plan cards", "issues": ["The online plans still say 'Online & offline licence' and 'Offline licence key (2/8 devices)'. Round 5 makes the offline Windows version a separate paid product (₹12,000 first year), so this is confusing and contradictory. Reword it or remove the offline claim from the online plans."]},
+      {"screen": "Landing header (mobile)", "issues": ["The landing-nav-download and landing-nav-buy links are 'hidden sm:inline', so mobile users can't see them in the header. Only the offline block buttons further down lead there."]},
+      {"screen": "Buy / Download", "issues": ["<Link>/<a> wraps <Button>, which nests interactive elements. Use <Button asChild>.", "Buy.jsx: the /public/plans fetch has no catch, so on failure the page stays on 'Loading...' forever."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_round5_offline_shop.py", "/app/backend/tests/test_round5_offline_harness.py", "/app/test_reports/pytest/pytest_round5.xml", "/app/test_reports/pytest/pytest_round5_offline.xml", "/app/test_reports/pytest/pytest_regression_r5.xml"],
+  "action_items": [
+    "Make shop/verify resilient when issue_offline fails after the 'processing' flip, so the order is not stuck",
+    "offline_server.py: return a JSON 404 for unknown /api/* paths instead of index.html",
+    "Fix the online plan copy that says it includes an offline licence, now that offline is a separate product",
+    "Optional: show the landing Download/Buy nav on mobile; add a catch to the Buy.jsx plans fetch; use Button asChild for link buttons",
+    "Optional: relax the email validation for offline signup"
+  ],
+  "critical_code_review_comments": [
+    "licensing.verify_code: Ed25519 verify is over the base64 body string, with a prefix check, and every exception is mapped to ValueError. Tamper and forgery were confirmed rejected. The offline app only has the public key, which is good. build_server.bat does not bundle .env, but server.py load_dotenv would pick up backend/.env if the server is run from source. Keep the signing key off the build machines' backend/.env.",
+    "offline_status: the last_seen anti-clock-rollback works (days are computed from max(today, last_seen)). offline_activate checks e < today only, not against last_seen. This is minor because status will still show expired.",
+    "issue_offline renewal: start = max(today, current expiry) is correct. The old code stays valid until its own expiry, which is acceptable.",
+    "OfflineLicence.jsx (code review only): it uses biz.licence from billing/status (offline_status includes licence), and shows the status, expiry, days left, key and business. Activate is disabled when the box is empty, and a .lic file read works. Non-admins see a hint. It looks correct."
+  ],
+  "updated_files": ["/app/backend/tests/test_round5_offline_shop.py", "/app/backend/tests/test_round5_offline_harness.py"],
+  "success_rate": {"backend": "100% (81/81 online + 8/8 offline harness)", "frontend": "100% of requested flows"},
+  "test_credentials": "admin@easybooks.in / Admin@123 (superadmin), ravi@gupta.in / secret1. The admin hash is $2b$ bcrypt.",
+  "seed_data_creation": "None left behind. The TEST offline licences were deleted by key, app_releases was emptied, and the eb_off_t DB was dropped. The audit log entries for issue/download remain.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run the backend tests with REACT_APP_BACKEND_URL exported. test_round5_offline_harness.py spawns offline_server.py on :8768 and needs /tmp/eb_r5_code.txt, which test_round5_offline_shop.py writes, so run the shop test first (run -n 0). The harness drops eb_off_t itself. The round5 shop test now cleans up its own offline licences (by key) and the test download link through a module fixture. The system date in this env is 2026-11-07."
+}
