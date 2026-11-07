@@ -1,0 +1,44 @@
+{
+  "summary": "Full backend (18 pytest cases) + frontend E2E (login, dashboard KPIs, sales/payment/journal entry, vouchers list filters/dialog/print/edit/cancel, ledgers tabs/search/create/duplicate, all 11 reports + Excel/PDF/Print, settings tabs incl. FY lock/unlock & backup download, viewer role UI, mobile sidebar). The double-entry engine is correct: GST intra/inter, purchase/DN/CN directions, validations, numbering, TB/BS/P&L/statement/receivables/registers, edit/cancel audit, roles and FY lock all work. 2 bugs found: brute-force lockout doesn't work behind the ingress, and a stale-report race in the Reports page.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/auth/login", "issue": "Brute-force lockout does not trigger. After 5 wrong passwords the correct password still logs in (200, expected 429). RCA: the identifier is f'{request.client.host}:{email}'. Behind the k8s ingress, request.client.host is the IP of whichever proxy pod handled the request, so it changes between requests. The failures get split across several identifier docs (DB showed count=2 for one IP after 5 failures), and a successful login deletes only the doc for its own IP. Fix: key lockout by email only, or by X-Forwarded-For's first IP + email.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "GET /api/vouchers/next-number", "issue": "An invalid voucher_type raises KeyError (500), and a locked FY returns 400, so the UI shows '—'. Validate voucher_type with VoucherType."},
+      {"endpoint": "GET /api/reports/dashboard", "issue": "from_date/to_date are not validated. Malformed values crash int(from_date[:4]) with a 500."},
+      {"endpoint": "Auth playbook", "issue": "No httpOnly cookie is set on login; the token goes in localStorage (Bearer). CORS is '*' with allow_credentials=False. This is fine for Bearer auth but differs from the playbook's cookie approach. bcrypt $2b$ is OK, and seed_admin is idempotent (it never resets the password)."},
+      {"endpoint": "POST /api/restore", "issue": "Not executed (it is a destructive full replace), so it needs a manual check. Only the invalid-payload 400 was verified. Note that restore does delete_many on each collection before inserting, with no transaction or rollback, so a bad file can partly wipe data."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Reports.jsx (load effect)", "issue": "Race condition shows stale data. Open /reports (Trial Balance loads by default) and click the Day Book tab right away: the title says 'Day Book' but the Trial Balance table and 'Books are balanced' banner stay on screen (reproduced 2/2). Excel/PDF export would then export the wrong data under the Day Book title. Fix: setRes(null) on cfg/p/ledger change and ignore stale promises (let alive=true; cleanup alive=false).", "selector": "[data-testid=report-tab-day-book]", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Voucher Entry", "issues": ["The 'last-saved-banner' from the previous voucher type (e.g. 'Saved PMT/...') stays visible after switching to Journal. Reset `last` when the type changes."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_easybooks_api.py", "/app/backend/tests/cleanup_ui_test_data.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "Fix login lockout identifier (use email, or X-Forwarded-For + email) so 5 failures lock the account for 15 min",
+    "Fix Reports.jsx stale-response race (reset res and ignore outdated promises)",
+    "Validate voucher_type in /vouchers/next-number and the dates in /reports/dashboard (avoid 500s)",
+    "Clear last-saved banner when switching voucher type"
+  ],
+  "critical_code_review_comments": [
+    "accounting.validate_entries balances using Decimal-quantized values, but _prepare stores round(e.debit,2) as a float. Inputs with more than 2 decimals (e.g. 100.005) can be stored with a different rounding than was validated. Store float(D(x)) instead.",
+    "restore has no transaction or validation of documents; consider validating the schema and doing it atomically (or backing up current data first).",
+    "Ledger deactivate also blocks ledgers that are referenced only by cancelled vouchers (acceptable, but worth documenting).",
+    "Financial years cannot be deleted, so an FY created by mistake is permanent."
+  ],
+  "updated_files": ["/app/backend/tests/test_easybooks_api.py", "/app/backend/tests/cleanup_ui_test_data.py"],
+  "success_rate": {"backend": "94% (17/18; lockout failed)", "frontend": "~95% (1 stale-report race)"},
+  "test_credentials": "admin@easybooks.in / Admin@123 (from /app/memory/test_credentials.md). TEST users created via POST /api/users were deactivated afterwards.",
+  "seed_data_creation": "Test vouchers (API: SAL/PUR/DN/CN/PMT/CON/RCT/JRN; UI: SAL/2026-27/0004, PMT/2026-27/0002, JRN/2026-27/0002) were all cancelled afterwards; there is no delete endpoint by design, so they remain as Cancelled. FY 2027-28 was created by the FY test and cannot be removed. TEST_ ledgers were deactivated. test_* users were deactivated. FY 2026-27 is left unlocked and default. E1's own voucher SAL/2026-27/0001 was not touched.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run: cd /app/backend && REACT_APP_BACKEND_URL=... pytest tests/test_easybooks_api.py -n 0. Report assertions are delta-based because the DB is shared. The session teardown cancels created vouchers and deactivates users/ledgers. The lockout test uses a fresh TEST viewer, so admin is never locked. A dialog print-button count of 0 for the viewer was a timing artifact, not a bug. Ledger delete uses window.confirm.",
+  "rca of the issue": "Lockout: auth.login identifier includes request.client.host, which varies per ingress proxy pod. Failures spread across identifiers, the count never reaches 5 for any single doc, and success deletes only one doc. Reports race: the useEffect in Reports.jsx calls cfg.load(...).then(setRes) with no cancellation. The trial-balance request from the initial mount resolves after the day-book request and overwrites res."
+}

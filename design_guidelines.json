@@ -1,0 +1,102 @@
+{
+  "project_name": "Easy Books Accounting",
+  "archetype": "THE PERFORMANCE PRO / SWISS HIGH-CONTRAST (FINTECH & TRADING EDITION)",
+  "emotional_tone": "Trustworthy, hyper-efficient, crisp, financial accuracy, zero-friction Indian bookkeeping",
+  "theme": "Light theme default with high contrast, optional Dark mode toggle. High density data tables, large readable numbers, distinct status badges.",
+  "typography": {
+    "heading_font": "Cabinet Grotesk / Outfit / Plus Jakarta Sans",
+    "body_font": "Inter / IBM Plex Sans",
+    "mono_font": "JetBrains Mono / Roboto Mono (for voucher numbers, GSTIN, HSN codes, ledger balances, and currency figures)",
+    "rules": {
+      "h1": "text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight",
+      "h2": "text-2xl sm:text-3xl font-bold tracking-tight",
+      "h3": "text-xl sm:text-2xl font-semibold",
+      "h4_card": "text-base sm:text-lg font-semibold",
+      "body": "text-sm sm:text-base leading-normal",
+      "numbers": "font-mono font-medium tracking-tight"
+    }
+  },
+  "colors": {
+    "palette_name": "Deep Royal Navy & Emerald Rupee",
+    "background": "#F8FAFC",
+    "surface": "#FFFFFF",
+    "surface_tinted": "#F1F5F9",
+    "sidebar_bg": "#0F172A",
+    "sidebar_fg": "#F8FAFC",
+    "primary": "#1E3A8A",
+    "primary_hover": "#1D4ED8",
+    "accent_emerald": "#059669",
+    "accent_emerald_light": "#D1FAE5",
+    "accent_amber": "#D97706",
+    "accent_crimson": "#DC2626",
+    "accent_indigo": "#4F46E5",
+    "border": "#E2E8F0",
+    "border_dark": "#334155",
+    "text_primary": "#0F172A",
+    "text_secondary": "#475569",
+    "text_muted": "#94A3B8",
+    "gst_cgst_badge": "#3B82F6",
+    "gst_sgst_badge": "#8B5CF6",
+    "gst_igst_badge": "#EC4899"
+  },
+  "layout_and_spacing": {
+    "dashboard_grid": "MODE B: High Density Grid (grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6)",
+    "voucher_layout": "Split-view or step-optimized balanced double-entry form with keyboard-first focus flow",
+    "tables": "Dense, clean borders, alternating subtle row background, sticky headers, text-right aligned numerical columns",
+    "containers": "1px solid border (#E2E8F0), subtle shadow-sm, rounded-lg (8px), generous padding p-4 to p-6"
+  },
+  "key_features_to_build": [
+    "Dashboard with 6 Key KPI Cards: Total Sales (₹), Total Purchases (₹), Cash Balance (₹), Bank Balance (₹), Customers Receivable (₹), Suppliers Payable (₹)",
+    "Monthly Income vs Expenses Interactive Dual-Bar / Area Chart with Recharts",
+    "Quick Voucher Creator: Sales, Purchase, Payment, Receipt, Contra, Journal, Debit Note, Credit Note",
+    "Balanced Double Entry Ledger Validation: Auto debit/credit calculation, real-time balance warning if DR != CR",
+    "Indian GST System Engine: Auto CGST (9%), SGST (9%) for Intra-state or IGST (18%) for Inter-state with customizable HSN/SAC & GSTIN validator format",
+    "Ledger Master Management: Grouping into Debtors, Creditors, Bank Accounts, Cash-in-hand, Direct/Indirect Expenses, Direct/Indirect Incomes with Opening Balances",
+    "Financial Reports Suite: Day Book, Cash Book, Bank Book, Ledger Account Statement, Trial Balance, Profit & Loss Statement, Balance Sheet, Receivables (Aging), Payables (Aging), Sales Register, Purchase Register",
+    "Financial Year Management: Switch FY (e.g., FY 2024-25, FY 2025-26, FY 2026-27), lock locked periods",
+    "Export & Utility: One-click Excel CSV export, Printable PDF Voucher & Invoice View, Direct Thermal/Standard Print view, JSON Backup & Restore",
+    "Keyboard Shortcuts (Tally Style): Alt+S (Sales), Alt+P (Purchase), Alt+R (Receipt), Alt+Y (Payment), Alt+C (Contra), Alt+J (Journal), Esc (Close Modal / Back)"
+  ],
+  "components_structure": {
+    "navigation": "Left Sidebar (collapsible on mobile) with company selector, active FY indicator, quick voucher action button (+ Voucher), and group navigation items",
+    "top_header": "Global Search (search vouchers, ledgers, amounts), FY switcher drop-down, quick backup button, theme toggle, and user profile role pill",
+    "kpi_card": "Cardless or bordered card with icon, micro label, bold rupee amount in mono font, and trend comparison badge",
+    "voucher_form": "Smart form with Voucher Type selector, Auto-generated Voucher No., Date (DD-MM-YYYY picker), Party/Ledger selector, Line Items table (Item/Particulars, HSN, Qty, Rate, GST %, Amount), Tax summary block, Narration box, and DR/CR status indicator",
+    "reports_table": "Interactive filterable data table with date range picker, ledger group filter, search bar, summary totals row at bottom, and print/export buttons"
+  },
+  "image_urls": {
+    "hero_shop": "https://images.unsplash.com/photo-1745487898711-9e72d1a4b61a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzl8MHwxfHNlYXJjaHwzfHxpbmRpYW4lMjBidXNpbmVzcyUyMG93bmVyJTIwYWNjb3VudGluZyUyMHNob3AlMjBpbnZvaWNlfGVufDB8fHx8MTc5NDAyODQ5MHww&ixlib=rb-4.1.0&q=85",
+    "invoice_sample": "https://images.unsplash.com/photo-1632152133952-98b268dc4b86?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzl8MHwxfHNlYXJjaHw0fHxpbmRpYW4lMjBidXNpbmVzcyUyMG93bmVyJTIwYWNjb3VudGluZyUyMHNob3AlMjBpbnZvaWNlfGVufDB8fHx8MTc5NDAyODQ5MHww&ixlib=rb-4.1.0&q=85",
+    "business_owner": "https://images.unsplash.com/photo-1659355893430-1b4c1e5b3201?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzl8MHwxfHNlYXJjaHwxfHxpbmRpYW4lMjBidXNpbmVzcyUyMG93bmVyJTIwYWNjb3VudGluZyUyMHNob3AlMjBpbnZvaWNlfGVufDB8fHx8MTc5NDAyODQ5MHww&ixlib=rb-4.1.0&q=85"
+  },
+  "data_testid_rules": {
+    "mandatory": true,
+    "examples": [
+      "data-testid=\"sidebar-nav-dashboard\"",
+      "data-testid=\"sidebar-nav-vouchers\"",
+      "data-testid=\"sidebar-nav-ledgers\"",
+      "data-testid=\"sidebar-nav-reports\"",
+      "data-testid=\"kpi-total-sales\"",
+      "data-testid=\"kpi-total-purchases\"",
+      "data-testid=\"kpi-cash-balance\"",
+      "data-testid=\"kpi-bank-balance\"",
+      "data-testid=\"create-voucher-button\"",
+      "data-testid=\"voucher-type-select\"",
+      "data-testid=\"voucher-submit-button\"",
+      "data-testid=\"report-filter-date-from\"",
+      "data-testid=\"report-filter-date-to\"",
+      "data-testid=\"export-excel-button\"",
+      "data-testid=\"export-pdf-button\""
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Ensure all currency outputs use Indian Rupee symbol (₹) formatted according to Indian numbering system (e.g. ₹1,50,000.00 instead of $150,000.00).",
+    "Dates MUST be formatted as DD-MM-YYYY across all tables, pickers, and voucher views.",
+    "Double-entry system MUST ensure total Debit equals total Credit before saving vouchers.",
+    "Implement sample Indian business data out of the box (e.g. Sharma Traders, Raj Electronics, HDFC Bank Account, Cash Account, CGST Payable, SGST Payable, IGST Payable, Rent Expense).",
+    "Provide easy tabs in Reports section for Trial Balance, P&L, Balance Sheet, Day Book, Cash Book, Payables, Receivables.",
+    "Use standard lucide-react icons for finance (Receipt, CreditCard, Landmark, Wallet, TrendingUp, TrendingDown, FileText, Printer, Download, Plus, Search, ShieldCheck).",
+    "All interactive elements must have clear data-testid attributes for testing."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": "Maintain high data density with zero visual clutter. Table headers must be sticky with subtle dark border bottom. Use toast notifications (sonner) for voucher creation, export, and validation errors. Avoid pure black gradients; stick to slate navy (#0F172A) accents."
+}
