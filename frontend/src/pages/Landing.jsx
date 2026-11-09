@@ -92,7 +92,7 @@ export default function Landing() {
           {plans?.offline_plans && (
             <div className="mt-8 rounded-2xl border bg-white p-6 flex flex-wrap items-center justify-between gap-4" data-testid="landing-offline-plan">
               <div><h3 className="font-heading text-xl font-bold">Offline Windows software</h3>
-                <p className="text-sm text-slate-600 mt-1">Standalone, no internet needed. First year ₹{amt(plans.offline_plans[0].price).replace(".00", "")} + GST, then a compulsory renewal key at ₹{amt(plans.offline_plans[1].price).replace(".00", "")} + GST / year.</p></div>
+                <p className="text-sm text-slate-600 mt-1">Standalone, no internet and no login needed, 30-day free trial. Single-PC: ₹{amt(plans.offline_plans[0].price).replace(".00", "")} + GST first year, then ₹{amt(plans.offline_plans[1].price).replace(".00", "")} + GST / year. Multi-PC (up to 8 computers): ₹{amt(plans.offline_plans[2].price).replace(".00", "")} + GST first year, then ₹{amt(plans.offline_plans[3].price).replace(".00", "")} + GST / year.</p></div>
               <div className="flex gap-2"><Link to="/download"><Button variant="outline" className="h-11" data-testid="landing-offline-download">Download</Button></Link>
                 <Link to="/buy"><Button className="h-11" data-testid="landing-offline-buy">Buy licence</Button></Link></div>
             </div>

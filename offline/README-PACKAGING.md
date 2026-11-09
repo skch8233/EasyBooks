@@ -9,15 +9,28 @@ Easy Books.exe (Electron window)
  └── frontend\                     the React UI built in offline mode
 ```
 
-Licences use the keys sold on the website (/buy). **Each licence key works on one PC only.** The buyer gets the key (`EB-XXXX-XXXX-XXXX-XXXX`) and a GST invoice by email right after payment. Activation:
+Full design (pseudo-code, trial schema, key validation): **`offline/LICENSING-DESIGN.md`**.
+
+- **No login:** the app opens straight to the books.
+- **30-day free trial:** every feature is unlocked. The install date is kept in two signed places (data folder + registry), and the clock can only move forward.
+- **After 30 days:** every screen goes to the Licence page until a subscription key is entered.
+
+Keys are sold on the website (/buy) and emailed with a GST invoice:
+
+| Plan | Computers | First year | Yearly renewal |
+|---|---|---|---|
+| **Single-PC** | 1 | ₹12,000 + GST | ₹6,500 + GST |
+| **Multi-PC** | up to 8 (one key) | ₹18,000 + GST | ₹10,000 + GST |
+
+Activation:
 
 1. The offline app shows this PC's **Machine ID** on the Licence screen.
-2. **Activate online:** enter the key and click Activate online. The website locks the key to that Machine ID and sends back a signed **activation code** (`EBOL1....`). Internet is needed only for this one step.
+2. **Activate online:** enter the key and click Activate online. The website uses one PC slot of that key and sends back a signed **activation code** (`EBOL1....`) locked to this Machine ID. Internet is needed only for this one step; after that it works fully offline.
 3. **No internet on the PC:** on any phone or PC, open `<your site>/activate`, enter the key and Machine ID, then paste the code (or open the .lic file) on the Licence screen.
 
-The app checks the code offline with the public key in `desktop/main.js`. It refuses codes made for another computer. Without a valid, unexpired code for this PC, the books are read-only. A renewal key (₹6,500 + GST) is needed every year after the first. After renewing, click Activate online again on the same PC.
+The app checks the code offline with the public key in `desktop/main.js`, and refuses codes made for another computer. After renewing, click Activate online again on each PC.
 
-**Moving to a new PC:** on the website, open Platform Admin → offline licences → **Reset PC**, then activate on the new PC. The old PC keeps working until its current code expires, because offline codes can't be cancelled remotely.
+**Moving to a new PC:** on the website, open Platform Admin → offline licences, remove that PC (×) or click **Reset all PCs**, then activate on the new PC. The old PC keeps working until its current code expires, because offline codes can't be cancelled remotely.
 
 **Codes issued before the one-PC lock (Round 5) no longer work.** Activate those customers again with their key.
 
@@ -52,7 +65,7 @@ Steps (Command Prompt, in the project folder):
    ```
    The installer is created at `offline\desktop\dist\EasyBooksSetup.exe`.
 6. **Test it**:
-   - Install it on a PC, open Easy Books and create the admin login ("Set up your business").
+   - Install it on a PC. Easy Books should open straight to the books (no login) with a 30-day trial banner. Rename the business in Settings.
    - Open Licence, enter a licence key and click Activate online. Get a key from Platform Admin → "Issue offline licence" on the website.
 7. **Publish it**:
    - Upload the .exe to GitHub Releases, Google Drive (set it to "Anyone with the link") or any file host.

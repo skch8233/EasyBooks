@@ -53,3 +53,10 @@ JWT email/password; roles Admin / Accountant / Viewer; single company + FY manag
 - Website address placeholder in ONE place: offline/build-settings.txt WEBSITE_URL. User steps: offline/GITHUB-STEPS.md.
 - Not yet run on real GitHub (needs user's Save to GitHub). Installer unsigned (SmartScreen warning). Repo must be public for customer downloads.
 - Backlog: code-signing certificate, clear/unpublish download link.
+
+## Round 8 (Nov 2026) - DONE
+- Offline: no login (auto local owner session), 30-day full trial tracked by 2 HMAC-signed tokens (data folder + HKCU registry) with forward-only clock and tamper detection; paywall redirects to Licence after trial/licence expiry.
+- Single-PC (₹12,000/₹6,500 + GST) and Multi-PC up to 8 computers (₹18,000/₹10,000 + GST) keys; per-PC Ed25519 codes; admin per-PC removal.
+- Financial year: company default year switchable by any user + per-user working year stored server-side.
+- Design doc: offline/LICENSING-DESIGN.md. Tests: iteration_8 100%.
+- Download default: OFFLINE_DOWNLOAD_URL env + DB -> github.com/skch8233/EasyBooks releases/latest (repo currently not publicly reachable: 404).

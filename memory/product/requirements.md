@@ -35,6 +35,31 @@ Branded Invoices: Let traders print sales invoices with their logo, GSTIN and a 
 - Pricing/trial details: see Next Round section above (₹6,500 + 18% GST for 1+1 free user; ₹10,000 + 18% GST for 3 to 8 users; 30-day free trial).
 - Razorpay: user's own Razorpay account; request keys from user via secrets when needed.
 
+## Round 8 — user's request (build now) — OFFLINE licensing redesign
+User's words (verbatim):
+"for offline software, Act as a software developer and licensing expert. I need you to design a licensing and authentication workflow for a desktop accounting software application that operates entirely offline.
+1. Initial Installation & Grace Period (First 30 Days):
+- Upon downloading and installing the software, the user should be granted complete, unrestricted access to all features for the first 30 days without needing to create or enter a Login ID / Password repeatedly.
+- The software must securely track the installation date locally (or via a secure hidden token) to prevent users from simply altering their system clock to bypass the trial.
+2. Post-30-Day Paywall:
+- Exactly after the 30-day trial expires, the software must block access and prompt the user to enter a valid "Subscription Key."
+- To get this key, the user must make a payment. Once payment is verified, a valid subscription key is generated.
+3. License Validation (Single-User vs. Multi-User):
+- Single-User License: The key must be tied to a unique hardware ID (HWID) or MAC address, ensuring it works completely offline but only on that specific local system.
+- Multi-User License: The key should allow activation on a predefined number of allowed systems (e.g., up to 3 or 5 machines) using local network validation or a multi-activation key structure.
+4. Offline Authentication Continuity:
+- Even when the subscription key is active, the software should not require a daily online login ID or password. Once activated locally with the key, it must work completely offline.
+Provide the pseudo-code, database schema logic for tracking the trial period securely offline, and the architectural design for the key validation process.
+and there should be an option to change the financial year for which accounting is done on the user basis and provide the .exe file of offline software in a link"
+
+User decisions:
+- Offline multi-user licence: up to 8 computers per key.
+- Offline multi-user price: ₹18,000 + GST first year, then ₹10,000 + GST renewal. (Single-user offline stays ₹12,000 + GST first year, ₹6,500 + GST renewal.) Both offline tiers purchasable on /buy.
+- Offline login: "No login at all, the app opens straight to the books".
+- Financial year: user picked both — "Each user picks their own working year, and the app remembers it per user; One year for the whole company, which any user can switch". Interpreted: company default year that anyone can switch, and each user's/PC's own chosen working year is remembered.
+- Deliver the design (pseudo-code, trial-tracking schema, key validation architecture) as a readable document in the repo (e.g. offline/LICENSING-DESIGN.md) and implement it in the offline app.
+- .exe: GitHub build succeeded and EasyBooksSetup.exe is on the user's Releases page. Make sure the new version builds the same way.
+
 ## Round 7 — user's request (build now)
 User: "provide me single click download and install"
 User approved: "yes but i dont have website now will do it later i have github account"

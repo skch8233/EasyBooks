@@ -18,7 +18,7 @@ const price = (p) => `₹${amt(p.price).replace(".00", "")}`;
 const OfflineForm = ({ plan, enabled, onDone }) => {
   const [f, setF] = useState({ name: "", email: "", phone: "", business_name: "", licence_key: "", gstin: "" });
   const [busy, setBusy] = useState(false);
-  const renewal = plan.key === "offline_renewal";
+  const renewal = plan.renewal;
   const pay = async (e) => {
     e.preventDefault();
     setBusy(true);
@@ -61,7 +61,9 @@ export default function Buy() {
   const [sp] = useSearchParams();
   const [d, setD] = useState(null);
   const [result, setResult] = useState(null);
-  const [tab, setTab] = useState(sp.get("plan") === "offline_renewal" ? "offline_renewal" : "offline_first");
+  const [tier, setTier] = useState(sp.get("plan")?.includes("multi") ? "multi" : "single");
+  const [renew, setRenew] = useState(!!sp.get("plan")?.includes("renewal"));
+  const tab = `offline_${tier === "multi" ? "multi_" : ""}${renew ? "renewal" : "first"}`;
   useEffect(() => { axios.get(`${API}/public/plans`).then((r) => setD(r.data)).catch(() => toast.error("Could not load plans. Please refresh.")); }, []);
   if (!d) return <PublicShell><div className="p-10 text-slate-500">Loading...</div></PublicShell>;
   const off = Object.fromEntries(d.offline_plans.map((p) => [p.key, p]));
@@ -87,12 +89,15 @@ export default function Buy() {
         </section>
         <section className="space-y-4">
           <h2 className="font-heading text-2xl font-bold flex items-center gap-2"><Monitor className="h-6 w-6" /> Offline Windows software</h2>
-          <p className="text-slate-500 text-sm">Standalone and separate from the online version, with no internet needed. The first year is {price(off.offline_first)} + GST. From year 2, an annual renewal key ({price(off.offline_renewal)} + GST) is compulsory to keep using it. <Link to="/download" className="text-primary font-medium underline">Download the software</Link></p>
-          <div className="flex gap-2">
-            {["offline_first", "offline_renewal"].map((k) => <button key={k} onClick={() => setTab(k)} data-testid={`buy-tab-${k}`}
-              className={`rounded-full border px-4 py-2 text-sm font-medium ${tab === k ? "bg-primary text-white border-primary" : "bg-white"}`}>{k === "offline_first" ? "Buy first year" : "Renew my key"}</button>)}
+          <p className="text-slate-500 text-sm">Standalone and separate from the online version, with no internet needed. No login needed, and every feature is free for 30 days after installing. Single-PC: {price(off.offline_first)} + GST first year, then {price(off.offline_renewal)} + GST / year. Multi-PC, one key for up to 8 computers: {price(off.offline_multi_first)} + GST first year, then {price(off.offline_multi_renewal)} + GST / year. A renewal key is compulsory every year after the first. <Link to="/download" className="text-primary font-medium underline">Download the software</Link></p>
+          <div className="flex flex-wrap gap-2">
+            {[["single", "Single-PC (1 computer)"], ["multi", "Multi-PC (up to 8 computers)"]].map(([k, l]) => <button key={k} onClick={() => setTier(k)} data-testid={`buy-tier-${k}`}
+              className={`rounded-full border px-4 py-2 text-sm font-medium ${tier === k ? "bg-primary text-white border-primary" : "bg-white"}`}>{l}</button>)}
+            <span className="w-px bg-slate-200 mx-1" />
+            {[[false, "Buy first year"], [true, "Renew my key"]].map(([k, l]) => <button key={l} onClick={() => setRenew(k)} data-testid={`buy-tab-${k ? "renewal" : "first"}`}
+              className={`rounded-full border px-4 py-2 text-sm font-medium ${renew === k ? "bg-slate-900 text-white border-slate-900" : "bg-white"}`}>{l}</button>)}
           </div>
-          <Card p={off[tab]} icon={tab === "offline_first" ? Monitor : RefreshCw} highlight>
+          <Card p={off[tab]} icon={renew ? RefreshCw : Monitor} highlight>
             <OfflineForm key={tab} plan={off[tab]} enabled={d.payments_enabled} onDone={(r) => { setResult(r); window.scrollTo({ top: 0, behavior: "smooth" }); }} />
           </Card>
         </section>

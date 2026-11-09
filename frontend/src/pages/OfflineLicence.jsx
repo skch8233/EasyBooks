@@ -14,13 +14,23 @@ const ONLINE_OK = SERVER.startsWith("https://") && !SERVER.includes("YOUR-EASYBO
 
 const Status = ({ biz }) => {
   const lic = biz?.licence;
+  const trial = biz?.status === "trial";
+  const tone = biz?.status === "active" ? "bg-emerald-50 border-emerald-200" : trial ? "bg-amber-50 border-amber-200" : "bg-red-50 border-red-200";
   return (
-    <div className={`rounded-xl border p-5 ${biz?.status === "active" ? "bg-emerald-50 border-emerald-200" : "bg-red-50 border-red-200"}`} data-testid="offline-licence-status">
-      {lic ? <div className="grid gap-3 sm:grid-cols-3 text-sm">
-        <div><div className="text-xs uppercase opacity-70">Status</div><div className="font-heading text-xl font-bold">{biz.status === "active" ? "Active" : "Expired"}</div></div>
-        <div><div className="text-xs uppercase opacity-70">Valid till</div><div className="font-mono font-semibold">{dmy(lic.e)}</div>{biz.status === "active" && <div>{biz.days_left} days left</div>}</div>
+    <div className={`rounded-xl border p-5 ${tone}`} data-testid="offline-licence-status">
+      {lic && biz.status === "active" ? <div className="grid gap-3 sm:grid-cols-4 text-sm">
+        <div><div className="text-xs uppercase opacity-70">Status</div><div className="font-heading text-xl font-bold">Active</div></div>
+        <div><div className="text-xs uppercase opacity-70">Valid till</div><div className="font-mono font-semibold">{dmy(lic.e)}</div><div>{biz.days_left} days left</div></div>
         <div><div className="text-xs uppercase opacity-70">Licence key</div><div className="font-mono font-semibold">{lic.k}</div><div>{lic.b}</div></div>
-      </div> : <div className="font-semibold text-red-800">{biz?.reason || "No licence activated. The software is read-only until you activate a licence."}</div>}
+        <div><div className="text-xs uppercase opacity-70">Type</div><div className="font-semibold" data-testid="offline-licence-tier">{lic.t === "multi" ? `Multi-PC (up to ${lic.c} computers)` : "Single-PC"}</div></div>
+      </div> : trial ? <div className="text-amber-900" data-testid="offline-trial-status">
+        <div className="font-heading text-xl font-bold">Free trial: {biz.days_left} day{biz.days_left === 1 ? "" : "s"} left</div>
+        <div className="text-sm">All features are unlocked until {dmy(biz.ends_at)}. After that, Easy Books asks for a subscription key.</div>
+      </div> : <div className="text-red-800" data-testid="offline-paywall">
+        <div className="font-heading text-xl font-bold">Subscription key required</div>
+        <div className="text-sm">{biz?.reason || "Enter a subscription key to continue."} Your data is safe and will be there once you activate.</div>
+        <a href={`${SERVER}/buy`} target="_blank" rel="noreferrer" className={`text-sm font-semibold underline ${ONLINE_OK ? "" : "hidden"}`} data-testid="offline-buy-link">Buy a key</a>
+      </div>}
     </div>
   );
 };
@@ -30,7 +40,7 @@ const MachineId = ({ id }) => (
     <MonitorCheck className="h-6 w-6 text-primary" />
     <div className="flex-1"><div className="text-xs uppercase text-slate-500">This computer's Machine ID</div>
       <div className="font-mono text-lg font-semibold tracking-wider" data-testid="offline-machine-id">{id || "..."}</div>
-      <div className="text-xs text-slate-500">Each licence key works on one PC only.</div></div>
+      <div className="text-xs text-slate-500">A Single-PC key works on this computer only. A Multi-PC key can be activated on up to 8 computers.</div></div>
     <Button variant="outline" onClick={() => navigator.clipboard?.writeText(id).then(() => toast.success("Copied"))} data-testid="copy-machine-id"><Copy className="h-4 w-4 mr-1" /> Copy</Button>
   </div>
 );
@@ -55,8 +65,8 @@ export default function OfflineLicence() {
       <MachineId id={biz?.machine_id} />
       {!isAdmin ? <p className="text-sm text-slate-500">Ask your admin to activate or renew the licence.</p> : <>
         <div className="rounded-xl border bg-white p-6 space-y-3" data-testid="offline-online-activate">
-          <div className="font-semibold flex items-center gap-2"><Globe className="h-4 w-4" /> Activate online (needs internet once)</div>
-          <p className="text-sm text-slate-500">Enter the licence key from your purchase email. After a renewal, click again to load the new expiry date.</p>
+          <div className="font-semibold flex items-center gap-2"><Globe className="h-4 w-4" /> Enter subscription key (needs internet once)</div>
+          <p className="text-sm text-slate-500">Enter the licence key from your purchase email. After activation Easy Books works fully offline with no login. After a renewal, click again to load the new expiry date.</p>
           <div className="flex flex-wrap gap-2">
             <Input className="h-11 font-mono uppercase flex-1 min-w-[240px]" placeholder="EB-XXXX-XXXX-XXXX-XXXX" value={key} onChange={(e) => setKey(e.target.value.toUpperCase())} data-testid="offline-key-input" />
             <Button className="h-11" onClick={online} disabled={!ONLINE_OK || !key.trim() || !biz?.machine_id || !!busy} data-testid="offline-activate-online-button">

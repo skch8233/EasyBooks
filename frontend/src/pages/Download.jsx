@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { dmy } from "@/lib/format";
 import { PublicShell } from "@/components/PublicShell";
 
-const STEPS = ["Buy the first-year licence on the Buy page. Your key and GST invoice are emailed to you.",
-  "Click Download for Windows and open EasyBooksSetup.exe. If Windows says \"Windows protected your PC\", click More info → Run anyway.",
-  "It installs in one click (no questions), adds a desktop shortcut and opens Easy Books. Create your admin login.", "Go to Licence, enter your key and click Activate online. The key locks to this one PC.",
+const STEPS = ["Download and install: it takes one click and opens Easy Books straight to your books, with no login.",
+  "If Windows says \"Windows protected your PC\", click More info → Run anyway. Use every feature free for 30 days.",
+  "Before the trial ends, buy a Single-PC or Multi-PC (up to 8 computers) key on the Buy page. It is emailed to you with a GST invoice.",
+  "Open Licence, enter your key and click Activate online. After that it works fully offline.",
   "Every year, buy a renewal key with your existing licence key and click Activate online again."];
 
 export default function DownloadPage() {
@@ -29,7 +30,7 @@ export default function DownloadPage() {
             {d?.url && <p className="mt-3 text-sm text-slate-500" data-testid="download-version">Version {d.version}{d.size ? ` · ${d.size}` : ""} · Updated {dmy(d.updated_at)}{d.notes ? ` · ${d.notes}` : ""}</p>}
           </div>
           <div className="grid gap-3">
-            {[[WifiOff, "Works fully offline", "Data is stored securely on your own computer"], [ShieldCheck, "Licence protected", "Annual activation key, verified on your PC"], [Monitor, "Windows 10 / 11 (64-bit)", "4 GB RAM, 1 GB free disk space"]].map(([I, t, s]) => (
+            {[[WifiOff, "Works fully offline", "Data is stored securely on your own computer"], [ShieldCheck, "Licence protected", "30-day free trial, then an annual key for 1 or up to 8 PCs"], [Monitor, "Windows 10 / 11 (64-bit)", "4 GB RAM, 1 GB free disk space"]].map(([I, t, s]) => (
               <div key={t} className="flex gap-3 rounded-xl border p-4"><I className="h-5 w-5 text-primary mt-0.5" /><div><div className="font-semibold">{t}</div><div className="text-sm text-slate-500">{s}</div></div></div>))}
           </div>
         </div>

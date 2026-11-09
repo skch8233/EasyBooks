@@ -42,8 +42,8 @@ export const KeyResult = ({ r }) => {
       </div>
       {r.code ? <CodeBox r={r} copy={copy} /> : (
         <div className="rounded-md bg-white border p-4 text-sm space-y-1" data-testid="result-activate-steps">
-          <div className="font-semibold flex items-center gap-2"><MonitorCheck className="h-4 w-4" /> Works on one computer</div>
-          <p>Install the software on the PC you will use, open <b>Licence</b>, enter this key and click <b>Activate online</b>. The key then locks to that PC.</p>
+          <div className="font-semibold flex items-center gap-2"><MonitorCheck className="h-4 w-4" /> {r.max_pcs > 1 ? `Works on up to ${r.max_pcs} computers` : "Works on one computer"}</div>
+          <p>On {r.max_pcs > 1 ? "each" : "the"} PC, open Easy Books → <b>Licence</b>, enter this key and click <b>Activate online</b>. {r.max_pcs > 1 ? `Each activation uses one of the ${r.max_pcs} computers (${r.pcs_used || 0} used).` : "The key then locks to that PC."}</p>
           <p className="text-slate-500">No internet on that PC? Use the <a href="/activate" className="text-primary underline">activation page</a> with the Machine ID shown on the Licence screen.</p>
         </div>
       )}

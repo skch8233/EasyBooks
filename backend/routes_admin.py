@@ -189,6 +189,30 @@ async def update_fy(fid: str, body: FYUpdate, user=Depends(ADMIN_WRITE)):
     return clean(updated)
 
 
+async def _own_fy(fid: str, user: dict) -> dict:
+    fy = await db.financial_years.find_one({"id": fid, "business_id": user["business_id"]}, NO_ID)
+    if not fy:
+        raise HTTPException(404, "Financial year not found")
+    return fy
+
+
+@router.put("/financial-years/{fid}/working")
+async def set_working_fy(fid: str, user=Depends(ANY)):
+    fy = await _own_fy(fid, user)
+    await db.users.update_one({"id": user["id"]}, {"$set": {"working_fy_id": fid}})
+    return {"ok": True, "working_fy_id": fid, "name": fy["name"]}
+
+
+@router.put("/financial-years/{fid}/company-default")
+async def set_company_fy(fid: str, user=Depends(ANY)):
+    fy = await _own_fy(fid, user)
+    await db.financial_years.update_many({"business_id": user["business_id"]}, {"$set": {"is_active": False}})
+    await db.financial_years.update_one({"id": fid}, {"$set": {"is_active": True}})
+    await db.users.update_one({"id": user["id"]}, {"$set": {"working_fy_id": fid}})
+    await audit("financial_year", fid, "company_default", user, note=f"Company year set to {fy['name']}")
+    return {"ok": True, "name": fy["name"]}
+
+
 @router.get("/audit-logs")
 async def audit_logs(entity: Optional[str] = None, limit: int = 300, user=Depends(ANY)):
     if user["role"] == "viewer":

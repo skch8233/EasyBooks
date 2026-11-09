@@ -13,7 +13,8 @@ api.interceptors.response.use(
   (e) => {
     if (e.response?.status === 401 && !e.config?.url?.includes("/auth/login") && !e.config?.url?.includes("/public/")) {
       localStorage.removeItem("eb_token");
-      if (window.location.pathname !== "/login") window.location.href = "/login";
+      if (process.env.REACT_APP_OFFLINE === "1") window.location.reload();
+      else if (window.location.pathname !== "/login") window.location.href = "/login";
     }
     return Promise.reject(e);
   }

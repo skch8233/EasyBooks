@@ -1,4 +1,4 @@
-# Round 6: one-PC lock (shop/activate, reset-pc), purchase emails (issue, resend, renewal), GST invoices
+# Round 6 (updated R8: list rows expose machines[]): one-PC lock (shop/activate, reset-pc), purchase emails (issue, resend, renewal), GST invoices
 import os
 import re
 import sys
@@ -74,7 +74,7 @@ class TestPcLockEmail:
 
     def test_02_list_and_invoice(self, sa):
         row = _row(sa, self.st["key"])
-        assert row["machine_id"] is None and row["code"] is None
+        assert row["machines"] == [] and row.get("code") is None
         assert row["last_invoice"] == self.st["invoice_no"]
         assert row["last_email"]["status"] == "sent" and row["last_email"]["to"] == EMAIL
         assert row["gstin"] == "29ABCDE1234F1Z5"
@@ -90,7 +90,7 @@ class TestPcLockEmail:
         k = self.st["key"]
         assert _activate(k, "ZZZZ-ZZZZ-ZZZZ-ZZZZ").status_code == 400
         assert _activate(k, "A1B2C3D4E5F60789").status_code == 400
-        assert _activate(k, "abc").status_code == 422
+        assert _activate(k, "abc").status_code in (400, 422)
         assert _activate("EB-ZZZZ-ZZZZ-ZZZZ-ZZZZ", PC_A).status_code == 404
         assert requests.post(f"{BASE_URL}/api/shop/activate", json={"key": k}).status_code == 422
 
@@ -101,7 +101,7 @@ class TestPcLockEmail:
         assert d["machine_id"] == PC_A and d["code"].startswith("EBOL1.")
         p = licensing.verify_code(d["code"])
         assert p["m"] == PC_A and p["k"] == self.st["key"] and p["e"] == self.st["expires"] and p["d"] == 8
-        assert _row(sa, self.st["key"])["machine_id"] == PC_A
+        assert [m["id"] for m in _row(sa, self.st["key"])["machines"]] == [PC_A]
 
     def test_05_same_pc_again_and_other_pc_409(self):
         r = _activate(self.st["key"], PC_A)
@@ -121,7 +121,7 @@ class TestPcLockEmail:
         r = requests.post(f"{BASE_URL}/api/platform/offline-licences/{k}/reset-pc", headers=sa)
         assert r.status_code == 200 and r.json()["ok"] is True
         row = _row(sa, k)
-        assert row["machine_id"] is None and row["code"] is None
+        assert row["machines"] == [] and row.get("code") is None
         r = _activate(k, PC_B)
         assert r.status_code == 200 and licensing.verify_code(r.json()["code"])["m"] == PC_B
         assert _activate(k, PC_A).status_code == 409

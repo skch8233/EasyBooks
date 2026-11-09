@@ -16,6 +16,7 @@ BACKEND = Path("/app/backend")
 FRONT = Path("/tmp/ebfront_t")
 DATA = Path("/tmp/ebdt")
 DB = "eb_off_t"
+SHADOW = Path("/tmp/ebdt_shadow")
 
 
 MACHINE_SEED = "TEST_R5_PC"
@@ -49,12 +50,13 @@ def srv():
     (FRONT / "static").mkdir(parents=True, exist_ok=True)
     (FRONT / "index.html").write_text("<html><body>EB_OFFLINE_INDEX</body></html>")
     (FRONT / "static" / "app.js").write_text("console.log('ok')")
-    if (DATA / "licence.json").exists():
-        (DATA / "licence.json").unlink()
+    for f in (DATA / "licence.json", SHADOW):
+        if f.exists():
+            f.unlink()
     subprocess.run(["mongosh", DB, "--quiet", "--eval", "db.dropDatabase()"], check=False)
     env = {**os.environ, "MONGO_URL": "mongodb://localhost:27017", "DB_NAME": DB, "JWT_SECRET": "x",
            "LICENCE_PUBLIC_KEY": "G8Jy7VEVHgl6Vp6oRf645qoqsqcoEf3XqWXiJG8-E_g", "EB_DATA_DIR": str(DATA),
-           "FRONTEND_DIR": str(FRONT), "EB_PORT": str(PORT), "EB_MACHINE_ID": MACHINE_SEED}
+           "FRONTEND_DIR": str(FRONT), "EB_PORT": str(PORT), "EB_MACHINE_ID": MACHINE_SEED, "EB_SHADOW_FILE": str(SHADOW)}
     env.pop("LICENCE_SIGNING_KEY", None)
     p = subprocess.Popen([sys.executable, "offline_server.py"], cwd="/app/offline/server", env=env,
                          stdout=open("/tmp/eb_off.log", "w"), stderr=subprocess.STDOUT)
@@ -78,7 +80,8 @@ class TestOfflineHarness:
 
     def test_01_status_fresh(self, srv):
         d = requests.get(f"{URL}/api/offline/status").json()
-        assert d["offline"] is True and d["has_users"] is False and d["status"] == "expired"
+        # R8: fresh install starts a 30-day trial
+        assert d["offline"] is True and d["has_users"] is False and d["status"] == "trial" and d["days_left"] == 30
 
     def test_02_signup_once(self, srv):
         body = {"business_name": "TEST_Off", "name": "TEST Owner", "email": "owner@example.com", "password": "secret1", "phone": "", "state": "", "gstin": ""}
@@ -89,9 +92,16 @@ class TestOfflineHarness:
         assert r2.status_code == 403
         assert requests.get(f"{URL}/api/offline/status").json()["has_users"] is True
 
-    def test_03_write_402(self, srv):
-        r = requests.post(f"{URL}/api/ledgers", headers=self.st["h"], json={"name": "TEST L", "group": "sundry_debtors", "opening_balance": 0, "opening_type": "Dr"})
-        assert r.status_code == 402, r.text
+    def test_03_write_ok_in_trial(self, srv):
+        r = requests.post(f"{URL}/api/ledgers", headers=self.st["h"], json={"name": "TEST L0", "group": "sundry_debtors", "opening_balance": 0, "opening_type": "Dr"})
+        assert r.status_code in (200, 201), r.text
+
+    # R8: no-login session returns the same owner each time
+    def test_03b_offline_session(self, srv):
+        a = requests.post(f"{URL}/api/offline/session")
+        b = requests.post(f"{URL}/api/offline/session")
+        assert a.status_code == 200 and b.status_code == 200
+        assert a.json()["user"]["id"] == b.json()["user"]["id"] and "password_hash" not in a.json()["user"]
 
     def test_04_invalid_codes(self, srv):
         code = _valid_code()
@@ -111,7 +121,7 @@ class TestOfflineHarness:
         for c in bad:
             r = requests.post(f"{URL}/api/offline/licence", headers=self.st["h"], json={"code": c})
             assert r.status_code == 400, (c[:30], r.status_code, r.text)
-        assert requests.get(f"{URL}/api/offline/status").json()["status"] == "expired"
+        assert requests.get(f"{URL}/api/offline/status").json()["status"] == "trial"
 
     # Round 6: one-PC lock in the offline app (check_pc)
     def test_04b_pc_lock(self, srv):
@@ -125,7 +135,7 @@ class TestOfflineHarness:
         unbound = _sign(base)
         r = requests.post(f"{URL}/api/offline/licence", headers=self.st["h"], json={"code": unbound})
         assert r.status_code == 400 and "not locked" in r.json()["detail"], r.text
-        assert requests.get(f"{URL}/api/offline/status").json()["status"] == "expired"
+        assert requests.get(f"{URL}/api/offline/status").json()["status"] == "trial"
 
     def test_05_expired_code(self, srv):
         past = (date.today() - timedelta(days=1)).isoformat()
@@ -159,3 +169,22 @@ class TestOfflineHarness:
         # unknown api path should not return index
         r = requests.get(f"{URL}/api/does-not-exist")
         print("unknown api:", r.status_code, r.text[:80])
+
+    # R8: trial ended (signed install date 40 days ago, no code) -> status expired + writes 402
+    def test_09_trial_ended_blocks_writes(self, srv):
+        import json, licensing
+        old = {k: os.environ.get(k) for k in ("EB_MACHINE_ID", "LICENCE_PUBLIC_KEY")}
+        os.environ["EB_MACHINE_ID"] = MACHINE_SEED
+        os.environ["LICENCE_PUBLIC_KEY"] = "G8Jy7VEVHgl6Vp6oRf645qoqsqcoEf3XqWXiJG8-E_g"
+        try:
+            d = (date.today() - timedelta(days=40)).isoformat()
+            tok = licensing._pack({"i": d, "s": date.today().isoformat(), "m": licensing.machine_id()})
+        finally:
+            for k, v in old.items():
+                os.environ.pop(k, None) if v is None else os.environ.__setitem__(k, v)
+        (DATA / "licence.json").write_text(json.dumps({"trial": tok, "last_seen": date.today().isoformat()}))
+        SHADOW.write_text(tok)
+        s = requests.get(f"{URL}/api/offline/status").json()
+        assert s["status"] == "expired" and "trial has ended" in s["reason"], s
+        r = requests.post(f"{URL}/api/ledgers", headers=self.st["h"], json={"name": "TEST L9", "group": "sundry_debtors", "opening_balance": 0, "opening_type": "Dr"})
+        assert r.status_code == 402, r.text

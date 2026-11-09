@@ -1,0 +1,40 @@
+{
+  "summary": "Round 8 offline licensing redesign tested end-to-end. Backend: new pytest suite test_round8_multipc_trial_fy.py (plans, multi-PC 8 activations + 9th 409, same PC 200, EBOL1 payload t/c/m, single-PC 2nd PC 409, tier-mismatch renewal 400 both ways, multi renewal +365 keeps 8 machines, reset-pc single machine (case-insensitive) / {} / no body, non-super 403, legacy machine_id row normalized, FY working + company-default as viewer + /me + audit + other-business 404, offline/session 404 online, in-process trial harness with mocked licensing.date: fresh 30d, day 29=1 left, day 31 trial-ended, clock back >2d 'set back' and within slack ok, licence.json deleted -> restored from shadow with same install date, shadow deleted -> restored, both tampered -> 'removed or changed', other-machine code rejected, own code active). Updated round5 harness (fresh=trial, writes OK in trial, /api/offline/session same owner twice without password_hash, signed 40-day-old trial -> expired + 402 on writes) and round6 tests (machines[] instead of machine_id). First full run: 54/55 pass, the single failure was an outdated test expectation (machine_id 'abc' now 400 instead of 422) - fixed. Frontend: /buy tier/tab toggles + prices + renewal key field + disabled pay buttons; /download and landing copy; Platform offline licences issue buttons, multi KeyResult 'Works on up to 8 computers', 'Multi-PC · n/8', × remove PC and Reset all PCs with confirm dialogs; FY switcher persists after reload with localStorage cleared (server-side), Make company year / Company year badge / ★ options. Company FY 2026-27 restored (is_active + admin working_fy_id verified in DB).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "emails (Resend via integrations proxy)", "issue": "Re-running the email-sending suites in quick succession hits provider 429 'email rate limit exceeded'; issue still returns 200 with email_status 'failed' (handled gracefully). Not a code bug; test now tolerates 'failed'."},
+      {"endpoint": "licensing.check_pc", "issue": "Error text for a code from another machine says 'Each licence works on one PC only.' even for Multi-PC codes - misleading wording for multi tier."},
+      {"endpoint": "POST /api/offline/licence", "issue": "Expiry check uses real date.today() instead of trial effective_today (forward-only clock); offline_status uses effective date so behaviour is consistent afterwards, minor inconsistency only."},
+      {"endpoint": "licensing.trial_state", "issue": "Known limitation: if BOTH licence.json and the registry/shadow token are deleted (and no last_seen), a fresh 30-day trial starts. Could additionally anchor on DB existence (e.g. users/vouchers present) to flag tampering."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Top bar FY switcher", "issues": ["Trigger shows 'FY 2026-27 ★' (star from item text also rendered in SelectValue) - fine but slightly noisy", "fy-company-badge is hidden below md breakpoint (hidden md:inline) so mobile users cannot see whether selected year is the company year"]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_round8_multipc_trial_fy.py", "/app/backend/tests/test_round5_offline_harness.py", "/app/backend/tests/test_round6_pc_lock_email.py", "/app/test_reports/pytest/pytest_round8.xml", "/app/test_reports/pytest/pytest_round8_noemail.xml"],
+  "action_items": [
+    "Optional: make check_pc 'other computer' message tier-neutral (e.g. 'This activation code belongs to another computer. Activate this PC with your licence key.')",
+    "Optional: in offline_activate use trial effective date for expiry check",
+    "Optional: detect deletion of both trial tokens when the local DB already has data",
+    "Optional: AppContext OFFLINE auto-session has no retry if backend is not yet up (shows 'could not start'); consider retry with backoff"
+  ],
+  "critical_code_review_comments": [
+    "shop_activate atomic $push with $size/$ne guard is race-safe for the 8-PC limit; legacy rows migrated to machines[] before guard - good",
+    "reset_pc with no body/{} clears all; with machine_id removes only that PC (upper-cased) - correct",
+    "AppContext.setFy swallows PUT /working errors silently (catch(() => {})) - user gets no feedback if server-side save fails",
+    "PUT /financial-years/{id}/company-default allowed for any role incl. viewer (as per spec) - note that a viewer can change the company-wide default year",
+    "Static review OK: App.js Protected redirects to /licence when OFFLINE && biz.status expired; OfflineLicence.jsx shows trial/paywall/active with tier; Layout hides logout when OFFLINE; offline/session returns clean() user (no password_hash)"
+  ],
+  "updated_files": ["/app/backend/tests/test_round8_multipc_trial_fy.py", "/app/backend/tests/test_round5_offline_harness.py", "/app/backend/tests/test_round6_pc_lock_email.py"],
+  "success_rate": {"backend": "100% (55/55 after updating 1 outdated expectation; email assertions depend on provider rate limit)", "frontend": "100%"},
+  "test_credentials": "admin@easybooks.in / Admin@123 (superadmin), ravi@gupta.in / secret1 - from /app/memory/test_credentials.md. Auth: bcrypt $2b$ OK, lockout 429 after 5 fails OK, auth via Bearer token (no app httpOnly cookie), CORS '*'.",
+  "seed_data_creation": "None persisted. Test licences (TEST_R8*), their invoices, the UI-issued key EB-C5RK-FMHV-CHH8-TM6R and the temporary TEST_R8 viewer user were deleted by key/id. Invoice numbers HS/2026-27/000xx consumed by tests leave gaps.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run backend tests with REACT_APP_BACKEND_URL exported and -n 0. Avoid re-running email-sending classes (TestMultiPc, TestSinglePc, round6 TestPcLockEmail, round5 offline_shop issue) back-to-back: Resend rate limit 429. Non-email subset: TestPlans, TestFY, TestTrialHarness, round5 harness. Round5 harness now uses EB_SHADOW_FILE=/tmp/ebdt_shadow (so it never writes ~/.hsebk). Admin company FY must stay 2026-27."
+}

@@ -15,9 +15,12 @@ PLANS = {
 }
 # Offline (standalone Windows) plans - edit prices here
 OFFLINE_PLANS = {
-    "offline_first": {"key": "offline_first", "name": "Offline Windows - First Year", "users_label": "Standalone PC software, up to 8 users", "price": 12000, "max_users": 8},
-    "offline_renewal": {"key": "offline_renewal", "name": "Offline Annual Renewal Key", "users_label": "Required every year after the first", "price": 6500, "max_users": 8},
+    "offline_first": {"key": "offline_first", "name": "Offline Single-PC - First Year", "users_label": "Works on 1 computer", "price": 12000, "max_users": 8, "tier": "single", "pcs": 1, "renewal": False},
+    "offline_renewal": {"key": "offline_renewal", "name": "Offline Single-PC - Annual Renewal", "users_label": "Required every year after the first", "price": 6500, "max_users": 8, "tier": "single", "pcs": 1, "renewal": True},
+    "offline_multi_first": {"key": "offline_multi_first", "name": "Offline Multi-PC - First Year", "users_label": "One key for up to 8 computers", "price": 18000, "max_users": 8, "tier": "multi", "pcs": 8, "renewal": False},
+    "offline_multi_renewal": {"key": "offline_multi_renewal", "name": "Offline Multi-PC - Annual Renewal", "users_label": "Required every year after the first", "price": 10000, "max_users": 8, "tier": "multi", "pcs": 8, "renewal": True},
 }
+OFFLINE_TRIAL_DAYS = 30
 for p in list(PLANS.values()) + list(OFFLINE_PLANS.values()):
     p["gst"] = round(p["price"] * GST_RATE / 100, 2)
     p["total"] = round(p["price"] + p["gst"], 2)
