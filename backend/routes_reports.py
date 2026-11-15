@@ -15,8 +15,8 @@ async def _ledgers(bid):
     return {l["id"]: l for l in await db.ledgers.find({"business_id": bid}, NO_ID).to_list(10000)}
 
 
-async def _moves(bid, from_date=None, to_date=None, before=None) -> dict:
-    match = {"business_id": bid, "status": "active"}
+async def _moves(bid, from_date=None, to_date=None, before=None, project_id=None) -> dict:
+    match = {"business_id": bid, "status": "active", **({"project_id": None if project_id == "none" else project_id} if project_id else {})}
     d = {k: v for k, v in (("$gte", from_date), ("$lte", to_date), ("$lt", before)) if v}
     if d:
         match["date"] = d
@@ -31,16 +31,20 @@ def _nature(led):
     return GROUP_MAP.get(led["group"], {}).get("nature", "asset")
 
 
-async def closing_signed(bid, to_date: Optional[str]) -> tuple:
+def _open(l, project_id):
+    return 0 if project_id else opening_signed(l)
+
+
+async def closing_signed(bid, to_date: Optional[str], project_id: Optional[str] = None) -> tuple:
     ledgers = await _ledgers(bid)
-    moves = await _moves(bid, to_date=to_date)
-    bal = {lid: round(opening_signed(l) + moves.get(lid, (0, 0))[0] - moves.get(lid, (0, 0))[1], 2) for lid, l in ledgers.items()}
+    moves = await _moves(bid, to_date=to_date, project_id=project_id)
+    bal = {lid: round(_open(l, project_id) + moves.get(lid, (0, 0))[0] - moves.get(lid, (0, 0))[1], 2) for lid, l in ledgers.items()}
     return ledgers, bal
 
 
 @router.get("/trial-balance")
-async def trial_balance(to_date: Optional[str] = None, user=Depends(ANY)):
-    ledgers, bal = await closing_signed(user["business_id"], to_date)
+async def trial_balance(to_date: Optional[str] = None, project_id: Optional[str] = None, user=Depends(ANY)):
+    ledgers, bal = await closing_signed(user["business_id"], to_date, project_id)
     rows, tdr, tcr = [], 0.0, 0.0
     for g in GROUPS:
         for l in sorted([l for l in ledgers.values() if l["group"] == g["key"]], key=lambda x: x["name"]):
@@ -51,7 +55,7 @@ async def trial_balance(to_date: Optional[str] = None, user=Depends(ANY)):
                          "debit": b if b > 0 else 0, "credit": -b if b < 0 else 0})
             tdr += max(b, 0)
             tcr += max(-b, 0)
-    diff = round(sum(opening_signed(l) for l in ledgers.values()), 2)
+    diff = round(sum(_open(l, project_id) for l in ledgers.values()), 2)
     if abs(diff) >= 0.005:
         rows.append({"ledger_id": None, "ledger": "Difference in Opening Balances", "group": "",
                      "debit": -diff if diff < 0 else 0, "credit": diff if diff > 0 else 0})
@@ -61,9 +65,9 @@ async def trial_balance(to_date: Optional[str] = None, user=Depends(ANY)):
             "balanced": abs(tdr - tcr) < 0.01, "opening_difference": diff}
 
 
-async def _pl(bid, from_date, to_date):
+async def _pl(bid, from_date, to_date, project_id=None):
     ledgers = await _ledgers(bid)
-    moves = await _moves(bid, from_date=from_date, to_date=to_date)
+    moves = await _moves(bid, from_date=from_date, to_date=to_date, project_id=project_id)
     sec = defaultdict(list)
     for lid, l in ledgers.items():
         g = GROUP_MAP.get(l["group"], {})
@@ -82,13 +86,13 @@ async def _pl(bid, from_date, to_date):
 
 
 @router.get("/profit-loss")
-async def profit_loss(from_date: Optional[str] = None, to_date: Optional[str] = None, user=Depends(ANY)):
-    return await _pl(user["business_id"], from_date, to_date)
+async def profit_loss(from_date: Optional[str] = None, to_date: Optional[str] = None, project_id: Optional[str] = None, user=Depends(ANY)):
+    return await _pl(user["business_id"], from_date, to_date, project_id)
 
 
 @router.get("/balance-sheet")
-async def balance_sheet(to_date: Optional[str] = None, user=Depends(ANY)):
-    ledgers, bal = await closing_signed(user["business_id"], to_date)
+async def balance_sheet(to_date: Optional[str] = None, project_id: Optional[str] = None, user=Depends(ANY)):
+    ledgers, bal = await closing_signed(user["business_id"], to_date, project_id)
     assets, liabs, profit = defaultdict(list), defaultdict(list), 0.0
     for lid, l in ledgers.items():
         n, b = _nature(l), bal[lid]
@@ -102,7 +106,7 @@ async def balance_sheet(to_date: Optional[str] = None, user=Depends(ANY)):
             assets[g].append({"ledger": l["name"], "amount": b})
         else:
             liabs[g].append({"ledger": l["name"], "amount": -b})
-    diff = round(sum(opening_signed(l) for l in ledgers.values()), 2)
+    diff = round(sum(_open(l, project_id) for l in ledgers.values()), 2)
     pack = lambda d: [{"group": g, "rows": sorted(r, key=lambda x: x["ledger"]), "total": round(sum(x["amount"] for x in r), 2)} for g, r in d.items()]
     a, li = pack(assets), pack(liabs)
     ta = round(sum(x["total"] for x in a), 2)
@@ -156,8 +160,8 @@ async def outstanding(kind: str = "receivables", to_date: Optional[str] = None, 
 
 
 @router.get("/register")
-async def register(voucher_type: str = "sales", from_date: Optional[str] = None, to_date: Optional[str] = None, user=Depends(ANY)):
-    q = {"business_id": user["business_id"], "status": "active", "voucher_type": voucher_type}
+async def register(voucher_type: str = "sales", from_date: Optional[str] = None, to_date: Optional[str] = None, project_id: Optional[str] = None, user=Depends(ANY)):
+    q = {"business_id": user["business_id"], "status": "active", "voucher_type": voucher_type, **({"project_id": None if project_id == "none" else project_id} if project_id else {})}
     d = {k: v for k, v in (("$gte", from_date), ("$lte", to_date)) if v}
     if d:
         q["date"] = d

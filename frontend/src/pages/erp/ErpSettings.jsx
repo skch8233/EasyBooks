@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { api, errMsg } from "@/lib/api";
-import { TEMPLATES, loadSignature } from "@/lib/erp";
+import { INVOICE_TEMPLATES, TEMPLATES, loadSignature } from "@/lib/erp";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,7 +36,7 @@ export default function ErpSettings() {
         <div className="space-y-1"><Label>Quotation prefix</Label><Input className="h-10 font-mono" value={s.quotation_prefix} onChange={(e) => setS({ ...s, quotation_prefix: e.target.value.toUpperCase() })} data-testid="erp-quote-prefix-input" /></div>
         <div className="space-y-1"><Label>Invoice prefix</Label><Input className="h-10 font-mono" value={s.invoice_prefix} onChange={(e) => setS({ ...s, invoice_prefix: e.target.value.toUpperCase() })} data-testid="erp-invoice-prefix-input" /></div>
         <div className="space-y-1"><Label>Default quotation format</Label>{sel("default_quote_template", TEMPLATES)}</div>
-        <div className="space-y-1"><Label>Default invoice format</Label>{sel("default_invoice_template", TEMPLATES)}</div>
+        <div className="space-y-1"><Label>Default invoice format</Label>{sel("default_invoice_template", INVOICE_TEMPLATES)}</div>
         <div className="sm:col-span-2 space-y-1"><Label>Default quotation terms</Label><textarea rows={3} className="w-full rounded-md border p-2 text-sm" value={s.quote_terms} onChange={(e) => setS({ ...s, quote_terms: e.target.value })} data-testid="erp-quote-terms-input" /></div>
         <div className="sm:col-span-2 space-y-2" data-testid="erp-signature-block"><Label>Authorised signature image (printed on invoices, quotations and POs)</Label>
           <div className="flex items-center gap-3">

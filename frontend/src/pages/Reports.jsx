@@ -28,7 +28,8 @@ export default function Reports() {
   const [open, setOpen] = useState(null);
   const ledger = sp.get("ledger") || "";
 
-  useEffect(() => { api.get("/ledgers").then((r) => setLedgers(r.data)); }, []);
+  const [projects, setProjects] = useState([]);
+  useEffect(() => { api.get("/ledgers").then((r) => setLedgers(r.data)); api.get("/erp/projects").then((r) => setProjects(r.data)).catch(() => {}); }, []);
   useEffect(() => { if (fy) setP({ from: fy.start_date, to: fy.end_date, month: monthFor(fy) }); }, [fy]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (cfg.groups && ledgers.length && !ledgers.some((l) => l.id === ledger && cfg.groups.includes(l.group))) {
@@ -59,7 +60,7 @@ export default function Reports() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-heading text-3xl font-extrabold tracking-tight" data-testid="report-title">{cfg.label}</h1>
-          <p className="text-slate-500 mt-1">{settings?.company_name} · {sub}{res?.note ? ` · ${res.note}` : ""}</p>
+          <p className="text-slate-500 mt-1">{settings?.company_name} · {sub}{cfg.project && p.project ? ` · ${p.project === "none" ? "Not tagged" : projects.find((x) => x.id === p.project)?.code || ""}` : ""}{res?.note ? ` · ${res.note}` : ""}</p>
         </div>
         <div className="no-print flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => exportExcel(title, sub, res?.sections || [])} data-testid="export-excel-button"><FileSpreadsheet className="h-4 w-4 mr-1" /> Excel</Button>
@@ -77,6 +78,9 @@ export default function Reports() {
         </>}
         {cfg.filter === "ledger" && <div><div className="text-xs font-semibold text-slate-500 mb-1">Ledger</div>
           <LedgerSelect ledgers={ledgers} groups={cfg.groups} value={ledger} onChange={(id) => setSp({ ledger: id })} testid="report-ledger-select" /></div>}
+        {cfg.project && <div><div className="text-xs font-semibold text-slate-500 mb-1">Project</div>
+          <select className="h-11 w-full rounded-md border px-3 bg-white text-sm" value={p.project || ""} onChange={(e) => setP({ ...p, project: e.target.value })} data-testid="report-project-select">
+            <option value="">Combined - whole business</option><option value="none">Not tagged to a project</option>{projects.map((x) => <option key={x.id} value={x.id}>{x.code} · {x.name}</option>)}</select></div>}
       </div>
       {res?.balanced !== undefined && (
         <div className={`flex items-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium ${res.balanced ? "bg-emerald-50 border-emerald-200 text-emerald-800" : "bg-red-50 border-red-200 text-red-800"}`} data-testid="report-balanced-status">

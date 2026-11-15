@@ -631,7 +631,7 @@ async def post_bill(did: str, user=Depends(erp("finalize"))):
             raise HTTPException(400, "Only drafts can be posted")
         fresh = await _bill_doc(BillIn(**{k: d.get(k) for k in BillIn.model_fields if k != "items"},
                                        items=[BillLine(**{k: it.get(k) for k in BillLine.model_fields}) for it in d["items"]]), bid, did)
-        v = await create_voucher(VoucherIn(voucher_type="purchase", date=d["vendor_invoice_date"], reference_no=d["vendor_invoice_no"], party_ledger_id=d["vendor_ledger_id"],
+        v = await create_voucher(VoucherIn(voucher_type="purchase", date=d["vendor_invoice_date"], project_id=d["project_id"], reference_no=d["vendor_invoice_no"], party_ledger_id=d["vendor_ledger_id"],
                                            account_ledger_id=await _ledger(bid, "purchase", "purchase"), gst_type=fresh["gst_type"],
                                            narration=f"ERP bill {d['number']} · {d['project_code']} {d['project_name']}"[:250],
                                            items=[Item(description=x["description"][:200], hsn=x.get("hsn", ""), qty=x["qty"], rate=x["net_rate"],
@@ -665,7 +665,7 @@ async def pay_bill(did: str, p: PayIn, user=Depends(erp("finalize"))):
         if p.amount > b["balance"] + 0.005:
             raise HTTPException(400, f"Amount is more than the balance due (₹{b['balance']:,.2f})")
         led = await _cash_bank(bid, p.ledger_id)
-        v = await create_voucher(VoucherIn(voucher_type="payment", date=p.date, reference_no=p.reference or b["vendor_invoice_no"], narration=f"Payment for {b['number']} ({b['vendor_invoice_no']})",
+        v = await create_voucher(VoucherIn(voucher_type="payment", date=p.date, project_id=b["project_id"], reference_no=p.reference or b["vendor_invoice_no"], narration=f"Payment for {b['number']} ({b['vendor_invoice_no']})",
                                            entries=[Entry(ledger_id=b["vendor_ledger_id"], debit=p.amount), Entry(ledger_id=led["id"], credit=p.amount)]), user=user)
         pay = {"id": new_id(), **p.model_dump(), "mode": led["name"], "voucher_id": v["id"], "voucher_no": v["voucher_no"], "by": user["name"], "at": now_iso()}
         await col("bill").update_one({"id": did}, {"$inc": {"paid": p.amount}, "$push": {"payments": pay}})
@@ -781,7 +781,7 @@ async def post_expense(did: str, user=Depends(erp("finalize"))):
             if t[k] > 0:
                 entries.append(Entry(ledger_id=await _ledger(bid, k, "duties_taxes"), debit=t[k]))
         entries.append(Entry(ledger_id=d["payment_ledger_id"], credit=t["total"]))
-        v = await create_voucher(VoucherIn(voucher_type="payment", date=d["date"], reference_no=d.get("reference") or d["number"],
+        v = await create_voucher(VoucherIn(voucher_type="payment", date=d["date"], project_id=d["project_id"], reference_no=d.get("reference") or d["number"],
                                            narration=f"ERP {d['number']} {d['category']} paid to {d['paid_to']} · {d['project_code']}"[:250], entries=entries), user=user)
         await _set_status("expense", did, user, "posted", f"{d['number']} as {v['voucher_no']}", voucher_id=v["id"], voucher_no=v["voucher_no"])
         return clean(await get_doc("expense", did, bid))

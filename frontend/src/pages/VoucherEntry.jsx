@@ -17,17 +17,18 @@ import { SimpleForm } from "@/components/voucher/SimpleForm";
 import { JournalGrid } from "@/components/voucher/JournalGrid";
 import { ItemsForm } from "@/components/voucher/ItemsForm";
 import { SIMPLE, emptyItem, emptyLine, fromVoucher } from "@/components/voucher/voucherUtils";
+import { FormatPicker, GstMetaFields } from "@/components/GstMetaFields";
 
 const blank = (type, date, ledgers) => ({
   date, narration: "", reference_no: "", advanced: false,
   simple: { a: ledgers.find((l) => l.system_key === "cash")?.id || "", b: "", amount: "" },
   lines: [emptyLine(), emptyLine()],
   party: "", account: ledgers.find((l) => l.system_key === (["sales", "credit_note"].includes(type) ? "sales" : "purchase"))?.id || "",
-  gstType: "intra", items: [emptyItem()],
+  gstType: "intra", items: [emptyItem()], project_id: "", invoice_format: "goods", gst_meta: {},
 });
 
 function buildPayload(type, f) {
-  const base = { voucher_type: type, date: f.date, narration: f.narration, reference_no: f.reference_no };
+  const base = { voucher_type: type, date: f.date, narration: f.narration, reference_no: f.reference_no, project_id: f.project_id || null, invoice_format: f.invoice_format || "goods", gst_meta: f.gst_meta || {} };
   if (ITEM_TYPES.includes(type)) {
     return { ...base, party_ledger_id: f.party, account_ledger_id: f.account, gst_type: f.gstType,
       items: f.items.map((i) => ({ ...i, qty: Number(i.qty) || 0, rate: Number(i.rate) || 0, gst_rate: Number(i.gst_rate) || 0 })) };
@@ -50,6 +51,8 @@ export default function VoucherEntry() {
   const [busy, setBusy] = useState(false);
   const [last, setLast] = useState(null);
   const [stock, setStock] = useState([]);
+  const [projects, setProjects] = useState([]);
+  useEffect(() => { api.get("/erp/projects").then((r) => setProjects(r.data)).catch(() => setProjects([])); }, []);
   const loadStock = () => api.get("/stock-items").then((r) => setStock(r.data.items)).catch(() => {});
   useEffect(() => { loadStock(); }, []);
 
@@ -79,7 +82,7 @@ export default function VoucherEntry() {
       setLedgers(fresh.data);
       loadStock();
       if (id) nav("/vouchers");
-      else { setLast(data); setF(blank(type, f.date, fresh.data)); }
+      else { setLast(data); setF({ ...blank(type, f.date, fresh.data), project_id: f.project_id, invoice_format: f.invoice_format }); }
     } catch (e) { toast.error(errMsg(e)); } finally { setBusy(false); }
   }, [f, busy, type, id, nav]);
 
@@ -124,6 +127,13 @@ export default function VoucherEntry() {
           <div className="space-y-2"><Label>Date</Label><DateInput value={f.date} onChange={(date) => setF({ ...f, date })} testid="voucher-date-input" /></div>
           <div className="space-y-2"><Label>{isItem ? "Invoice / Ref No." : "Reference No."}</Label><Input className="h-11" value={f.reference_no} onChange={(e) => setF({ ...f, reference_no: e.target.value })} data-testid="voucher-reference-input" /></div>
         </div>
+        <div className="grid gap-5 sm:grid-cols-3">
+          <div className="space-y-2"><Label>Project / cost centre (optional)</Label>
+            <select className="h-11 w-full rounded-md border px-3 bg-white text-sm" value={f.project_id || ""} onChange={(e) => setF({ ...f, project_id: e.target.value })} data-testid="voucher-project-select">
+              <option value="">Not tagged (general / head office)</option>{projects.map((p) => <option key={p.id} value={p.id}>{p.code} · {p.name}</option>)}</select></div>
+          {type === "sales" && <div className="space-y-2 sm:col-span-2"><Label>Invoice print format</Label><FormatPicker value={f.invoice_format} onChange={(invoice_format) => setF({ ...f, invoice_format })} testid="voucher-invoice-format" /></div>}
+        </div>
+        {["sales", "credit_note", "debit_note"].includes(type) && isItem && <div className="grid"><GstMetaFields value={f.gst_meta} onChange={(gst_meta) => setF({ ...f, gst_meta })} prefix="voucher-meta" /></div>}
         {SIMPLE[type] && (
           <label className="flex items-center gap-2 text-sm text-slate-600 w-fit">
             <Switch checked={f.advanced} onCheckedChange={(advanced) => setF({ ...f, advanced })} data-testid="advanced-mode-switch" /> Multi-line entry

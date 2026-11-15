@@ -36,6 +36,8 @@ import RfqView from "@/pages/erp/RfqView";
 import PoEditor from "@/pages/erp/PoEditor";
 import BillEditor from "@/pages/erp/BillEditor";
 import Expenses from "@/pages/erp/Expenses";
+import FinalAccounts from "@/pages/FinalAccounts";
+import EwayBill from "@/pages/EwayBill";
 import ErpReports from "@/pages/erp/ErpReports";
 import { OFFLINE } from "@/lib/offline";
 
@@ -74,6 +76,8 @@ function App() {
             <Route path="reports/:report" element={<Reports />} />
             <Route path="audit" element={<AuditLog />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="final-accounts" element={<FinalAccounts />} />
+            <Route path="eway-bill" element={<EwayBill />} />
             <Route path="subscription" element={<Subscription />} />
             <Route path="platform" element={<Platform />} />
             <Route path="licence" element={<OfflineLicence />} />

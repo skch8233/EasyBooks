@@ -3,6 +3,7 @@ import { api } from "@/lib/api";
 export const r2 = (n) => Math.round((Number(n || 0) + Number.EPSILON) * 100) / 100;
 export const BLANK_LINE = { description: "", hsn: "", unit: "", qty: 1, rate: 0, discount: 0, gst_rate: 18 };
 export const TEMPLATES = [["classic", "Classic Professional"], ["modern", "Modern Corporate"], ["detailed", "Detailed Project"]];
+export const INVOICE_TEMPLATES = [["gst_goods", "GST Goods Format"], ["gst_service", "GST Service Format"], ...TEMPLATES];
 export const PROJECT_STATUSES = ["Planning", "Running", "On Hold", "Completed", "Cancelled"];
 
 export function computeLines(lines, gstType) {

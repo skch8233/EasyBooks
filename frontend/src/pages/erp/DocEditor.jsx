@@ -4,7 +4,8 @@ import { toast } from "sonner";
 import { Ban, Copy, FileCheck2, Mail, MessageCircle, Printer, Save, Trash2 } from "lucide-react";
 import { api, errMsg } from "@/lib/api";
 import { amt, dmyTime, todayIso } from "@/lib/format";
-import { BLANK_LINE, TEMPLATES, computeLines, guessGst, invoiceTotals, loadLogo, loadSignature, printNode } from "@/lib/erp";
+import { GstMetaFields } from "@/components/GstMetaFields";
+import { BLANK_LINE, INVOICE_TEMPLATES, TEMPLATES, computeLines, guessGst, invoiceTotals, loadLogo, loadSignature, printNode } from "@/lib/erp";
 import { useApp } from "@/context/AppContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,7 @@ const addDays = (iso, d) => { const x = new Date(iso); x.setDate(x.getDate() + N
 
 const blank = (inv, tpl) => ({ number: "", date: todayIso(), valid_until: addDays(todayIso(), 30), due_date: addDays(todayIso(), 30), client_id: "", project_id: "", template: tpl || "classic",
   gst_type: "", subject: "", items: [{ ...BLANK_LINE }], scope_of_work: "", delivery_terms: "", payment_terms: "", notes: "", terms: "",
-  retention_pct: 0, advance_adjust: 0, deductions: 0, deduction_note: "", po_reference: "", ...(inv ? {} : {}) });
+  retention_pct: 0, advance_adjust: 0, deductions: 0, deduction_note: "", po_reference: "", gst_meta: {} });
 
 export default function DocEditor({ kind }) {
   const inv = kind === "invoice";
@@ -120,6 +121,7 @@ export default function DocEditor({ kind }) {
             {[["retention_pct", "Retention %"], ["advance_adjust", "Advance adjustment (₹)"], ["deductions", "Other deductions (₹)"], ["deduction_note", "Deduction note"]].map(([k, l]) =>
               <div key={k} className="space-y-1"><Label>{l}</Label><Input className="h-10 font-mono" type={k === "deduction_note" ? "text" : "number"} step="any" min="0" value={f[k]} onChange={set(k)} data-testid={`invoice-${k}-input`} /></div>)}
             <div className="sm:col-span-2 space-y-1"><Label>Terms / notes</Label><textarea rows={2} className="w-full rounded-md border p-2 text-sm" value={f.terms} onChange={set("terms")} data-testid="invoice-terms-input" /></div>
+            <GstMetaFields value={f.gst_meta || {}} onChange={(gst_meta) => setF({ ...f, gst_meta })} disabled={!editable} prefix="invoice-meta" />
           </> : [["scope_of_work", "Scope of work"], ["delivery_terms", "Delivery terms"], ["payment_terms", "Payment terms"], ["notes", "Terms & conditions"]].map(([k, l]) =>
             <div key={k} className="sm:col-span-2 space-y-1"><Label>{l}</Label><textarea rows={2} className="w-full rounded-md border p-2 text-sm" value={f[k]} onChange={set(k)} data-testid={`quotation-${k}-input`} /></div>)}
         </fieldset>
@@ -152,7 +154,7 @@ export default function DocEditor({ kind }) {
       <div className="space-y-3">
         <div className="flex flex-wrap gap-2 items-center no-print">
           <span className="text-xs uppercase tracking-wide text-slate-500">Live preview · format</span>
-          {TEMPLATES.map(([k, l]) => <button key={k} onClick={() => setF({ ...f, template: k })} className={`rounded-full border px-3 py-1 text-xs font-semibold ${f.template === k ? "bg-slate-900 text-white" : "bg-white"}`} data-testid={`${kind}-template-${k}`}>{l}</button>)}
+          {(inv ? INVOICE_TEMPLATES : TEMPLATES).map(([k, l]) => <button key={k} onClick={() => setF({ ...f, template: k })} className={`rounded-full border px-3 py-1 text-xs font-semibold ${f.template === k ? "bg-slate-900 text-white" : "bg-white"}`} data-testid={`${kind}-template-${k}`}>{l}</button>)}
         </div>
         <div className="rounded-xl border bg-slate-100 p-3 overflow-x-auto"><DocTemplate ref={ref} kind={kind} doc={preview} company={settings || {}} logo={logo} template={f.template} signatory={es.authorized_signatory} signature={sig} /></div>
       </div>

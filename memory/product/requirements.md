@@ -155,3 +155,15 @@ Phasing (build and test each before the next; report after each phase):
 - Phase A: ERP section + roles/permissions, Projects (+ per-project dashboard, documents), Client & Vendor masters, Quotations, Advanced Invoices (with accounting posting), ERP dashboard, ERP plan.
 - Phase B: Purchase workflow PR → RFQ → Vendor quotes → Comparative statement → PO → GRN → Purchase bills (posting), Expenses.
 - Phase C: All ERP reports, company settings additions, backup/restore coverage, offline build inclusion.
+
+## Round 10 — user's request (build now)
+User's words: "use these 2 samples as a invoice format in exectly same manner and include accounting also project wise and add a page for e way bill generation and provide accounting reports project wise as well as combined over all basis and final accounts should be in vertical formation with notes of account generation of final account must show final account preparation for company audit, income tax audit, and for other purpose"
+Sample invoices (copy layout exactly):
+- Goods format: https://customer-assets-m6fa6gv7.emergentagent.net/job_bharat-books-10--8pob58tc/artifacts/1f46a3b1c2ddc47f_GST_Tax_Invoice_Sample.pdf
+- Service provider format: https://customer-assets-m6fa6gv7.emergentagent.net/job_bharat-books-10--8pob58tc/artifacts/5d4ec4cdaf11e30e_GST_Tax_Invoice_Sample__Service_Provider_Format_.pdf
+User decisions:
+- Invoice formats: "Yes, in both, with the user choosing goods or service format" — both samples become default invoice formats in Easy Books accounting sales invoices AND ERP invoices; user picks goods or service format.
+- Accounting project-wise: accounting entries can be tagged to a project; accounting reports available project-wise and combined overall.
+- E-way bill: "Fill the e-way bill page, then download a ready JSON file to upload on ewaybillgst.gov.in; also add link of eway bill generation page" (no direct government API).
+- Final accounts in vertical format with Notes to Accounts: "Both, chosen by business type" — Companies: Schedule III vertical Balance Sheet and P&L with Notes; Proprietorship/partnership: vertical format with notes. Purpose selection: company audit, income tax audit, and other purpose.
+- Income tax audit: "Final accounts with notes only" (no Form 3CD schedules).

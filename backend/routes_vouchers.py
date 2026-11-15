@@ -49,7 +49,13 @@ async def _prepare(v: VoucherIn, bid: str) -> dict:
     if not party_id:
         non_cash = [e.ledger_id for e in entries if ledgers[e.ledger_id]["group"] not in CASH_BANK]
         party_id = (non_cash or [entries[0].ledger_id])[0]
+    proj = await db.erp_projects.find_one({"id": v.project_id, "business_id": bid}, NO_ID) if v.project_id else None
+    if v.project_id and not proj:
+        raise HTTPException(400, "Project not found")
+    meta = {k: str(val)[:300] for k, val in (v.gst_meta or {}).items() if isinstance(val, (str, int, float))}
     return {
+        "project_id": v.project_id or None, "project_code": proj["code"] if proj else "", "project_name": proj["name"] if proj else "",
+        "invoice_format": v.invoice_format, "gst_meta": meta,
         "voucher_type": v.voucher_type, "date": v.date, "narration": v.narration.strip(),
         "reference_no": v.reference_no.strip(), "gst_type": v.gst_type if v.voucher_type in ITEM_TYPES else "none",
         "party_ledger_id": party_id, "party_name": ledgers[party_id]["name"],
@@ -124,7 +130,7 @@ async def cancel_voucher(vid: str, body: CancelIn, user=Depends(WRITE)):
 @router.get("")
 async def list_vouchers(from_date: Optional[str] = None, to_date: Optional[str] = None, voucher_type: Optional[str] = None,
                         ledger_id: Optional[str] = None, q: Optional[str] = None, status: Optional[str] = None,
-                        limit: int = 500, user=Depends(ANY)):
+                        limit: int = 500, project_id: Optional[str] = None, user=Depends(ANY)):
     query = {"business_id": user["business_id"]}
     if from_date or to_date:
         query["date"] = {k: v for k, v in (("$gte", from_date), ("$lte", to_date)) if v}
@@ -134,6 +140,8 @@ async def list_vouchers(from_date: Optional[str] = None, to_date: Optional[str] 
         query["entries.ledger_id"] = ledger_id
     if status:
         query["status"] = status
+    if project_id:
+        query["project_id"] = project_id
     if q:
         rx = {"$regex": re.escape(q), "$options": "i"}
         query["$or"] = [{"voucher_no": rx}, {"narration": rx}, {"party_name": rx}, {"reference_no": rx}]

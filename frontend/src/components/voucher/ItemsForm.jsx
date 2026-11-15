@@ -14,12 +14,13 @@ const Row = ({ it, i, line, rates, set, remove, canRemove, stock, pick, isSale }
   const short = isSale && sel && Number(it.qty) > sel.on_hand;
   return (
   <div className="space-y-1">
-  <div className="grid grid-cols-6 md:grid-cols-[1fr_110px_80px_120px_100px_130px_44px] gap-2 items-center">
+  <div className="grid grid-cols-6 md:grid-cols-[1fr_110px_80px_80px_120px_100px_130px_44px] gap-2 items-center">
     <div className="col-span-6 md:col-span-1">
       <ItemPicker stock={stock} item={it} testid={`item-${i}-description`} onPick={(s) => pick(i, s)}
         onText={(t) => set(i, { description: t, item_id: null })} />
     </div>
     <Input className="col-span-2 md:col-span-1 h-11 font-mono" placeholder="HSN/SAC" value={it.hsn} onChange={(e) => set(i, "hsn", e.target.value)} data-testid={`item-${i}-hsn`} />
+    <Input className="col-span-2 md:col-span-1 h-11" placeholder="Unit" value={it.unit || ""} onChange={(e) => set(i, "unit", e.target.value)} data-testid={`item-${i}-unit`} />
     <Input className="col-span-2 md:col-span-1 h-11 text-right num" type="number" min="0" step="any" placeholder="Qty" value={it.qty} onChange={(e) => set(i, "qty", e.target.value)} data-testid={`item-${i}-qty`} />
     <Input className="col-span-2 md:col-span-1 h-11 text-right num" type="number" min="0" step="0.01" placeholder="Rate" value={it.rate} onChange={(e) => set(i, "rate", e.target.value)} data-testid={`item-${i}-rate`} />
     <Select value={String(it.gst_rate)} onValueChange={(v) => set(i, "gst_rate", Number(v))}>
@@ -40,7 +41,7 @@ export const ItemsForm = ({ type, ledgers, value, onChange, stock = [] }) => {
   const calc = computeItems(value.items, value.gstType);
   const isSale = ["sales", "credit_note"].includes(type);
   const set = (i, k, v) => onChange({ ...value, items: value.items.map((it, j) => (j === i ? { ...it, ...(typeof k === "object" ? k : { [k]: v }) } : it)) });
-  const pick = (i, s) => set(i, { item_id: s.id, description: s.name, hsn: s.hsn || "", rate: (isSale ? s.sale_rate : s.purchase_rate) || "",
+  const pick = (i, s) => set(i, { item_id: s.id, description: s.name, hsn: s.hsn || "", unit: s.unit || "", rate: (isSale ? s.sale_rate : s.purchase_rate) || "",
     gst_rate: rates.includes(s.gst_rate) ? s.gst_rate : value.items[i].gst_rate });
 
   const pickParty = (party) => {
@@ -67,8 +68,8 @@ export const ItemsForm = ({ type, ledgers, value, onChange, stock = [] }) => {
           </Select></div>
       </div>
       <div className="space-y-2">
-        <div className="hidden md:grid grid-cols-[1fr_110px_80px_120px_100px_130px_44px] gap-2 text-xs font-semibold uppercase text-slate-500 px-1">
-          <span>Item</span><span>HSN/SAC</span><span className="text-right">Qty</span><span className="text-right">Rate (₹)</span><span>GST</span><span className="text-right">Amount (₹)</span><span />
+        <div className="hidden md:grid grid-cols-[1fr_110px_80px_80px_120px_100px_130px_44px] gap-2 text-xs font-semibold uppercase text-slate-500 px-1">
+          <span>Item</span><span>HSN/SAC</span><span>Unit</span><span className="text-right">Qty</span><span className="text-right">Rate (₹)</span><span>GST</span><span className="text-right">Amount (₹)</span><span />
         </div>
         {value.items.map((it, i) => (
           <Row key={i} it={it} i={i} line={calc.lines[i]} rates={rates} set={set} canRemove={value.items.length > 1} stock={stock} pick={pick} isSale={type === "sales"}

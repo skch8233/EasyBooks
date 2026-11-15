@@ -78,7 +78,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-offline.txt pyinstaller
-          $mods = "erp_core","erp_sales","erp_purchase","erp_reports","accounting","auth","billing","business","db","emailer","gst","licensing","public","reminders","routes_admin","routes_ledgers","routes_reports","routes_vouchers","shop","stock","server","bcrypt","email_validator"
+          $mods = "erp_core","erp_sales","erp_purchase","erp_reports","final_accounts","eway","accounting","auth","billing","business","db","emailer","gst","licensing","public","reminders","routes_admin","routes_ledgers","routes_reports","routes_vouchers","shop","stock","server","bcrypt","email_validator"
           $hidden = $mods | ForEach-Object { "--hidden-import"; $_ }
           pyinstaller --noconfirm --onedir --name easybooks-server --paths ../../backend --collect-all uvicorn --collect-submodules motor --collect-submodules pymongo --collect-submodules cryptography --copy-metadata razorpay @hidden offline_server.py
 

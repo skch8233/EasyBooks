@@ -13,7 +13,7 @@ from erp_core import erp, erp_settings, get_party, get_project, next_seq
 from routes_vouchers import cancel_voucher, create_voucher, update_voucher, CancelIn
 
 router = APIRouter(prefix="/api/erp")
-Template = Literal["classic", "modern", "detailed"]
+Template = Literal["classic", "modern", "detailed", "gst_goods", "gst_service"]
 
 
 class Line(BaseModel):
@@ -275,6 +275,7 @@ class InvoiceIn(BaseModel):
     po_reference: str = ""
     notes: str = ""
     terms: str = ""
+    gst_meta: dict = {}
 
 
 async def _previous_billing(bid: str, pid: str, exclude: str, before_iso: str | None) -> float:
@@ -370,7 +371,8 @@ async def _number_used(bid: str, n: str) -> bool:
 def _voucher_in(inv: dict, sales_ledger: str, vtype: str = "sales", lines: list | None = None, ref: str = "") -> VoucherIn:
     lines = lines if lines is not None else inv["items"]
     return VoucherIn(voucher_type=vtype, date=inv["date"], reference_no=ref or inv["number"], party_ledger_id=inv["client_ledger_id"],
-                     account_ledger_id=sales_ledger, gst_type=inv["gst_type"],
+                     account_ledger_id=sales_ledger, gst_type=inv["gst_type"], project_id=inv["project_id"],
+                     invoice_format="service" if inv.get("template") == "gst_service" else "goods", gst_meta=inv.get("gst_meta") or {},
                      narration=f"ERP {inv['number']} · {inv['project_code']} {inv['project_name']}"[:250],
                      items=[Item(description=x["description"][:200], hsn=x.get("hsn", ""), qty=x["qty"], rate=x["net_rate"],
                                  gst_rate=x["gst_rate"] if inv["gst_type"] != "none" else 0) for x in lines])
@@ -500,7 +502,7 @@ async def add_payment(iid: str, p: PaymentIn, user=Depends(erp("finalize"))):
     led = await db.ledgers.find_one({"id": p.ledger_id, "business_id": bid, "group": {"$in": ["cash", "bank"]}, "active": True}, NO_ID)
     if not led:
         raise HTTPException(400, "Select a Cash or Bank ledger")
-    v = await create_voucher(VoucherIn(voucher_type="receipt", date=p.date, reference_no=p.reference or inv["number"],
+    v = await create_voucher(VoucherIn(voucher_type="receipt", date=p.date, reference_no=p.reference or inv["number"], project_id=inv["project_id"],
                                        narration=f"Payment for {inv['number']} · {inv['project_code']}",
                                        entries=[Entry(ledger_id=led["id"], debit=p.amount), Entry(ledger_id=inv["client_ledger_id"], credit=p.amount)]), user=user)
     pay = {"id": new_id(), **p.model_dump(), "mode": led["name"], "voucher_id": v["id"], "voucher_no": v["voucher_no"], "by": user["name"], "at": now_iso()}

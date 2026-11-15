@@ -10,9 +10,9 @@ from db import db, NO_ID, clean
 from routes_admin import _storage
 
 router = APIRouter(prefix="/api")
-COMPANY_FIELDS = ("company_name", "address", "state", "gstin", "phone", "email", "upi_id", "bank_name", "bank_account", "bank_ifsc", "invoice_terms")
+COMPANY_FIELDS = ("company_name", "address", "state", "gstin", "phone", "email", "upi_id", "bank_name", "bank_account", "bank_ifsc", "invoice_terms", "pan")
 PARTY_FIELDS = ("name", "gstin", "state", "address", "phone")
-VOUCHER_FIELDS = ("voucher_type", "voucher_no", "date", "party_name", "party_ledger_id", "gst_type", "items", "totals", "amount", "narration", "reference_no", "status", "entries")
+VOUCHER_FIELDS = ("voucher_type", "voucher_no", "date", "party_name", "party_ledger_id", "gst_type", "items", "totals", "amount", "narration", "reference_no", "status", "entries", "invoice_format", "gst_meta", "project_code", "project_name")
 
 
 @router.get("/public/plans")

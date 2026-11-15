@@ -80,3 +80,11 @@ JWT email/password; roles Admin / Accountant / Viewer; single company + FY manag
 - Backup/restore: all erp_* collections + ERP counters; restore never rolls numbering back ($max).
 - Offline: ERP unlocked with offline licence/trial, ERP nav visible offline, ERP modules in GitHub workflow + build_server.bat hidden imports, README updated.
 - Tests: tests/test_round9_erp_phase_c.py (iteration 11); A+B+C suites 31/31 pass.
+
+## Round 10 (Nov 2026) - DONE
+- GST invoice formats matching user's 2 sample PDFs: goods (lib/gstInvoice.js goods()) and service-provider (service()); default for ERP invoices and accounting sales vouchers, chosen per invoice; GST meta fields (place of supply, RCM, transport, e-way no, vehicle, consignee, contract ref, billing period); public share link uses same format.
+- Project tagging on all vouchers (ERP postings auto-tagged, 374 back-filled); project filter on TB/P&L/BS/registers ("none" = untagged); Project-wise P&L report.
+- E-way bill page: prefill from invoice, validation, official bulk-upload JSON v1.0.0621 (transType, actualFrom/ToStateCode, OthValue, TotNonAdvolVal, mainHsnCode), portal link, 12-digit EWB number write-back.
+- Final accounts (final_accounts.py, /final-accounts): Schedule III for companies, vertical for others; purpose company audit / tax audit 44AB / other; notes + policies, previous year, closing stock, signature blocks, Excel/PDF.
+- Voucher items have unit; company business type + CIN.
+- Tests: iteration 12-13; run suites serially: pytest -n 0 (57 passed).

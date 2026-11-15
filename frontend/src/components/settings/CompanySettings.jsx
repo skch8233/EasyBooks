@@ -28,6 +28,10 @@ export const CompanySettings = () => {
         <div className="space-y-1.5"><Label>Company name</Label><Input className="h-11" value={f.company_name} onChange={set("company_name")} disabled={!isAdmin} data-testid="company-name-input" /></div>
         <div className="space-y-1.5"><Label>GSTIN</Label><Input className="h-11 font-mono uppercase" maxLength={15} value={f.gstin} onChange={set("gstin")} disabled={!isAdmin} data-testid="company-gstin-input" /></div>
         <div className="space-y-1.5"><Label>PAN</Label><Input className="h-11 font-mono uppercase" maxLength={10} value={f.pan || ""} onChange={set("pan")} disabled={!isAdmin} data-testid="company-pan-input" /></div>
+        <div className="space-y-1.5"><Label>Business type (used for final accounts format)</Label>
+          <select className="h-11 w-full rounded-md border px-3 bg-white text-sm" value={f.business_type || "proprietorship"} onChange={set("business_type")} disabled={!isAdmin} data-testid="company-business-type-select">
+            <option value="proprietorship">Proprietorship</option><option value="partnership">Partnership firm</option><option value="llp">LLP</option><option value="company">Company (Pvt / Public Ltd)</option></select></div>
+        {(f.business_type === "company" || f.business_type === "llp") && <div className="space-y-1.5"><Label>{f.business_type === "llp" ? "LLPIN" : "CIN"}</Label><Input className="h-11 font-mono uppercase" maxLength={21} value={f.cin || ""} onChange={set("cin")} disabled={!isAdmin} data-testid="company-cin-input" /></div>}
         <div className="space-y-1.5"><Label>State (used to auto-pick CGST/SGST vs IGST)</Label>
           <Select value={f.state || "none"} onValueChange={(v) => setF({ ...f, state: v === "none" ? "" : v })} disabled={!isAdmin}>
             <SelectTrigger className="h-11" data-testid="company-state-select"><SelectValue /></SelectTrigger>

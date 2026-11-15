@@ -34,7 +34,7 @@ def erp_active(b: dict) -> bool:
 async def erp_settings(bid: str) -> dict:
     s = await db.erp_settings.find_one({"business_id": bid}, NO_ID) or {}
     return {"industry": "", "quotation_prefix": "QT", "invoice_prefix": "INV", "default_quote_template": "classic",
-            "default_invoice_template": "classic", "authorized_signatory": "", "quote_terms": "", "expense_categories": [], "permissions": DEFAULT_PERMS, **clean(s)}
+            "default_invoice_template": "gst_goods", "authorized_signatory": "", "quote_terms": "", "expense_categories": [], "permissions": DEFAULT_PERMS, **clean(s)}
 
 
 def can(user: dict, perms: dict, action: str) -> bool:
@@ -83,7 +83,7 @@ class ErpSettingsIn(BaseModel):
     quotation_prefix: str = Field("QT", min_length=1, max_length=10)
     invoice_prefix: str = Field("INV", min_length=1, max_length=10)
     default_quote_template: Literal["classic", "modern", "detailed"] = "classic"
-    default_invoice_template: Literal["classic", "modern", "detailed"] = "classic"
+    default_invoice_template: Literal["classic", "modern", "detailed", "gst_goods", "gst_service"] = "gst_goods"
     authorized_signatory: str = ""
     quote_terms: str = ""
     expense_categories: list = []

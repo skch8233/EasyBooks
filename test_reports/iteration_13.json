@@ -1,0 +1,40 @@
+{
+  "summary": "Iteration 13: retest of the 4 defects from iteration 12, plus the new closing-stock, unit, declaration, CIN/signature and validation fixes, with full regression. Backend: 26/26 pass (new file test_round11_r10_fixes.py: 11 tests; Round 10 suite: 15/15, including register project_id=none, which now passes). ERP phase A/B/C: 31/31 pass. All 4 retest fixes are verified on backend and in the UI. (1) The public /i/:token link returns invoice_format, gst_meta, project code/name and PAN, and renders gst-invoice-service with SOW ref, billing period, project and PAN. (2) The vehicle regex accepts MH12AB1234, UP16BT8492, KA01A1234, 22BH1234AB, TR1234567890, TM123456 and 'MH 12 AB 1234', and rejects XYZ, 12345, MH12ABCD12345 and ABCD. (3) The downloaded JSON uses the bulk-upload v1.0.0621 keys; the old keys are absent; pincodes, state codes and HSN are numeric; totals add up (1000+180=1180). (4) The register 'Not tagged' filter returns only untagged vouchers in both API and UI. Closing stock: stock value 600 equals Inventories (company) and Closing stock (proprietorship). 'Changes in inventories' is -600. Profit equals ledger P&L + 600. Balanced. Project filter shows inventories as 0. Service invoice prints the fixed 'Declaration:' line under custom invoice_terms. CIN shows only for company, LLPIN only for LLP. 'Proprietor' prints once. The voucher Unit field is prefilled from stock ('Kgs'), saved in items[].unit (including custom 'hrs'), and printed as KGS in the goods UQC column. The e-way number endpoint returns a friendly 400 for every wrong length, and the UI shows a toast. Final accounts with company_audit for non-company returns 400. The UI smoke of 14 pages passes, with one new defect: the Final Accounts page shows 2 error toasts on load for non-company businesses.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/reports/final-accounts (final_accounts._snapshot)", "issue": "When from_date is omitted, opening stock is treated as 0. Stock items with opening_qty/opening_rate are then counted as profit: verified net profit 2450 without from_date vs 1950 with from_date=FY start, after adding an item with 5 units @100 opening. The UI always sends from_date, so only direct API users are affected. Fix: when from_date is None, use the sum of opening_qty*opening_rate as opening stock."},
+      {"endpoint": "PUT /api/eway-bills/{id}/number", "issue": "The eway_bills.ewb_no field is stripped, but the write-back to vouchers/erp_invoices gst_meta.eway_bill_no uses the raw b.ewb_no. Verified: ' 381049281742 ' was saved with spaces. Use the stripped value. The UI already trims, so this is API-only."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "FinalAccounts.jsx initial state", "issue": "Initial state is purpose:'company_audit' even when business_type is proprietorship (or unset). On the first render, the fetch effect fires with purpose=company_audit before the correcting effect's setP applies. Result: 2 requests return 400 and 2 red toasts appear ('Company audit purpose is only for companies...') every time a non-company business opens Final Accounts. Reproduced for admin@easybooks.in (business_type unset) and ravi@gupta.in. Fix: set the initial purpose from settings.business_type (company -> company_audit, else tax_audit), or skip the fetch when purpose is company_audit and business_type is not company.", "selector": "[data-testid=final-accounts-page]", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [
+      {"flow": "E-way prefill when the voucher has a consignee (gst_meta.ship_name)", "issue": "If ship_name is set but ship_gstin is not, toGstin becomes 'URP' and toTrdName becomes the consignee, even when the bill-to buyer is registered (29AAACH7194M1Z8). In the e-way bill, toGstin/toTrdName/toStateCode are the bill-to party. Ship-to only drives toAddr/toPlace/toPincode/actualToStateCode. Suggest: keep the buyer's GSTIN, name and state, and use the consignee only for the address and actualToStateCode.", "affected_selectors": ["[data-testid=eway-to-gstin]", "[data-testid=eway-to-name]"]}
+    ],
+    "design_issues": [
+      {"screen": "Service-format invoice", "issues": ["Vehicle no. and consignee are not printed in the service format, only in goods. This looks intentional (the service sample has no shipping block), so it is not counted as a defect."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_round11_r10_fixes.py", "/app/backend/tests/test_round10_gst_project_eway_final.py", "/app/backend/tests/test_round9_erp_phase_a.py", "/app/backend/tests/test_round9_erp_phase_b.py", "/app/backend/tests/test_round9_erp_phase_c.py", "/app/test_reports/pytest/r11.xml", "/app/test_reports/pytest/r11_erp.xml"],
+  "action_items": [
+    "FinalAccounts.jsx: derive the initial purpose from business_type, or guard the fetch, so non-company businesses don't get 2 spurious 400 error toasts on load",
+    "final_accounts._snapshot: when from_date is None, set opening stock to the stock items' opening value",
+    "eway.set_number: write back b.ewb_no.strip() to gst_meta.eway_bill_no",
+    "EwayBill.jsx choose(): when a consignee is present, keep the bill-to GSTIN, name and state; use the consignee only for the address, place and actualToStateCode"
+  ],
+  "critical_code_review_comments": [
+    "routes_vouchers._prepare overwrites items[].unit with the stock item's unit for stock-linked lines, so a user-edited unit on a stock line is silently replaced. Acceptable, but the UI lets the user edit it.",
+    "EwayBill validateEway: the TR pattern TR[0-9A-Z]{6,13} is loose (accepts e.g. TRABCDEF). Low risk.",
+    "EwayBill intra/inter rate split uses state codes, not the voucher's gst_type. This can differ if the place of supply differs from the ship-to state."
+  ],
+  "updated_files": ["/app/backend/tests/test_round11_r10_fixes.py"],
+  "success_rate": {"backend": "100% (57/57)", "frontend": "95% (all retest flows pass; 1 new medium UI bug)"},
+  "test_credentials": "admin@easybooks.in / Admin@123; ravi@gupta.in / secret1; TEST business created by tests: test_r11_8d2f24@example.com / secret1 (company, GSTIN 27AABCA4829K1Z4, invoice_terms set)",
+  "seed_data_creation": "Only fresh TEST_R11_* / TEST_R10_* signup businesses were created by the test fixtures (vouchers, a stock item, projects, e-way bills). No data was created in or changed on the admin or ravi businesses.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run pytest with '-n 0' for test_round10/test_round11 files: they share module-fixture state across classes, and loadscope splits classes across workers. ERP suites run fine with the default xdist. Stock API prefix is /api/stock-items. The public invoice frame is [data-testid=public-invoice-frame]. The e-way JSON is built in the browser only (capture it via expect_download)."
+}

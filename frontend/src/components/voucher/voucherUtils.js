@@ -8,7 +8,7 @@ export const SIMPLE = {
 
 export const PARTY_GROUPS = ["sundry_debtors", "sundry_creditors", "cash", "bank"];
 
-export const emptyItem = (rate = 18) => ({ description: "", hsn: "", qty: 1, rate: "", gst_rate: rate });
+export const emptyItem = (rate = 18) => ({ description: "", hsn: "", unit: "", qty: 1, rate: "", gst_rate: rate });
 export const emptyLine = () => ({ ledger_id: "", debit: "", credit: "" });
 
 export function computeItems(items, gstType) {
@@ -32,10 +32,10 @@ export function linesTotals(lines) {
 }
 
 export function fromVoucher(v) {
-  const base = { date: v.date, narration: v.narration || "", reference_no: v.reference_no || "" };
+  const base = { date: v.date, narration: v.narration || "", reference_no: v.reference_no || "", project_id: v.project_id || "", invoice_format: v.invoice_format || "goods", gst_meta: v.gst_meta || {} };
   if (v.items?.length) {
     return { ...base, party: v.party_ledger_id, account: v.account_ledger_id, gstType: v.gst_type,
-      items: v.items.map((i) => ({ item_id: i.item_id || null, description: i.description, hsn: i.hsn, qty: i.qty, rate: i.rate, gst_rate: i.gst_rate })) };
+      items: v.items.map((i) => ({ item_id: i.item_id || null, description: i.description, hsn: i.hsn, unit: i.unit || "", qty: i.qty, rate: i.rate, gst_rate: i.gst_rate })) };
   }
   const cfg = SIMPLE[v.voucher_type];
   if (cfg && v.entries.length === 2) {

@@ -1,6 +1,6 @@
 import os
 import re
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 import requests
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -14,7 +14,7 @@ from db import db, NO_ID, new_id, now_iso, audit, clean
 router = APIRouter(prefix="/api")
 BACKUP_COLLECTIONS = ["settings", "financial_years", "ledgers", "vouchers", "audit_logs", "stock_items", "reminders",
                       "erp_settings", "erp_parties", "erp_projects", "erp_documents", "erp_quotations", "erp_invoices", "erp_notes", "erp_used_numbers",
-                      "erp_prs", "erp_rfqs", "erp_vendor_quotes", "erp_pos", "erp_grns", "erp_bills", "erp_expenses"]
+                      "eway_bills", "erp_prs", "erp_rfqs", "erp_vendor_quotes", "erp_pos", "erp_grns", "erp_bills", "erp_expenses"]
 GSTIN_RE = re.compile(r"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$")
 UPI_RE = re.compile(r"^[\w.\-]{2,256}@[a-zA-Z][a-zA-Z0-9.\-]{1,64}$")
 
@@ -67,6 +67,8 @@ class SettingsIn(BaseModel):
     state: str = ""
     gstin: str = ""
     pan: str = ""
+    business_type: Literal["company", "llp", "partnership", "proprietorship"] = "proprietorship"
+    cin: str = ""
     phone: str = ""
     email: str = ""
     gst_rates: List[float] = [0, 5, 12, 18, 28]

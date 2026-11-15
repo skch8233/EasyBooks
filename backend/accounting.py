@@ -65,6 +65,9 @@ class VoucherIn(BaseModel):
     account_ledger_id: Optional[str] = None
     gst_type: Literal["intra", "inter", "none"] = "intra"
     items: List[Item] = []
+    project_id: Optional[str] = None
+    invoice_format: Literal["goods", "service"] = "goods"
+    gst_meta: dict = {}
 
 
 def bad(msg: str):

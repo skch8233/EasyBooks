@@ -20,8 +20,9 @@ const statement = async (p) => {
   };
 };
 
+const PJ = (p) => (p.project ? { project_id: p.project } : {});
 const register = (voucher_type) => async (p) => {
-  const { data } = await api.get("/reports/register", { params: { voucher_type, from_date: p.from, to_date: p.to } });
+  const { data } = await api.get("/reports/register", { params: { voucher_type, from_date: p.from, to_date: p.to, ...PJ(p) } });
   return { sections: [{
     columns: [C("date", "Date"), C("voucher_no", "Voucher No"), C("party", "Party"), C("gstin", "GSTIN"), N("taxable", "Taxable"), N("cgst", "CGST"), N("sgst", "SGST"), N("igst", "IGST"), N("total", "Total")],
     rows: data.rows.map((r) => ({ ...r, date: dmy(r.date) })), footer: { party: "Total", ...data.totals },
@@ -83,13 +84,13 @@ export const REPORTS = [
   { id: "cash-book", label: "Cash Book", filter: "ledger", groups: ["cash"], load: statement },
   { id: "bank-book", label: "Bank Book", filter: "ledger", groups: ["bank"], load: statement },
   { id: "ledger", label: "Ledger Statement", filter: "ledger", load: statement },
-  { id: "trial-balance", label: "Trial Balance", filter: "asof", load: async (p) => {
-    const { data } = await api.get("/reports/trial-balance", { params: { to_date: p.to } });
+  { id: "trial-balance", label: "Trial Balance", filter: "asof", project: true, load: async (p) => {
+    const { data } = await api.get("/reports/trial-balance", { params: { to_date: p.to, ...PJ(p) } });
     return { balanced: data.balanced, sections: [{ columns: [C("ledger", "Ledger"), C("group", "Group"), N("debit", "Debit"), N("credit", "Credit")],
       rows: data.rows.map((r) => ({ ...r, debit: r.debit || "", credit: r.credit || "" })), footer: { ledger: "Grand Total", debit: data.total_debit, credit: data.total_credit } }] };
   } },
-  { id: "profit-loss", label: "Profit & Loss", filter: "range", load: async (p) => {
-    const { data: d } = await api.get("/reports/profit-loss", { params: { from_date: p.from, to_date: p.to } });
+  { id: "profit-loss", label: "Profit & Loss", filter: "range", project: true, load: async (p) => {
+    const { data: d } = await api.get("/reports/profit-loss", { params: { from_date: p.from, to_date: p.to, ...PJ(p) } });
     const cols = [C("particulars", "Particulars"), N("amount", "Amount")];
     const inc = plRows(d, ["sales", "direct_income", "indirect_income"], ["Sales Accounts", "Direct Incomes", "Indirect Incomes"]);
     const exp = plRows(d, ["purchase", "direct_expense", "indirect_expense"], ["Purchase Accounts", "Direct Expenses", "Indirect Expenses"]);
@@ -100,8 +101,8 @@ export const REPORTS = [
       { title: "Result", columns: cols, rows: [{ particulars: "Gross Profit", amount: d.gross_profit, _bold: true }], footer: { particulars: d.net_profit >= 0 ? "Net Profit" : "Net Loss", amount: d.net_profit } },
     ] };
   } },
-  { id: "balance-sheet", label: "Balance Sheet", filter: "asof", load: async (p) => {
-    const { data: d } = await api.get("/reports/balance-sheet", { params: { to_date: p.to } });
+  { id: "balance-sheet", label: "Balance Sheet", filter: "asof", project: true, load: async (p) => {
+    const { data: d } = await api.get("/reports/balance-sheet", { params: { to_date: p.to, ...PJ(p) } });
     const cols = [C("particulars", "Particulars"), N("amount", "Amount")];
     const flat = (gs) => gs.flatMap((g) => [{ particulars: g.group, amount: g.total, _bold: true }, ...g.rows.map((r) => ({ particulars: `    ${r.ledger}`, amount: r.amount }))]);
     const liab = [...flat(d.liabilities), { particulars: "Profit & Loss A/c", amount: d.profit_loss, _bold: true }];
@@ -113,8 +114,13 @@ export const REPORTS = [
   } },
   { id: "receivables", label: "Receivables", filter: "asof", load: outstanding("receivables") },
   { id: "payables", label: "Payables", filter: "asof", load: outstanding("payables") },
-  { id: "sales-register", label: "Sales Register", filter: "range", load: register("sales") },
-  { id: "purchase-register", label: "Purchase Register", filter: "range", load: register("purchase") },
+  { id: "project-pl", label: "Project-wise P&L", filter: "range", load: async (p) => {
+    const { data: d } = await api.get("/reports/project-summary", { params: { from_date: p.from, to_date: p.to } });
+    return { sections: [{ columns: [C("code", "Project"), C("project", "Name"), N("revenue", "Revenue"), N("other_income", "Other income"), N("purchases", "Purchases"), N("direct_expenses", "Direct exp."),
+      N("gross_profit", "Gross profit"), N("indirect_expenses", "Indirect exp."), N("net_profit", "Net profit")], rows: d.rows, footer: d.combined }] };
+  } },
+  { id: "sales-register", label: "Sales Register", filter: "range", project: true, load: register("sales") },
+  { id: "purchase-register", label: "Purchase Register", filter: "range", project: true, load: register("purchase") },
   { id: "stock-summary", label: "Stock Summary", filter: "asof", load: async (p) => {
     const { data } = await api.get("/stock-items", { params: { to_date: p.to } });
     return { sections: [{ columns: [C("name", "Item"), C("hsn", "HSN"), C("unit", "Unit"), N("purchased_qty", "Purchased"), N("sold_qty", "Sold"), N("on_hand", "On hand"), N("avg_cost", "Avg cost"), N("value", "Value")],

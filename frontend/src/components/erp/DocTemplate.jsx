@@ -1,6 +1,7 @@
 import { forwardRef } from "react";
 import { amt, dmy } from "@/lib/format";
 import { inWords } from "@/lib/invoice";
+import { fromErp, renderGstBody } from "@/lib/gstInvoice";
 
 const THEMES = {
   classic: { wrap: "font-serif", head: "border-b-4 border-double border-slate-800 pb-4", title: "text-slate-900", th: "bg-slate-100 text-slate-800", accent: "text-slate-900" },
@@ -22,6 +23,10 @@ const Party = ({ c, label }) => (
 );
 
 export const DocTemplate = forwardRef(({ kind, doc, company = {}, logo, template = "classic", signatory, signature }, ref) => {
+  if (kind === "invoice" && template?.startsWith("gst_")) {
+    const html = renderGstBody(fromErp({ ...doc, template }, company, { logo, signature, signatory }));
+    return <div ref={ref} className="w-full max-w-[860px] mx-auto shadow-sm bg-white" data-testid={`invoice-preview-${template}`} dangerouslySetInnerHTML={{ __html: html }} />;
+  }
   const t = THEMES[template] || THEMES.classic;
   const inv = kind === "invoice";
   const T = doc.totals || {};

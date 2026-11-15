@@ -1,0 +1,60 @@
+{
+  "summary": "Round 10 tested on backend and frontend: GST goods/service invoice formats compared with the two sample PDFs, project tagging of vouchers, project-wise and combined reports, Project P&L, E-way bill page, Final Accounts, and company business type/CIN settings. Backend: new pytest file has 16 tests, 15 pass. The one failure: the sales register with project_id=none returns no rows. ERP Phase A/B/C regression: 31/31 pass. UI: the voucher project select, format picker and GST meta panel work and are saved; edit keeps all fields; in-app print renders the chosen format with the meta fields. ERP editor: goods is the default format, both formats preview, meta fields persist, and Less: Retention plus Net Payable rows show. E-way prefill, validation, JSON download, list and 12-digit number write-back work. Final Accounts shows Schedule III for companies and vertical format for others; purpose options and signature blocks change correctly; balanced; Excel downloads. Reports have the project select; Project-wise P&L combined total equals the whole-business P&L. Defects: (1) the public invoice link always renders the goods format and drops gst_meta, project and PAN; (2) the e-way vehicle-number regex rejects standard numbers like MH12AB1234 (the example in its own error message); (3) the e-way JSON uses API key names instead of the bulk-upload names; (4) register project_id=none.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "GET /api/public/invoice/{token} (public.py VOUCHER_FIELDS / COMPANY_FIELDS)", "issue": "VOUCHER_FIELDS has no invoice_format, gst_meta, project_code or project_name, and COMPANY_FIELDS has no pan. The shared public invoice link (/i/:token) always renders the goods format, even for a voucher saved as 'service'. It also loses RCM, vehicle, e-way bill no., consignee, contract ref, billing period, project and the supplier PAN. Verified: a service voucher with SOW-77 rendered gst-invoice-goods without SOW-77 or the vehicle no.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "GET /api/reports/register?project_id=none", "issue": "routes_reports.register uses {'project_id': project_id} literally, so 'none' matches nothing. The 'Not tagged' option on the Sales and Purchase Register always shows an empty list. _moves already maps 'none' to None; do the same here."},
+      {"endpoint": "PUT /api/eway-bills/{id}/number", "issue": "A number shorter or longer than 12 characters returns the raw pydantic message 'String should have at least 12 characters'. The friendly 'must be 12 digits' message only appears for 12 characters that are not all digits."},
+      {"endpoint": "GET /api/reports/final-accounts", "issue": "purpose=company_audit is accepted for proprietorship, partnership and LLP (200). Only the UI restricts it; the server does not validate it."},
+      {"endpoint": "GET /api/reports/final-accounts", "issue": "Inventories and closing stock are not included: 'Changes in inventories' is hard-coded to 0 and there is no Inventories line in the balance sheet, even though the app has a Stock module. Gross profit is understated for businesses that trade stock."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "EwayBill.jsx validateEway", "issue": "The vehicle regex /^[A-Z]{2}[0-9A-Z]{1,3}[0-9]{4}$/ rejects standard registrations: MH12AB1234 (the example in its own error message) and UP16BT8492 fail, because the middle part has 4 characters. Users can only generate the JSON by entering a transporter ID. Suggested pattern: /^[A-Z]{2}[0-9]{1,2}[A-Z]{0,3}[0-9]{4}$/ or allow {1,4}.", "selector": "[data-testid=eway-vehicle]", "priority": "HIGH"},
+      {"component": "EwayBill.jsx buildEwayJson", "issue": "The JSON uses e-way bill API key names (transactionType, actFromStateCode, actToStateCode, otherValue, cessNonAdvolValue). The portal's bulk-upload JSON (version 1.0.0621) expects transType, actualFromStateCode, actualToStateCode, OthValue and TotNonAdvolVal; india-compliance remaps these same keys for its for_json export. The portal will probably reject the upload. Also consider adding mainHsnCode.", "selector": "[data-testid=eway-generate-button]", "priority": "HIGH"}
+    ],
+    "integration_issues": [
+      {"flow": "Share or public invoice link", "issue": "PublicInvoice renders renderInvoice(fromVoucher) with a voucher that lacks invoice_format and gst_meta, so it falls back to the goods format (see backend issue).", "affected_selectors": ["[data-testid=public-invoice-frame]"]}
+    ],
+    "design_issues": [
+      {"screen": "GST invoice layouts compared with the sample PDFs", "issues": [
+        "Goods: sections, headings, order, the 10 columns, the CGST/SGST rate break-up (e.g. '9% on ₹48,000 + 6% on ₹22,000'), amount in words, bank, terms, declaration and signatory all match the sample.",
+        "Goods footer: the sample has 'Page x of y' on the right; ours shows the invoice number. Amount in words is not hyphenated (sample: 'Eighty-One').",
+        "Goods UQC column is blank for accounting vouchers that use free-text items: the voucher items form has no unit field.",
+        "Service: the sample signatory reads 'Authorized Signatory / Partner'; ours reads 'Authorized Signatory'. The sample due date has a '(Net 15 Days)' suffix that ours lacks.",
+        "Service: when company or invoice terms are set, they replace the whole 'Terms & Declaration' block. The mandatory declaration line is lost, and goods-type terms ('Goods once sold...') appear on a service invoice. Keep the declaration as a fixed line, as the goods format does.",
+        "ERP retention is calculated on the GST-inclusive total (5% of 53,100 = 2,655). This is existing behaviour; confirm it is intended."]},
+      {"screen": "Final Accounts", "issues": [
+        "The CIN line is printed even when the business type is switched to proprietorship or partnership.",
+        "Proprietorship signature block shows 'Proprietor' twice (label and role).",
+        "Note numbers in the statements are plain text, not links to the notes."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_round10_gst_project_eway_final.py", "/app/tests/setup_r10_ui.py", "/app/test_reports/pytest/round10.xml"],
+  "action_items": [
+    "public.py: add invoice_format, gst_meta, project_code and project_name to VOUCHER_FIELDS and pan to COMPANY_FIELDS, so the public link renders the chosen format with all GST fields.",
+    "EwayBill.jsx: fix the vehicle-number regex so MH12AB1234 and UP16BT8492 pass.",
+    "EwayBill.jsx: rename the JSON keys to the bulk-upload names (transType, actualFromStateCode, actualToStateCode, OthValue, TotNonAdvolVal) and consider adding mainHsnCode.",
+    "routes_reports.register: map project_id='none' to None.",
+    "Service format: keep the declaration line when custom terms are set.",
+    "Optional: friendly 12-digit message on the e-way number endpoint; server-side check that company_audit is used only for companies; hide CIN for non-company types; include inventories/closing stock in final accounts."
+  ],
+  "critical_code_review_comments": [
+    "public.py field whitelists were not updated for the Round 10 voucher fields.",
+    "E-way JSON key names follow the API schema rather than the bulk-upload schema; check against the portal's sample JSON.",
+    "Project filters: _moves handles 'none' but register does not. Use one shared helper.",
+    "final_accounts.py: has_prev is checked against _prev(to_date) only, so the previous-year column depends only on whether vouchers exist before that date.",
+    "Auth (playbook): passwords are bcrypt $2b$ and lockout returns 429 after 5 failures. The app uses Bearer tokens, not httpOnly cookies, and CORS is '*' (existing design)."
+  ],
+  "updated_files": ["/app/backend/tests/test_round10_gst_project_eway_final.py", "/app/tests/setup_r10_ui.py"],
+  "success_rate": {"backend": "94% (15/16 new) + 100% regression (31/31)", "frontend": "~85% (all flows work; e-way vehicle regex and public-link format are broken)"},
+  "test_credentials": "admin@easybooks.in / Admin@123 (read-only checks only). UI business: test_r10ui_3b465@example.com / secret1 (TEST_R10UI_3b465, ERP granted, company type; locked for 15 min by the brute-force test). Pytest creates a fresh TEST_R10_* business each run.",
+  "seed_data_creation": "Created TEST_R10_* and TEST_R10UI_3b465 businesses with TEST_ ledgers, clients and projects, sales vouchers, ERP invoices and e-way bill records. Admin 'My Business' data was not modified.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run: cd /app/backend && REACT_APP_BACKEND_URL=... pytest tests/test_round10_gst_project_eway_final.py -n 0 (the classes share a module fixture; xdist loadscope would split them). Run the phase A/B/C regression with the default ini. The sample PDFs were read with pymupdf (/tmp/goods.pdf, /tmp/svc.pdf). All active vouchers in the admin business are ERP-tagged, so 'Not tagged' reports there are legitimately empty. Retest: public link format, e-way vehicle regex, JSON keys, register none.",
+  "rca of the issue": "Public link: the GET /public/invoice whitelist (VOUCHER_FIELDS) predates Round 10, so fromVoucher gets no invoice_format and falls back to goods. Vehicle regex: the middle part allows 1-3 characters, but RTO numbers like MH12AB are district code (2 digits) plus series (up to 3 letters), i.e. up to 5 characters. Register none: the filter passes 'none' straight to Mongo instead of null."
+}
