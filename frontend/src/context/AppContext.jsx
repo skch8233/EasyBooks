@@ -29,7 +29,7 @@ export function AppProvider({ children }) {
       return;
     }
     if (!localStorage.getItem("eb_token")) return setUser(false);
-    api.get("/auth/me").then((r) => { setUser(r.data); return loadMeta(r.data); }).catch(() => setUser(false));
+    api.get("/auth/me").then((r) => { setUser(r.data); return loadMeta(r.data); }).catch(() => { localStorage.removeItem("eb_token"); setUser(false); });
   }, [loadMeta]);
 
   const startSession = async (data) => {
@@ -43,8 +43,8 @@ export function AppProvider({ children }) {
     const { data } = await api.post("/auth/login", { email, password });
     localStorage.removeItem("eb_fy");
     localStorage.setItem("eb_token", data.token);
+    try { await loadMeta(data.user); } catch (e) { localStorage.removeItem("eb_token"); throw e; }
     setUser(data.user);
-    await loadMeta(data.user);
   };
   const logout = () => {
     localStorage.removeItem("eb_token");

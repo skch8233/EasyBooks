@@ -15,6 +15,9 @@ const Row = ({ b, onDone }) => {
   const extend = async () => {
     try { const { data } = await api.post(`/platform/businesses/${b.id}/extend`, { plan, days: Number(days) }); toast.success(`Extended. Licence ${data.licence_key}`); onDone(); } catch (e) { toast.error(errMsg(e)); }
   };
+  const grantErp = async () => {
+    try { const { data } = await api.post(`/erp/platform/${b.id}/grant`, { days: 365 }); toast.success(`ERP plan active till ${dmy(data.erp_ends)}`); onDone(); } catch (e) { toast.error(errMsg(e)); }
+  };
   return (
     <tr data-testid={`business-row-${b.id}`}>
       <td className="font-medium">{b.name}<div className="text-xs text-slate-500">{b.owner_email}</div></td>
@@ -26,6 +29,7 @@ const Row = ({ b, onDone }) => {
             <SelectContent><SelectItem value="basic">Basic</SelectItem><SelectItem value="pro">Pro</SelectItem></SelectContent></Select>
           <Input className="h-9 w-20 num" type="number" value={days} onChange={(e) => setDays(e.target.value)} data-testid={`extend-days-${b.id}`} />
           <Button size="sm" onClick={extend} data-testid={`extend-button-${b.id}`}>Extend + key</Button>
+          <Button size="sm" variant="outline" onClick={grantErp} data-testid={`erp-grant-button-${b.id}`}>{b.erp_ends ? `ERP till ${dmy(b.erp_ends)} · +1 yr` : "Give ERP 1 yr"}</Button>
         </div>
       </td>
     </tr>

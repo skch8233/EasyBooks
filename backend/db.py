@@ -13,7 +13,7 @@ def clean(doc):
     if isinstance(doc, list):
         return [clean(d) for d in doc]
     if isinstance(doc, dict):
-        return {k: v for k, v in doc.items() if k not in ("_id", "password_hash")}
+        return {k: v for k, v in doc.items() if k not in ("_id", "password_hash", "busy")}
     return doc
 
 

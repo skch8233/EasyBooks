@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, PlusCircle, ListOrdered, BookUser, BarChart3, Settings, ShieldCheck, LogOut, Menu, X, BookMarked, CreditCard, Building2, AlertTriangle, Landmark, Package, BellRing } from "lucide-react";
+import { LayoutDashboard, PlusCircle, ListOrdered, BookUser, BarChart3, Settings, ShieldCheck, LogOut, Menu, X, BookMarked, CreditCard, Building2, AlertTriangle, Landmark, Package, BellRing, Briefcase } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,6 +12,7 @@ import { errMsg } from "@/lib/api";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, id: "dashboard" },
+  { to: "/erp", label: "Projects / ERP", icon: Briefcase, id: "erp", match: (p) => p.startsWith("/erp") },
   { to: "/voucher/sales", label: "New Voucher", icon: PlusCircle, id: "new-voucher", write: true },
   { to: "/vouchers", label: "Vouchers / Day Book", icon: ListOrdered, id: "vouchers" },
   { to: "/ledgers", label: "Ledgers", icon: BookUser, id: "ledgers" },

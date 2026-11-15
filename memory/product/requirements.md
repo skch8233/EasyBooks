@@ -118,3 +118,40 @@ WhatsApp Invoice Sharing: Let traders send any sales invoice to customers on Wha
 
 ## Integrations
 Login: Email and password (default assumed).
+
+## Round 9 — ERP (build in phases) — user's request verbatim
+"Build a Complete Project-Wise ERP Management System
+Act as an expert ERP architect and full-stack developer. Build a modern, professional, fully functional, responsive, project-wise ERP system for business management.
+IMPORTANT: My accounting software is already prepared. Do not rebuild or duplicate accounting features. Develop the remaining ERP modules and integrate them with the existing accounting software through secure APIs or database integration.
+1. Dashboard: total projects, active/completed projects, client information, total quotations, invoices, purchases, expenses, outstanding payments, project profitability and recent activities.
+2. Project Management: Create unlimited projects with unique project codes. Client, project manager, location and description. Start date, completion date and contract value. Project status: Planning, Running, On Hold, Completed and Cancelled. Project-wise income, purchases, expenses and profitability. Upload project documents. Individual dashboard for every project.
+3. Client & Vendor Management: Client and vendor master databases. Company name, GSTIN, PAN, address, state, contact person, mobile and email. Opening balances and payment terms. Multiple projects under one client. Complete transaction and document history.
+4. Sales Quotation Generator: Create professional quotations with automatic or manual quotation numbers. Three optional quotation designs. Client and project selection. Item descriptions, quantities, rates, discounts and GST. Scope of work, delivery and payment terms. Live preview before saving. Edit, duplicate, cancel, print and download PDF. Save drafts and track Sent, Accepted, Rejected and Expired status. Convert accepted quotations into sales orders, projects or invoices.
+5. Advanced Invoice Generator: three formats: Classic Professional, Modern Corporate, Detailed Project Invoice. Include: Company logo and details. Client and project details. Automatic or manual invoice numbering. Invoice date and due date. Item descriptions, quantity, rate and discount. CGST, SGST and IGST. Previous billing, current billing and cumulative billing. Retention, advance adjustment and deductions. Bank details, terms and authorized signature. Amount in words.
+Mandatory: Live preview before finalizing. Switch between all three formats without re-entering information. Preview must match the final PDF. Save draft and edit drafts. Authorized editing of finalized invoices with version history. Cancel invoice with reason and confirmation. Delete drafts only; preserve finalized invoice audit history. Duplicate invoice into a new draft. Print and download PDF. Share through email or WhatsApp where supported. Full and partial payment tracking. Credit notes and debit notes. Overdue invoice tracking. Prevent duplicate invoice numbers. Never reuse cancelled invoice numbers.
+6. Purchase & Procurement Management:
+Purchase Requisition (PR): Request materials or services project-wise, with approval and status tracking.
+Request for Quotation (RFQ): Send quotation requests to multiple vendors.
+Vendor Quotations: Record and compare vendor prices, discounts, GST, delivery times and payment terms.
+Comparative Statement: Compare multiple vendors, highlight lowest quotations and allow authorized vendor selection.
+Purchase Order (PO): Generate professional purchase orders with three optional formats, automatic/manual numbering, live preview, edit, duplicate, approval, cancellation, printing and PDF download.
+Goods Receipt Note (GRN): Record received, accepted, rejected and pending quantities. Support partial deliveries and multiple GRNs against one PO.
+Purchase Bills: Record vendor invoices, link them with PO and GRN, prevent duplicate vendor invoice numbers and track pending bills.
+7. Expense Management: Project-wise expense vouchers. Expense categories. Vendor/person paid. Date, amount, GST and payment mode. Upload bills and receipts. Expense reports.
+8. Project-Wise Tracking: Every project has a separate dashboard showing: Contract value. Quotations and sales orders. Total invoices and billed amount. Payments received. Outstanding client balance. Purchase orders. Material received. Purchase bills. Project expenses. Project profitability. Project documents and progress.
+9. Reports (Excel and PDF): Project-wise income and expenses. Client and vendor reports. Quotation register. Invoice register. Cancelled invoice report. Outstanding invoices. Purchase requisition register. Vendor comparison report. Purchase order register. Pending delivery report. GRN register. Purchase bill register. PO versus GRN versus bill reconciliation. Project profitability. Include date, project, client, vendor and status filters.
+10. Company Settings: Company name, logo, address, GSTIN and PAN. Bank details and authorized signature. Invoice and quotation prefixes. Financial year April–March. Default invoice and quotation templates. GST settings. Terms and conditions. User and role management.
+11. User Roles & Permissions: Super Admin, Administrator, Accountant, Project Manager, Data Entry Operator and Viewer roles. Control permissions for creating, editing, approving, finalizing, cancelling and viewing documents. Maintain complete audit logs.
+12. Design & Technical: Premium modern corporate interface. Responsive desktop, tablet and mobile design. Simple sidebar navigation. Secure login and role-based access. Relational database with proper document linking. Functional Add, Edit, View, Delete and Search operations. PDF generation and Excel exports. Automatic calculations and validation. Backup and restore. Secure API integration with existing accounting software.
+IMPORTANT DEVELOPMENT INSTRUCTIONS: Do not build just a UI prototype. Build fully working modules with real database storage and functional workflows. Keep the entire ERP project-centric. Every quotation, invoice, purchase requisition, RFQ, purchase order, GRN, purchase bill and expense must be linked to the relevant project. Do not duplicate accounting entries. Integrate approved financial transactions with my existing accounting software. Develop in phases, test every module, and ensure all modules work together before final deployment."
+
+User decisions:
+- Lives inside Easy Books as a new "Projects / ERP" section (same login; posts approved transactions into the existing Easy Books books — existing ledgers/vouchers are the accounting).
+- Access: user answered "Every Easy Books business; Only businesses on a new paid ERP plan" → available to every business, unlocked by a new paid ERP plan at "15000 plus gst" per year.
+- Both online and offline (offline Windows build must include ERP too).
+- Customers: "A mix of project businesses; Provide option to select industry".
+
+Phasing (build and test each before the next; report after each phase):
+- Phase A: ERP section + roles/permissions, Projects (+ per-project dashboard, documents), Client & Vendor masters, Quotations, Advanced Invoices (with accounting posting), ERP dashboard, ERP plan.
+- Phase B: Purchase workflow PR → RFQ → Vendor quotes → Comparative statement → PO → GRN → Purchase bills (posting), Expenses.
+- Phase C: All ERP reports, company settings additions, backup/restore coverage, offline build inclusion.

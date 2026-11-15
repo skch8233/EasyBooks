@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { api, errMsg } from "@/lib/api";
 import { useApp } from "@/context/AppContext";
@@ -25,11 +26,13 @@ const Password = () => {
 };
 
 export default function Settings() {
+  const [sp] = useSearchParams();
+  const tabParam = sp.get("tab");
   const { isAdmin } = useApp();
   return (
     <div className="space-y-6" data-testid="settings-page">
       <h1 className="font-heading text-3xl font-extrabold tracking-tight">Settings</h1>
-      <Tabs defaultValue="company">
+      <Tabs defaultValue={tabParam || "company"}>
         <TabsList className="h-auto flex-wrap">
           <TabsTrigger value="company" className="px-4 py-2" data-testid="settings-tab-company">Company & GST</TabsTrigger>
           <TabsTrigger value="branding" className="px-4 py-2" data-testid="settings-tab-branding">Invoice Branding</TabsTrigger>

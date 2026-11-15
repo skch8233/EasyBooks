@@ -60,3 +60,23 @@ JWT email/password; roles Admin / Accountant / Viewer; single company + FY manag
 - Financial year: company default year switchable by any user + per-user working year stored server-side.
 - Design doc: offline/LICENSING-DESIGN.md. Tests: iteration_8 100%.
 - Download default: OFFLINE_DOWNLOAD_URL env + DB -> github.com/skch8233/EasyBooks releases/latest (repo currently not publicly reachable: 404).
+
+## Round 9 ERP - Phase A (Nov 2026) - DONE
+- ERP add-on inside Easy Books ("Projects / ERP"), plan ₹15,000+GST/yr (superadmin grant; Razorpay off). Roles + configurable permission matrix (admin, accountant, project_manager, data_entry, viewer).
+- Clients/Vendors (auto ledgers), Projects (codes, dashboard, documents in object storage), Quotations (3 templates, statuses, convert to invoice/project/SO), Advanced invoices (retention, advance, deductions, running bills, finalize -> SAL voucher, versioned edits, cancel, payments -> RCT, ECN/EDN notes, email/WhatsApp, overdue), ERP dashboard.
+- Backend: erp_core.py, erp_sales.py. Frontend: pages/erp/*, components/erp/*. Tests: tests/test_round9_erp_phase_a.py (10/10).
+- Next: Phase B (purchases, expenses, vendor bills feeding project profit), Phase C (reports, offline build inclusion).
+
+## Round 9 ERP - Phase B (Nov 2026) - DONE
+- Purchase requisitions (draft/submit/approve/reject/cancel) -> RFQ (multi-vendor, email) -> vendor quotes -> comparative statement (lowest per item/total, reason for non-lowest) -> PO (3 print formats, approve/close/duplicate/cancel, WhatsApp) -> GRN (accepted/rejected, partial/received, cancel) -> purchase bills (limited to accepted-not-billed qty, duplicate vendor invoice check, posts PUR voucher, payments post PMT, cancel reverses).
+- Project expenses: categories, GST, post as payment voucher, bill uploads, filters, category summary, Excel export.
+- Double-submit protection: per-document lock (409) on bill post/payment, GRN, expense post, PO approve, RFQ->PO; buttons disabled while saving.
+- Backend: erp_purchase.py; Frontend: pages/erp/Purchases, RfqView, PoEditor, BillEditor, Expenses. Tests: tests/test_round9_erp_phase_b.py (iteration 10).
+- Next: Phase C (ERP reports, offline build inclusion).
+
+## Round 9 ERP - Phase C (Nov 2026) - DONE
+- 16 ERP reports (erp_reports.py, /erp/reports): project income & expenses, profitability, client, vendor, quotation/invoice/cancelled/outstanding (ageing), PR register, vendor comparison, PO register, pending delivery, GRN register, purchase bill register, PO vs GRN vs bill reconciliation, expenses. Filters: date, project, client, vendor, status. Excel + PDF.
+- Company settings: PAN (validated, on documents), authorised signature image (ERP settings, printed on invoice/quotation/PO), links to Settings tabs (?tab=).
+- Backup/restore: all erp_* collections + ERP counters; restore never rolls numbering back ($max).
+- Offline: ERP unlocked with offline licence/trial, ERP nav visible offline, ERP modules in GitHub workflow + build_server.bat hidden imports, README updated.
+- Tests: tests/test_round9_erp_phase_c.py (iteration 11); A+B+C suites 31/31 pass.

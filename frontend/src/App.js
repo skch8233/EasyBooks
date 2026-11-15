@@ -23,6 +23,20 @@ import Buy from "@/pages/Buy";
 import DownloadPage from "@/pages/Download";
 import OfflineLicence from "@/pages/OfflineLicence";
 import Activate from "@/pages/Activate";
+import ErpShell from "@/pages/erp/ErpShell";
+import ErpDashboard from "@/pages/erp/ErpDashboard";
+import Projects from "@/pages/erp/Projects";
+import ProjectView from "@/pages/erp/ProjectView";
+import Parties from "@/pages/erp/Parties";
+import DocRegister from "@/pages/erp/DocRegister";
+import DocEditor from "@/pages/erp/DocEditor";
+import ErpSettings from "@/pages/erp/ErpSettings";
+import Purchases from "@/pages/erp/Purchases";
+import RfqView from "@/pages/erp/RfqView";
+import PoEditor from "@/pages/erp/PoEditor";
+import BillEditor from "@/pages/erp/BillEditor";
+import Expenses from "@/pages/erp/Expenses";
+import ErpReports from "@/pages/erp/ErpReports";
 import { OFFLINE } from "@/lib/offline";
 
 const Protected = ({ children, write }) => {
@@ -63,6 +77,30 @@ function App() {
             <Route path="subscription" element={<Subscription />} />
             <Route path="platform" element={<Platform />} />
             <Route path="licence" element={<OfflineLicence />} />
+            <Route path="erp" element={<ErpShell />}>
+              <Route index element={<ErpDashboard />} />
+              <Route path="projects" element={<Projects />} />
+              <Route path="projects/:id" element={<ProjectView />} />
+              <Route path="parties" element={<Parties />} />
+              <Route path="quotations" element={<DocRegister kind="quotations" />} />
+              <Route path="quotations/new" element={<DocEditor key="qn" kind="quotation" />} />
+              <Route path="quotations/:id" element={<DocEditor key="qe" kind="quotation" />} />
+              <Route path="invoices" element={<DocRegister kind="invoices" />} />
+              <Route path="invoices/new" element={<DocEditor key="in" kind="invoice" />} />
+              <Route path="invoices/:id" element={<DocEditor key="ie" kind="invoice" />} />
+              <Route path="purchases" element={<Navigate to="/erp/purchases/prs" replace />} />
+              <Route path="purchases/prs" element={<Purchases tab="prs" />} />
+              <Route path="purchases/rfqs" element={<Purchases tab="rfqs" />} />
+              <Route path="purchases/rfqs/:id" element={<RfqView />} />
+              <Route path="purchases/pos" element={<Purchases tab="pos" />} />
+              <Route path="purchases/pos/:id" element={<PoEditor />} />
+              <Route path="purchases/grns" element={<Purchases tab="grns" />} />
+              <Route path="purchases/bills" element={<Purchases tab="bills" />} />
+              <Route path="purchases/bills/:id" element={<BillEditor />} />
+              <Route path="expenses" element={<Expenses />} />
+              <Route path="reports" element={<ErpReports />} />
+              <Route path="settings" element={<ErpSettings />} />
+            </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -21,7 +21,8 @@ OFFLINE_PLANS = {
     "offline_multi_renewal": {"key": "offline_multi_renewal", "name": "Offline Multi-PC - Annual Renewal", "users_label": "Required every year after the first", "price": 10000, "max_users": 8, "tier": "multi", "pcs": 8, "renewal": True},
 }
 OFFLINE_TRIAL_DAYS = 30
-for p in list(PLANS.values()) + list(OFFLINE_PLANS.values()):
+ERP_PLAN = {"key": "erp", "name": "Projects / ERP add-on", "users_label": "All ERP modules for your whole business", "price": 15000, "max_users": 8}
+for p in list(PLANS.values()) + list(OFFLINE_PLANS.values()) + [ERP_PLAN]:
     p["gst"] = round(p["price"] * GST_RATE / 100, 2)
     p["total"] = round(p["price"] + p["gst"], 2)
 

@@ -1,0 +1,53 @@
+{
+  "summary": "Round 9 ERP Phase A tested end to end. Backend: new pytest suite test_round9_erp_phase_a.py has 10 tests: 8 pass and 2 fail because of real bugs. It covers ERP gating (402 / superadmin grant), parties, projects, quotations, invoices (finalize -> SAL voucher, billing math, IGST vs CGST/SGST, edit-finalized versions updating the voucher, cancel, numbers never reused, payments, CN, overdue, email), the permission matrix for all 5 roles, and a trial balance / backup regression check. Frontend: tested the locked screen, dashboard stats and tabs, Clients & Vendors create/history/GSTIN error, project create/edit/KPIs, document upload/download/delete, the quotation editor (live preview, 3 templates keep data, save, sent, accept, convert to invoice navigates), the invoice editor (retention/advance update net and words, finalize confirm, payment, credit note, edit finalized -> invoice-versions, print window, WhatsApp, duplicate, cancel dialog needs a reason), ERP Settings permission save/revert, Platform erp-grant-button, and the new Users roles. All of these work except the debit note flow (backend bug).",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/erp/invoices/{iid}/notes (kind=debit)", "issue": "Always returns 400 'Account ledger must belong to Purchase Accounts'. erp_sales.add_note builds a voucher of type debit_note with the SALES ledger as account_ledger_id, but accounting.build_item_entries requires a purchase-group ledger for debit_note (Tally-style purchase return). Customer debit notes on sales invoices are impossible, so the 'debit note increases balance' feature is broken in both API and UI (invoice-debit-note button).", "priority": "HIGH"},
+      {"endpoint": "POST /api/erp/invoices/{iid}/finalize", "issue": "The number is saved in erp_used_numbers BEFORE create_voucher. If posting fails (e.g. no financial year for the date, a missing GST ledger, a locked FY), the invoice stays draft but its number is burned. A draft with a manual number can then never be finalized ('Invoice number X is already used'), and auto numbers leave gaps in the GST invoice series. Reproduced: draft dated 2024-05-01 with manual number -> finalize 400 'No financial year' -> fix date -> finalize 400 'already used'.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "POST /api/erp/quotations/{qid}/duplicate", "issue": "The duplicate copies sales_order_no and sales_order_date from the source (excluded keys miss them). The new draft shows 'Sales order: SO/..' and once accepted, convert to sales_order returns 400 'Already converted to sales order'. Add sales_order_no and sales_order_date to the exclusion list (and consider project_id when the source was converted to a project)."},
+      {"endpoint": "erp() dependency / finalize / payments / notes", "issue": "create_voucher, update_voucher and cancel_voucher are called directly, which skips the WRITE dependency's expired-subscription check. A business with an active ERP plan but an expired Easy Books trial/subscription (read-only books) can still post SAL/RCT/CN vouchers through ERP. Code review finding, not run (it would mean changing expired@test.in data)."},
+      {"endpoint": "POST /api/erp/invoices/{iid}/notes", "issue": "ERP note numbers (CN/2026-27/0004) use the same format as Easy Books voucher numbers (CN/2026-27/0010), so two different documents can share a number like CN/2026-27/0004. This confuses users and the GST register. Consider a distinct prefix (e.g. ECN/) or reuse the voucher number."},
+      {"endpoint": "DELETE /api/erp/documents/{did}", "issue": "The audit entry uses entity_id=did, so document deletes do not appear in the project's Activity panel (uploads do)."},
+      {"endpoint": "delete_party / delete_project count_documents", "issue": "Usage counts are not scoped by business_id. Harmless with UUIDs but inconsistent."},
+      {"endpoint": "tests/test_easybooks_api.py::TestAccounting::test_sales_intra_gst", "issue": "Flaky only under the default -n 2 run (KeyError voucher_no from next-number: 'No financial year found'). Passes with -n 0. Likely another class switching the working FY in parallel. This test file existed before this round."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "InvoiceSide Debit note", "issue": "Debit note save fails with the backend 400 error described above", "selector": "[data-testid='invoice-debit-note']", "priority": "HIGH"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Invoice preview (modern template) when cancelled", "issues": ["The 'CANCELLED' marker in the green header is red text on a dark green background and is almost invisible. Use white text on a red pill or a diagonal watermark."]},
+      {"screen": "Quotation/Invoice editor line items", "issues": ["Disc % and GST % inputs wrap onto a second row with no labels. Once filled, the placeholders disappear, so users can't tell which field is which. Add column headers or labels."]},
+      {"screen": "Editors / project form", "issues": ["Date fields use the browser's native date input instead of the shadcn Calendar component."]},
+      {"screen": "Project dashboard header", "issues": ["With no manager or dates set it shows 'PM: - · - →' placeholder clutter. Hide empty parts."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_round9_erp_phase_a.py", "/app/test_reports/pytest/round9_erp.xml"],
+  "action_items": [
+    "Fix ERP debit note posting: allow a debit_note voucher against a sales ledger for ERP (or post a supplementary 'sales' voucher), so the party is Dr and sales/GST are Cr",
+    "Finalize invoice: create the voucher first (or wrap it in try and roll back), and only insert into erp_used_numbers after posting succeeds. Also release a burned manual number for still-draft invoices",
+    "Quotation duplicate: exclude sales_order_no and sales_order_date",
+    "Make ERP write actions respect the expired-subscription read-only check (call status_of / WRITE logic inside erp() for non-view actions)",
+    "Make the 'CANCELLED' marker in the invoice/quotation templates readable",
+    "Optional: distinct ERP CN/DN number prefix, labels for the line-item Disc/GST fields, shadcn date picker"
+  ],
+  "critical_code_review_comments": [
+    "erp_sales.add_note: debit_note -> purchase ledger rule in accounting.build_item_entries conflicts with ERP use (bug above)",
+    "erp_sales.finalize_invoice: non-atomic reservation of the number before voucher creation (bug above); a race between two finalizes of the same draft is also possible because there is no status check-and-set",
+    "erp_sales.duplicate_quote: blacklist-based copying leaks state fields (sales_order_no). Prefer whitelisting the fields to copy",
+    "erp_core.erp(): ERP permission matrix lets an admin uncheck their own non-settings rights (only 'settings' is forced for admin). Consider forcing admin to have all rights",
+    "Auth playbook: bcrypt $2b$ OK, 5-fail lockout -> 429 OK, Bearer token auth (no app httpOnly cookie), CORS allow-origin '*'. Both auth points existed before this round and are unchanged"
+  ],
+  "updated_files": ["/app/backend/tests/test_round9_erp_phase_a.py"],
+  "success_rate": {"backend": "80% (8/10 tests; 2 real bugs)", "frontend": "95% (every requested flow works except debit note)"},
+  "test_credentials": "admin@easybooks.in / Admin@123 (superadmin, ERP active); ravi@gupta.in / secret1 (no ERP, verified 402 + erp-locked)",
+  "seed_data_creation": "Created TEST_ data in the admin business: TEST_client_*/TEST_vendor_* parties, TEST_proj_* projects (incl. codes TST1E1FFE/TSTEEEF29), quotations, invoices (some finalized/cancelled, which posts and cancels SAL/RCT/CN vouchers), plus the UI-created TEST_UI_Client_6dc73 / TEST_UI_Project_6dc73 (PRJ-0016) with INV/2026-27/0014 and 0015. 1 email was sent to delivered@resend.dev. Two signup businesses, TEST_ERP_Biz_1e1ffe and TEST_ERP_Biz_eeef29, were granted ERP (eeef29 got another +1 yr via the UI button). TEST role users (viewer/data_entry/project_manager/accountant) were created and then disabled. Finalized ERP invoices can't be deleted by design, so they remain. Trial balance stays balanced (765070 = 765070). ERP settings permission change was reverted. No ravi/expired data was modified.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run: cd /app/backend && REACT_APP_BACKEND_URL=... pytest tests/test_round9_erp_phase_a.py -n 0. Its 2 known failures: duplicate-quote sales_order_no and debit note. The test date in the env is 2026-11-15 (FY 2026-27); FYs 2026-27 and 2027-28 exist. The admin business settings.state is empty, so IGST is tested in a fresh signup business (state Maharashtra) vs a Karnataka client. Finalize uses window.confirm (accept the dialog in Playwright). Print opens an about:blank window; WhatsApp redirects to api.whatsapp.com.",
+  "rca of the issue": "Debit note: accounting.build_item_entries sets want='sales' only for sales and credit_note, and anything else (incl. debit_note) needs a purchase ledger. erp_sales.add_note passes _sales_ledger -> 400. Number burn: finalize_invoice inserts into erp_used_numbers, then awaits create_voucher, which raises HTTPException (e.g. _fy_for 'No financial year') with no rollback. On the next finalize, _number_used finds the reserved number. Duplicate quote: the exclusion set is ('id','number','status','created_at','cancel_reason','converted_to') and the *_at sweep removes sales_order_date? No: sales_order_date doesn't end with _at, so both sales_order_no and sales_order_date are copied."
+}

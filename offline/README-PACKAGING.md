@@ -80,7 +80,8 @@ Change `version` in `offline/desktop/package.json`, repeat steps 1, 2 and 5, the
 - **If you change the signing key pair,** update `LICENCE_PUBLIC_KEY` in both `backend/.env` and `offline/desktop/main.js`. All earlier activation codes will stop working.
 - **Prices** are set in `backend/business.py` (`PLANS` and `OFFLINE_PLANS`).
 - **Invoice seller details:** fill `SELLER_GSTIN` and `SELLER_ADDRESS` in `backend/.env`. While they are blank, invoices don't show them and always use CGST + SGST.
-- **Backups:** customers should back up from Settings → Backup & Restore.
+- **Backups:** customers should back up from Settings → Backup & Restore. The backup includes all Projects / ERP data and document numbering.
+- **Projects / ERP in the offline app:** the full ERP (projects, quotations, invoices, purchases, expenses, reports) is included and unlocked with the offline licence or trial. Uploaded project documents and signature images are stored in `%APPDATA%\Easy Books\data\files`. RFQ emails need an internet connection and email settings on the PC. The ERP modules (`erp_core`, `erp_sales`, `erp_purchase`, `erp_reports`) are listed in the GitHub build and `build_server.bat`.
 
 ## Lock files
 The platform's Save to GitHub does not upload `yarn.lock` files. Copies are kept in `offline/locks/` (`frontend-yarn-lock.txt`, `desktop-yarn-lock.txt`), and the GitHub build restores them before installing. If you add or upgrade packages, refresh the copies:

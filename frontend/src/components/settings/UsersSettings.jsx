@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const ROLES = { admin: "Admin (full access)", accountant: "Accountant (entries)", viewer: "Viewer (read only)" };
+const ROLES = { admin: "Admin (full access)", accountant: "Accountant (entries)", project_manager: "Project Manager (ERP)", data_entry: "Data Entry Operator (ERP)", viewer: "Viewer (read only)" };
 
 export const UsersSettings = () => {
   const { user: me } = useApp();

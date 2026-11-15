@@ -12,7 +12,9 @@ from business import fy_doc
 from db import db, NO_ID, new_id, now_iso, audit, clean
 
 router = APIRouter(prefix="/api")
-BACKUP_COLLECTIONS = ["settings", "financial_years", "ledgers", "vouchers", "audit_logs", "stock_items", "reminders"]
+BACKUP_COLLECTIONS = ["settings", "financial_years", "ledgers", "vouchers", "audit_logs", "stock_items", "reminders",
+                      "erp_settings", "erp_parties", "erp_projects", "erp_documents", "erp_quotations", "erp_invoices", "erp_notes", "erp_used_numbers",
+                      "erp_prs", "erp_rfqs", "erp_vendor_quotes", "erp_pos", "erp_grns", "erp_bills", "erp_expenses"]
 GSTIN_RE = re.compile(r"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$")
 UPI_RE = re.compile(r"^[\w.\-]{2,256}@[a-zA-Z][a-zA-Z0-9.\-]{1,64}$")
 
@@ -64,6 +66,7 @@ class SettingsIn(BaseModel):
     address: str = ""
     state: str = ""
     gstin: str = ""
+    pan: str = ""
     phone: str = ""
     email: str = ""
     gst_rates: List[float] = [0, 5, 12, 18, 28]
@@ -99,14 +102,16 @@ async def put_settings(body: SettingsIn, user=Depends(ADMIN_WRITE)):
     gstin = body.gstin.strip().upper()
     if gstin and not GSTIN_RE.match(gstin):
         raise HTTPException(400, "Invalid GSTIN format")
+    if body.pan.strip() and not re.match(r"^[A-Z]{5}[0-9]{4}[A-Z]$", body.pan.strip().upper()):
+        raise HTTPException(400, "Invalid PAN format (e.g. ABCDE1234F)")
     upi = body.upi_id.strip()
     if upi and not UPI_RE.match(upi):
         raise HTTPException(400, "Invalid UPI ID (example: shopname@okhdfcbank)")
     rates = sorted({round(r, 2) for r in body.gst_rates if 0 <= r <= 100})
     q = {"business_id": user["business_id"]}
     before = await db.settings.find_one(q, NO_ID)
-    upd = {**body.model_dump(exclude_unset=True), "gstin": gstin, "upi_id": upi, "bank_ifsc": body.bank_ifsc.strip().upper(), "gst_rates": rates}
-    for k in ("upi_id", "bank_ifsc", "gstin", "gst_rates"):
+    upd = {**body.model_dump(exclude_unset=True), "gstin": gstin, "pan": body.pan.strip().upper(), "upi_id": upi, "bank_ifsc": body.bank_ifsc.strip().upper(), "gst_rates": rates}
+    for k in ("upi_id", "bank_ifsc", "gstin", "gst_rates", "pan"):
         if k not in body.model_fields_set:
             upd.pop(k)
     await db.settings.update_one(q, {"$set": upd})
@@ -227,7 +232,7 @@ async def backup(user=Depends(ADMIN)):
     bid = user["business_id"]
     data = {c: clean(await db[c].find({"business_id": bid}).to_list(None)) for c in BACKUP_COLLECTIONS}
     fy_ids = [f["id"] for f in data["financial_years"]]
-    data["counters"] = await db.counters.find({"_id": {"$regex": f"^({'|'.join(map(re.escape, fy_ids)) or 'none'}):"}}).to_list(None)
+    data["counters"] = await db.counters.find({"_id": {"$regex": f"^(({'|'.join(map(re.escape, fy_ids)) or 'none'}):|erp:{re.escape(bid)}:)"}}).to_list(None)
     await audit("system", "backup", "backup", user)
     return {"app": "easy-books", "version": 2, "created_at": now_iso(), "collections": data}
 
@@ -265,7 +270,7 @@ async def restore(body: RestoreIn, user=Depends(ADMIN_WRITE)):
         raise HTTPException(400, "Backup file could not be restored (conflicting or invalid records). Your existing data was kept.")
     restored_fy = {f.get("id") for f in cols["financial_years"]}
     for ctr in cols.get("counters") or []:
-        if isinstance(ctr.get("_id"), str) and ctr["_id"].split(":")[0] in restored_fy:
-            await db.counters.update_one({"_id": ctr["_id"]}, {"$set": {"seq": ctr.get("seq", 0)}}, upsert=True)
+        if isinstance(ctr.get("_id"), str) and (ctr["_id"].split(":")[0] in restored_fy or ctr["_id"].startswith(f"erp:{bid}:")):
+            await db.counters.update_one({"_id": ctr["_id"]}, {"$max": {"seq": ctr.get("seq", 0)}}, upsert=True)
     await audit("system", "restore", "restore", user, note=f"{len(cols['vouchers'])} vouchers, {len(cols['ledgers'])} ledgers")
     return {"ok": True}

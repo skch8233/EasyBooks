@@ -26,7 +26,7 @@ export const BackupRestore = () => {
   };
 
   const restore = async (file) => {
-    if (!file || !window.confirm("Restore will REPLACE all current ledgers, vouchers and settings with the backup. Continue?")) return;
+    if (!file || !window.confirm("Restore will REPLACE all current ledgers, vouchers, settings and ALL Projects / ERP data (projects, quotations, invoices, purchase orders, bills, expenses) with the backup. Document numbering never goes backwards. Continue?")) return;
     setBusy(true);
     try {
       const json = JSON.parse(await file.text());

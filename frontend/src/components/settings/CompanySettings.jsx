@@ -27,6 +27,7 @@ export const CompanySettings = () => {
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5"><Label>Company name</Label><Input className="h-11" value={f.company_name} onChange={set("company_name")} disabled={!isAdmin} data-testid="company-name-input" /></div>
         <div className="space-y-1.5"><Label>GSTIN</Label><Input className="h-11 font-mono uppercase" maxLength={15} value={f.gstin} onChange={set("gstin")} disabled={!isAdmin} data-testid="company-gstin-input" /></div>
+        <div className="space-y-1.5"><Label>PAN</Label><Input className="h-11 font-mono uppercase" maxLength={10} value={f.pan || ""} onChange={set("pan")} disabled={!isAdmin} data-testid="company-pan-input" /></div>
         <div className="space-y-1.5"><Label>State (used to auto-pick CGST/SGST vs IGST)</Label>
           <Select value={f.state || "none"} onValueChange={(v) => setF({ ...f, state: v === "none" ? "" : v })} disabled={!isAdmin}>
             <SelectTrigger className="h-11" data-testid="company-state-select"><SelectValue /></SelectTrigger>

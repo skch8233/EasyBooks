@@ -12,7 +12,7 @@ from db import db, NO_ID, new_id, now_iso, audit, clean
 from business import get_business, status_of, create_business
 
 ALG = "HS256"
-Role = Literal["admin", "accountant", "viewer"]
+Role = Literal["admin", "accountant", "project_manager", "data_entry", "viewer"]
 router = APIRouter(prefix="/api/auth")
 users_router = APIRouter(prefix="/api/users")
 

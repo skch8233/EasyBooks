@@ -4,4 +4,6 @@
 - Offline version: standalone, no sync with online (like Tally)
 - Pricing: ₹6,500 + GST (2 users), ₹10,000 + GST (3 to 8 users), 30-day free trial
 - Company: Hannusoft Private Limited (maker brand)
+- ERP added (projects, quotations, invoices, purchases, expenses); ERP plan ₹15,000 + GST/yr; target "a mix of project businesses" with industry selection
+- ERP first customer: "Contractor" (user is talking to / selling to contractors)
 - Suggested: multi-company / multi-tenant support (pending, next round)
