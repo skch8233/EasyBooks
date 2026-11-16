@@ -1,0 +1,14 @@
+{
+  "summary": "Final retest of the LOW LedgerDialog item from iteration 18 (frontend only, Playwright on the public URL, business test_r13_1794805850@ex.in). FIXED: opening Edit on a GSTIN ledger makes no /api/gstin call and shows no toast, and the ledger's own fields are shown. Closing with Cancel or Escape makes no /api/gstin call and shows no toast. Closing and then editing another GSTIN ledger within 150ms makes no call, shows no toast, and shows the second ledger's own name, GSTIN and state (29-Karnataka). Regressions all pass: changing the GSTIN in edit to another valid one makes one call and shows the 'Saved details' toast; New Ledger twice with the same GSTIN fills and toasts both times; Cancel with a GSTIN typed, then New Ledger with the same GSTIN, fills and toasts.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": ["Did not check: in edit mode, changing the GSTIN back to the ledger's original value skips the lookup on purpose, so no toast appears. This is expected behaviour."],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped)", "frontend": "100%"},
+  "seed_data_creation": "None. Every dialog was cancelled and nothing was saved.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Log in by setting localStorage eb_token from POST /api/auth/login. Collect sonner toasts with a MutationObserver. Track /api/gstin requests with page.on('request'). GSTIN ledgers in the test business: Delhi 07AAACR5055K1Z9, Karnataka 29ABCDE1234F1ZW, Mumbai 27AAPFU0939F1ZV, TN 33AAACR6013K1ZM. No open issues on the GSTIN autofill."
+}

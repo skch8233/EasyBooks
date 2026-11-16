@@ -21,6 +21,9 @@ class LedgerIn(BaseModel):
     email: str = ""
     address: str = ""
     credit_days: Optional[int] = Field(None, ge=0, le=365)
+    dep_method: Literal["none", "wdv", "slm"] = "none"
+    dep_rate: float = Field(0, ge=0, le=100)
+    dep_cost: float = Field(0, ge=0)
 
 
 @router.get("/groups")

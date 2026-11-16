@@ -19,6 +19,7 @@ const NAV = [
   { to: "/stock", label: "Stock", icon: Package, id: "stock" },
   { to: "/reminders", label: "Payment Reminders", icon: BellRing, id: "reminders" },
   { to: "/reports/trial-balance", label: "Reports", icon: BarChart3, id: "reports", match: (p) => p.startsWith("/reports") && !p.startsWith("/reports/gstr") },
+  { to: "/year-end", label: "Depreciation & Tax", icon: BarChart3, id: "year-end" },
   { to: "/final-accounts", label: "Final Accounts", icon: BarChart3, id: "final-accounts" },
   { to: "/eway-bill", label: "E-way Bill", icon: Package, id: "eway" },
   { to: "/reports/gstr-3b", label: "GST Returns", icon: Landmark, id: "gst", match: (p) => p.startsWith("/reports/gstr") },

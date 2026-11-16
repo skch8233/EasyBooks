@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { fillEmpty, useGstinAutofill } from "@/lib/gstin";
 import { toast } from "sonner";
 import { Plus, Search } from "lucide-react";
 import { api, errMsg } from "@/lib/api";
@@ -16,6 +17,7 @@ const FIELDS = [["company_name", "Company name *"], ["contact_person", "Contact 
 
 const PartyForm = ({ init, onSaved, onClose }) => {
   const [f, setF] = useState(init);
+  useGstinAutofill(f.gstin, (d) => setF((x) => ({ ...fillEmpty(x, { company_name: x.id ? "" : d.name, address: d.address, mobile: d.phone, email: d.email, contact_person: d.contact_person }), pan: d.pan || x.pan, state: d.state || x.state })));
   const save = async (e) => {
     e.preventDefault();
     const body = { ...f, opening_balance: Number(f.opening_balance || 0), payment_terms_days: Number(f.payment_terms_days || 0), gstin: f.gstin.toUpperCase(), pan: f.pan.toUpperCase() };

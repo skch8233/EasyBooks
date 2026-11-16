@@ -167,3 +167,13 @@ User decisions:
 - E-way bill: "Fill the e-way bill page, then download a ready JSON file to upload on ewaybillgst.gov.in; also add link of eway bill generation page" (no direct government API).
 - Final accounts in vertical format with Notes to Accounts: "Both, chosen by business type" — Companies: Schedule III vertical Balance Sheet and P&L with Notes; Proprietorship/partnership: vertical format with notes. Purpose selection: company audit, income tax audit, and other purpose.
 - Income tax audit: "Final accounts with notes only" (no Form 3CD schedules).
+
+## Round 11 — user's request (build now)
+"Fixed Asset Depreciation: Work out yearly depreciation on fixed assets and show it in the final accounts notes
+Tax Provision: Add an income-tax provision entry so company accounts show tax expense and profit after tax"
+
+## Round 12 — user's request (send after Round 11 fixes)
+"and also in invoice generator after enter gst no of buyer automatically fetch comlete detail and after sale bill generated automatically shown in sales voucher"
+- GSTIN lookup decision (user's words): "Skip auto-fetch; fill the state and PAN from the GSTIN number itself; fill onece gst information and other detail of buyer next time automatically shown after gstno enter enter"
+  - No paid API. On entering a GSTIN: state and PAN fill from the number itself. Once a buyer's details are entered, next time that GSTIN is typed (in any invoice/voucher), all saved buyer details fill automatically.
+- Sales voucher: every invoice from the invoice generator appears automatically in Easy Books Sales Vouchers / Day Book "When finalized" (drafts stay out of the books).

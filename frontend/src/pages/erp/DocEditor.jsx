@@ -5,6 +5,7 @@ import { Ban, Copy, FileCheck2, Mail, MessageCircle, Printer, Save, Trash2 } fro
 import { api, errMsg } from "@/lib/api";
 import { amt, dmyTime, todayIso } from "@/lib/format";
 import { GstMetaFields } from "@/components/GstMetaFields";
+import { GstinPicker } from "@/components/GstinPicker";
 import { BLANK_LINE, INVOICE_TEMPLATES, TEMPLATES, computeLines, guessGst, invoiceTotals, loadLogo, loadSignature, printNode } from "@/lib/erp";
 import { useApp } from "@/context/AppContext";
 import { Button } from "@/components/ui/button";
@@ -109,7 +110,8 @@ export default function DocEditor({ kind }) {
           <div className="space-y-1"><Label>Project{inv ? " *" : ""}</Label><select className="h-10 w-full rounded-md border px-2 bg-white" value={f.project_id} onChange={(e) => pickProject(e.target.value)} data-testid={`${kind}-project-select`} disabled={st === "finalized"}>
             <option value="">{inv ? "Select project" : "No project yet"}</option>{projects.map((p) => <option key={p.id} value={p.id}>{p.code} · {p.name}</option>)}</select></div>
           <div className="space-y-1"><Label>Client *</Label><select className="h-10 w-full rounded-md border px-2 bg-white" value={f.client_id} onChange={(e) => setF({ ...f, client_id: e.target.value, project_id: project && project.client_id !== e.target.value ? "" : f.project_id })} data-testid={`${kind}-client-select`} disabled={st === "finalized"}>
-            <option value="">Select client</option>{clients.map((c) => <option key={c.id} value={c.id}>{c.company_name}</option>)}</select></div>
+            <option value="">Select client</option>{clients.map((c) => <option key={c.id} value={c.id}>{c.company_name}</option>)}</select>
+            {st !== "finalized" && <GstinPicker mode="party" testid={`${kind}-buyer-gstin`} onPicked={(id, rec) => { if (rec) setClients((x) => [...x, rec]); setF((x) => ({ ...x, client_id: id, project_id: x.client_id === id ? x.project_id : "" })); }} />}</div>
           {inv ? <div className="space-y-1"><Label>Due date</Label><Input type="date" className="h-10" value={f.due_date} onChange={set("due_date")} data-testid="invoice-due-input" /></div>
             : <div className="space-y-1"><Label>Valid until</Label><Input type="date" className="h-10" value={f.valid_until} onChange={set("valid_until")} data-testid="quotation-valid-input" /></div>}
           <div className="space-y-1"><Label>GST</Label><select className="h-10 w-full rounded-md border px-2 bg-white" value={f.gst_type || ""} onChange={set("gst_type")} data-testid={`${kind}-gst-select`}>

@@ -1,0 +1,25 @@
+{
+  "summary": "Final retest of the 2 LOW items from iteration 17 (frontend only, Playwright on the public URL, fresh MH business test_r13_1794805850@ex.in). VOUCHER item FIXED: after Save Voucher the Buyer GSTIN box is cleared, and typing the same GSTIN again selects the party again. LEDGER item PARTLY FIXED: opening Edit on a ledger with a GSTIN no longer fires the lookup or toast, and the ledger's own fields are shown. However, CLOSING (Cancel) that Edit dialog now fires GET /gstin/{old gstin} and shows 'Saved details for <ledger> filled in'. This reproduced on every try. In a quick close-then-edit-another sequence, the toast for the previous ledger appears while the new ledger's dialog is open. Everything else passed: changing the GSTIN in edit fills and toasts; New Ledger twice with the same GSTIN fills both times; Cancel with a GSTIN typed, then New Ledger and the same GSTIN, fills; voucher edit mode loads (party, IGST, qty) and saves (SAL/0004 updated to 1,770); unknown GSTIN + Save buyer selects the new party, sets IGST and keeps items (total 1,180).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "LedgerDialog (Ledgers > Edit > Cancel/close)", "issue": "Closing an Edit dialog for a ledger with a GSTIN fires GET /api/gstin/{gstin} and the toast 'Saved details for TEST_R17 Mumbai Party filled in'. RCA: Ledgers.onClose calls setDlg({open:false, ledger:null}). On that render ledger is null, but f still holds the old ledger's gstin, because the reset effect (line 20) runs after render. So the guard on line 22 `ledger && f.gstin === ledger.gstin ? '' : f.gstin` passes the 15-character GSTIN to the hook, and the hook looks it up. The fill callback then writes into the closed dialog's state. If the response comes back after another ledger's dialog has opened, fillEmpty could copy the previous ledger's name/address/phone/email/state into the new ledger's empty fields. This race was not seen in testing (only the stray toast), but the risk is real. Fix: also gate on open, e.g. useGstinAutofill(!open || (ledger && f.gstin === ledger.gstin) ? '' : f.gstin, ...). Or keep the original gstin in a ref set at open time and compare against that.", "selector": "[data-testid=ledger-dialog-cancel], [data-testid=ledger-edit-button]", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "LedgerDialog line 22: also skip the GSTIN lookup when the dialog is not open (!open), so closing an Edit dialog does not fire /gstin or the 'Saved details' toast"
+  ],
+  "critical_code_review_comments": [
+    "The LedgerDialog guard depends on the ledger prop, which Ledgers.jsx clears on close while f still holds old data until the effect runs. Gating on `open` (or comparing against a ref captured at open) removes the timing dependency.",
+    "ItemsForm key={last?.voucher_no || 'new'} remounts the GstinPicker after save, as intended. Note that it also remounts all ItemsForm children (ItemPicker popovers), which is fine."
+  ],
+  "updated_files": ["/app/test_reports/iteration_18.json"],
+  "success_rate": {"backend": "n/a (skipped)", "frontend": "~92% (12/13 checks; the edit-dialog close toast failed)"},
+  "seed_data_creation": "In test business test_r13_1794805850@ex.in: created vouchers SAL/2026-27/0003 (TEST_R17 Mumbai Party, 118) and SAL/2026-27/0004 (TEST_R18 TN Buyer, edited to qty 3, 1,770), plus ledger TEST_R18 TN Buyer (33AAACR6013K1ZM, id 7744f55e-0cf5-465a-89c9-f4652ac43b4b). They were left in place because they are throwaway test-business data. No admin or seed data was touched.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Login by setting localStorage eb_token (POST /api/auth/login) and then navigating. Do not remove sonner toast DOM nodes by hand; it crashes React (insertBefore). Use a MutationObserver to collect toasts. Ledger GSTINs in the test biz: Mumbai 27AAPFU0939F1ZV, Karnataka 29ABCDE1234F1ZW, Delhi 07AAACR5055K1Z9, TN 33AAACR6013K1ZM. Only the LedgerDialog close toast remains open."
+}

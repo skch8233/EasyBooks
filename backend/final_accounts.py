@@ -58,13 +58,13 @@ HEADS = {
     "company": {
         "eq": [("Shareholders' funds", [("share_capital", "Share capital", ["capital"]), ("reserves", "Reserves and surplus", [])]),
                ("Non-current liabilities", [("lt_borrow", "Long-term borrowings", ["loans"])]),
-               ("Current liabilities", [("trade_pay", "Trade payables", ["sundry_creditors"]), ("ocl", "Other current liabilities (incl. statutory dues)", ["current_liabilities", "duties_taxes"])])],
+               ("Current liabilities", [("trade_pay", "Trade payables", ["sundry_creditors"]), ("ocl", "Other current liabilities (incl. statutory dues)", ["current_liabilities", "duties_taxes"]), ("provisions", "Short-term provisions (income tax)", ["provisions"])])],
         "as": [("Non-current assets", [("ppe", "Property, plant and equipment", ["fixed_assets"])]),
                ("Current assets", [("inventories", "Inventories", []), ("trade_rec", "Trade receivables", ["sundry_debtors"]), ("cash", "Cash and cash equivalents", ["cash", "bank"]), ("oca", "Other current assets", ["current_assets"])])],
     },
     "other": {
         "eq": [("Sources of funds", [("capital", "Capital account", ["capital"]), ("loans", "Loan funds (secured / unsecured)", ["loans"])]),
-               ("Current liabilities and provisions", [("trade_pay", "Sundry creditors", ["sundry_creditors"]), ("ocl", "Other current liabilities and provisions (incl. duties & taxes)", ["current_liabilities", "duties_taxes"])])],
+               ("Current liabilities and provisions", [("trade_pay", "Sundry creditors", ["sundry_creditors"]), ("ocl", "Other current liabilities and provisions (incl. duties & taxes)", ["current_liabilities", "duties_taxes"]), ("provisions", "Provision for income tax", ["provisions"])])],
         "as": [("Application of funds", [("ppe", "Fixed assets", ["fixed_assets"])]),
                ("Current assets, loans and advances", [("inventories", "Closing stock (inventories)", []), ("trade_rec", "Sundry debtors", ["sundry_debtors"]), ("cash", "Cash and bank balances", ["cash", "bank"]), ("oca", "Other current assets, loans and advances", ["current_assets"])])],
     },
@@ -72,9 +72,10 @@ HEADS = {
 PL = {
     "company": [("rev", "Revenue from operations", ["sales", "direct_income"], 1), ("oi", "Other income", ["indirect_income"], 1),
                 ("pur", "Purchases of stock-in-trade", ["purchase"], -1), ("dex", "Operating and direct expenses", ["direct_expense"], -1),
-                ("oex", "Other expenses", ["indirect_expense"], -1)],
+                ("dep", "Depreciation and amortisation expense", ["depreciation"], -1), ("oex", "Other expenses", ["indirect_expense"], -1), ("tax", "Current tax", ["tax"], -1)],
     "other": [("rev", "Sales / revenue from operations", ["sales", "direct_income"], 1), ("pur", "Purchases", ["purchase"], -1),
-              ("dex", "Direct expenses", ["direct_expense"], -1), ("oi", "Other income", ["indirect_income"], 1), ("oex", "Indirect / administrative expenses", ["indirect_expense"], -1)],
+              ("dex", "Direct expenses", ["direct_expense"], -1), ("oi", "Other income", ["indirect_income"], 1), ("oex", "Indirect / administrative expenses", ["indirect_expense"], -1),
+              ("dep", "Depreciation", ["depreciation"], -1), ("tax", "Provision for income tax", ["tax"], -1)],
 }
 PURPOSE = {
     "company_audit": "Prepared for statutory audit under the Companies Act, 2013",
@@ -101,6 +102,16 @@ async def _inception_stock(bid):
 async def _snapshot(bid, from_date, to_date, project_id):
     ledgers, bal = await closing_signed(bid, to_date, project_id)
     pl = await _pl(bid, from_date, to_date, project_id)
+    keys = {lid: l.get("system_key") for lid, l in ledgers.items()}
+    ledgers = {lid: ({**l, "group": "provisions"} if l.get("system_key") == "tax_provision" else l) for lid, l in ledgers.items()}
+    sec = {g: list(rows) for g, rows in pl["sections"].items()}
+    for pseudo, key in (("depreciation", "depreciation"), ("tax", "income_tax")):
+        for g in ("indirect_expense", "direct_expense", "purchase"):
+            moved = [r for r in sec.get(g, []) if keys.get(r["ledger_id"]) == key]
+            if moved:
+                sec[g] = [r for r in sec[g] if keys.get(r["ledger_id"]) != key]
+                sec[pseudo] = sec.get(pseudo, []) + moved
+    pl = {**pl, "sections": sec, "totals": {g: r2(sum(r["amount"] for r in rows)) for g, rows in sec.items()}}
     if project_id:
         cs = os_ = 0.0
     else:
@@ -191,23 +202,34 @@ async def final_accounts(to_date: str, from_date: Optional[str] = None, business
     ch_c, ch_p = r2(st(cur, "opening_stock") - st(cur, "closing_stock")), r2(st(prev, "opening_stock") - st(prev, "closing_stock"))
     if kind == "company":
         ti_c, ti_p = tot(["rev", "oi"], 0), tot(["rev", "oi"], 1)
-        te_c, te_p = r2(tot(["pur", "dex", "oex"], 0) + ch_c), r2(tot(["pur", "dex", "oex"], 1) + ch_p)
+        te_c, te_p = r2(tot(["pur", "dex", "dep", "oex"], 0) + ch_c), r2(tot(["pur", "dex", "dep", "oex"], 1) + ch_p)
+        tx_c, tx_p = vals["tax"][0], vals["tax"][1]
         pl = [{"type": "title", "label": "I. Revenue from operations"}, item("rev"), {"type": "title", "label": "II. Other income"}, item("oi"),
               {"type": "total", "label": "III. Total income (I + II)", "cy": ti_c, "py": ti_p}, {"type": "title", "label": "IV. Expenses"},
-              item("pur"), {"type": "item", "label": "Changes in inventories of stock-in-trade (opening - closing)", "note": None, "cy": ch_c, "py": ch_p}, item("dex"), item("oex"),
+              item("pur"), {"type": "item", "label": "Changes in inventories of stock-in-trade (opening - closing)", "note": None, "cy": ch_c, "py": ch_p}, item("dex"), item("dep"), item("oex"),
               {"type": "total", "label": "Total expenses (IV)", "cy": te_c, "py": te_p},
               {"type": "total", "label": "V. Profit / (loss) before tax (III - IV)", "cy": r2(ti_c - te_c), "py": r2(ti_p - te_p)},
-              {"type": "item", "label": "VI. Tax expense (current and deferred tax - to be provided)", "note": None, "cy": 0, "py": 0},
-              {"type": "total", "label": "VII. Profit / (loss) for the period", "cy": r2(ti_c - te_c), "py": r2(ti_p - te_p)}]
+              {"type": "head", "label": "VI. Tax expense"}, {**item("tax"), "label": "(1) Current tax"},
+              {"type": "item", "label": "(2) Deferred tax", "note": None, "cy": 0, "py": 0},
+              {"type": "total", "label": "VII. Profit / (loss) for the period (V - VI)", "cy": r2(ti_c - te_c - tx_c), "py": r2(ti_p - te_p - tx_p)}]
     else:
         gp_c = r2(vals["rev"][0] - vals["pur"][0] - vals["dex"][0] - ch_c)
         gp_p = r2(vals["rev"][1] - vals["pur"][1] - vals["dex"][1] - ch_p)
-        np_c, np_p = r2(gp_c + vals["oi"][0] - vals["oex"][0]), r2(gp_p + vals["oi"][1] - vals["oex"][1])
+        nb_c, nb_p = r2(gp_c + vals["oi"][0] - vals["oex"][0] - vals["dep"][0]), r2(gp_p + vals["oi"][1] - vals["oex"][1] - vals["dep"][1])
+        np_c, np_p = r2(nb_c - vals["tax"][0]), r2(nb_p - vals["tax"][1])
         pl = [item("rev"), {"type": "head", "label": "Less: Cost of sales"},
               {"type": "item", "label": "Opening stock", "note": None, "cy": st(cur, "opening_stock"), "py": st(prev, "opening_stock")}, item("pur"), item("dex"),
               {"type": "item", "label": "Less: Closing stock", "note": None, "cy": -st(cur, "closing_stock"), "py": -st(prev, "closing_stock")},
               {"type": "total", "label": "Gross profit", "cy": gp_c, "py": gp_p}, {"type": "head", "label": "Add:"}, item("oi"),
-              {"type": "head", "label": "Less:"}, item("oex"), {"type": "total", "label": "Net profit / (loss) transferred to capital account", "cy": np_c, "py": np_p}]
+              {"type": "head", "label": "Less:"}, item("oex"), item("dep"), {"type": "total", "label": "Net profit / (loss) before tax", "cy": nb_c, "py": nb_p},
+              {**item("tax"), "label": "Less: Provision for income tax"}, {"type": "total", "label": "Net profit / (loss) after tax transferred to capital account", "cy": np_c, "py": np_p}]
+    if from_date and not project_id:
+        from fa_tax import dep_schedule
+        sch = await dep_schedule(bid, from_date, to_date)
+        for n in notes:
+            if n["title"] in ("Property, plant and equipment", "Fixed assets"):
+                n["schedule"] = [r for r in sch["rows"] if any(abs(r[k]) >= 0.005 for k in ("opening", "additions", "deletions", "depreciation"))]
+                n["schedule_posted"] = bool(sch["posted"])
     proj = await db.erp_projects.find_one({"id": project_id, "business_id": bid}, NO_ID) if project_id and project_id != "none" else None
     entity = {"company": "Company", "llp": "LLP", "partnership": "Firm", "proprietorship": "Proprietary concern"}[btype]
     basis = {"company_audit": "the Companies Act, 2013 (including Schedule III) and the Accounting Standards notified under section 133 of the Act",
@@ -218,14 +240,15 @@ async def final_accounts(to_date: str, from_date: Optional[str] = None, business
         "Revenue recognition: Sales of goods are recognised when significant risks and rewards pass to the buyer; services are recognised as the service is rendered. Revenue is shown net of GST.",
         "Goods and Services Tax: Purchases and expenses are recorded net of eligible input tax credit. GST payable / receivable is shown under statutory dues.",
         "Inventories: Stock-in-trade is valued at weighted average cost (lower of cost and net realisable value) as per the stock register.",
-        "Fixed assets: Fixed assets are stated at cost less accumulated depreciation, if any.",
+        "Fixed assets and depreciation: Fixed assets are stated at cost less depreciation. Depreciation is provided on the written down value or straight line method at the rates set for each asset"
+        + (" in line with Schedule II to the Companies Act, 2013" if kind == "company" else " (Income-tax Act block rates where applicable)") + "; assets put to use for less than 180 days in the year are depreciated at half the rate under the WDV method.",
         "Provisions and contingent liabilities: Provisions are recognised when there is a present obligation; contingent liabilities are disclosed in the notes.",
         "Previous year figures have been regrouped / rearranged wherever necessary. Figures are in Indian Rupees and rounded to the nearest paisa.",
     ]
     if purpose == "tax_audit":
         policies.append(f"PAN: {s.get('pan') or '__________'}; GSTIN: {s.get('gstin') or '__________'}. Method of accounting: mercantile, and the same has been followed consistently.")
-    if kind == "company":
-        policies.append("Income tax: Current tax and deferred tax are to be determined and provided in accordance with the Income-tax Act, 1961 and AS 22.")
+    policies.append("Income tax: Provision for current tax is made on the estimated taxable income at the applicable rate under the Income-tax Act, 1961."
+                    + (" Deferred tax under AS 22 is not recognised in these statements." if kind == "company" else ""))
     if proj:
         policies.append(f"Project accounts: these statements include only transactions tagged to project {proj['code']} - {proj['name']}; opening balances are not allocated to projects.")
     return {

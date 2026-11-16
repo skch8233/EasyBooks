@@ -1,4 +1,5 @@
 import { STATES } from "@/lib/format";
+import { fillEmpty, useGstinAutofill } from "@/lib/gstin";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -15,7 +16,8 @@ export const FormatPicker = ({ value, onChange, testid = "invoice-format" }) => 
 );
 
 export const GstMetaFields = ({ value = {}, onChange, disabled, prefix = "gst-meta" }) => {
-  const set = (k, v) => onChange({ ...value, [k]: v });
+  const set = (k, v) => onChange({ ...value, [k]: k === "ship_gstin" ? v.toUpperCase() : v });
+  useGstinAutofill(value.ship_gstin, (d) => onChange({ ...fillEmpty(value, { ship_name: d.name, ship_address: d.address }), ship_state: d.state || value.ship_state }));
   return (
     <details className="rounded-lg border bg-slate-50 p-3 sm:col-span-2" data-testid={`${prefix}-panel`}>
       <summary className="cursor-pointer text-sm font-semibold">GST invoice details (place of supply, reverse charge, transport, e-way bill, consignee)</summary>

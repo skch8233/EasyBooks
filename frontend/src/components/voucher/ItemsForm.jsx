@@ -1,4 +1,5 @@
 import { Plus, Trash2 } from "lucide-react";
+import { GstinPicker } from "@/components/GstinPicker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -35,7 +36,7 @@ const Row = ({ it, i, line, rates, set, remove, canRemove, stock, pick, isSale }
   );
 };
 
-export const ItemsForm = ({ type, ledgers, value, onChange, stock = [] }) => {
+export const ItemsForm = ({ type, ledgers, value, onChange, stock = [], onLedgerAdded}) => {
   const { settings } = useApp();
   const rates = settings?.gst_rates || [0, 5, 12, 18, 28];
   const calc = computeItems(value.items, value.gstType);
@@ -44,8 +45,8 @@ export const ItemsForm = ({ type, ledgers, value, onChange, stock = [] }) => {
   const pick = (i, s) => set(i, { item_id: s.id, description: s.name, hsn: s.hsn || "", unit: s.unit || "", rate: (isSale ? s.sale_rate : s.purchase_rate) || "",
     gst_rate: rates.includes(s.gst_rate) ? s.gst_rate : value.items[i].gst_rate });
 
-  const pickParty = (party) => {
-    const p = ledgers.find((l) => l.id === party);
+  const pickParty = (party, rec) => {
+    const p = rec || ledgers.find((l) => l.id === party);
     const cs = settings?.state, ps = p?.state;
     onChange({ ...value, party, gstType: cs && ps ? (cs === ps ? "intra" : "inter") : value.gstType });
   };
@@ -54,7 +55,8 @@ export const ItemsForm = ({ type, ledgers, value, onChange, stock = [] }) => {
     <div className="space-y-6" data-testid="items-voucher-form">
       <div className="grid gap-5 md:grid-cols-3">
         <div className="space-y-2"><Label>Party (Customer / Supplier / Cash)</Label>
-          <LedgerSelect ledgers={ledgers} groups={PARTY_GROUPS} value={value.party} onChange={pickParty} testid="party-ledger-select" placeholder="Select party" /></div>
+          <LedgerSelect ledgers={ledgers} groups={PARTY_GROUPS} value={value.party} onChange={pickParty} testid="party-ledger-select" placeholder="Select party" />
+          {isSale && <GstinPicker mode="ledger" testid="voucher-buyer-gstin" onPicked={(id, rec) => { if (rec) onLedgerAdded?.(rec); pickParty(id, rec); }} />}</div>
         <div className="space-y-2"><Label>{isSale ? "Sales Ledger" : "Purchase Ledger"}</Label>
           <LedgerSelect ledgers={ledgers} groups={[isSale ? "sales" : "purchase"]} value={value.account} onChange={(account) => onChange({ ...value, account })} testid="account-ledger-select" /></div>
         <div className="space-y-2"><Label>GST Type</Label>

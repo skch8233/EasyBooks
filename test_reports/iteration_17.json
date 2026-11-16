@@ -1,0 +1,29 @@
+{
+  "summary": "Retest of iteration_16 bugs (frontend only, Playwright on the public URL). BUG1 (voucher GSTIN create wiped the form) is FIXED: on a fresh MH business, an unknown GSTIN 29ABCDE1234F1ZW plus a name, then Save buyer, selects the new party, switches GST to IGST and keeps the typed items; the voucher saves (SAL/0001). A known GSTIN selects the party and saves SAL/0002. BUG2 (re-opening the ledger dialog without a reload) is FIXED: the second New Ledger with 27AAPFU0939F1ZV fills the saved name, address and state with a toast. ERP invoice project clearing works: the same client keeps the project, a different client clears it, and the unknown-GSTIN create flow works. Voucher edit mode loads, updates and saves correctly. Creating a new buyer by GSTIN in edit mode no longer overwrites the form. One minor item is NOT fixed: opening Edit on an existing ledger with a GSTIN still shows the 'Saved details for X filled in' toast.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "LedgerDialog (Ledgers > Edit)", "issue": "Opening Edit on a ledger that has a GSTIN (after a page reload) fires GET /gstin/{g} and shows the toast 'Saved details for TEST_R17 Mumbai Party filled in'. It is reproducible every time, and also when opening Edit on a second ledger. The only time it was not seen was right after a New Ledger dialog had used the same GSTIN, because the hook's last ref still held that value. RCA: LedgerDialog line 22 passes f.gstin straight to useGstinAutofill with no guard, so loading the ledger counts as a newly entered GSTIN. Fix: only look up when the GSTIN differs from the one being edited, e.g. useGstinAutofill(ledger && f.gstin === ledger.gstin ? '' : f.gstin, ...), or add a skip-initial option to the hook.", "selector": "[data-testid=ledger-edit-button], [data-testid=ledger-gstin-input]", "priority": "LOW"},
+      {"component": "GstinPicker in VoucherEntry", "issue": "After Save Voucher the form resets (party is cleared) but the Buyer GSTIN box still shows the old GSTIN. Typing the same GSTIN again does nothing until the box is cleared, because the hook's last ref is unchanged. Suggest resetting the picker after save (e.g. a key on GstinPicker tied to the last saved voucher).", "selector": "[data-testid=voucher-buyer-gstin-input]", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "ERP invoice editor (admin)", "issues": ["The admin business has no state set in /api/settings, so GST defaults to 'Automatic (CGST + SGST)' for any client, including a TN client. This is a data/config matter, not a regression."]}
+    ]
+  },
+  "test_report_links": ["/app/tests/r13_setup.py"],
+  "action_items": [
+    "LedgerDialog: stop the GSTIN lookup and toast when an existing ledger is opened for editing (guard line 22)",
+    "Optional: clear the voucher GstinPicker input after a successful save"
+  ],
+  "critical_code_review_comments": [
+    "VoucherEntry init effect now depends on ledgersLoaded, which is correct. The save() handler still calls setLedgers(fresh) and does not re-run init, as intended.",
+    "useGstinAutofill: resetting the last ref when the GSTIN is not 15 characters fixes re-opening the dialog. However, a dialog closed with the same 15-character GSTIN still in its state (Cancel) keeps the ref, so behaviour depends on history. Consider resetting on open."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (skipped)", "frontend": "~92% (11/12 checks; the edit-toast minor item failed)"},
+  "seed_data_creation": "Fresh signup test_r13_1794805850@ex.in / secret12 (state 27-Maharashtra) with ledgers TEST_R17 Karnataka Buyer, TEST_R17 Mumbai Party, TEST_R17 Delhi Buyer and vouchers SAL/2026-27/0001-0002. Admin business: created TEST_R17 TN Client (33AAACR6013K1ZM) and deleted it afterwards.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "BUG1 and BUG2 from iteration 16 verified fixed. Only the LedgerDialog edit-open toast remains. Login by setting localStorage eb_token (from POST /api/auth/login or signup) and then navigating. Admin project PRJ-0205 belongs to client TEST_Karna Corp (29AAACR5055K1Z3); TEST_Delhi Client is 07AAACR5055K1Z9."
+}

@@ -97,6 +97,12 @@ export default function FinalAccounts() {
           <div className="mb-4 break-inside-avoid"><div className="font-bold">Note 1: Significant accounting policies and other notes</div>
             <ol className="list-[lower-alpha] pl-6 text-[12px] space-y-1">{d.policies.map((x, i) => <li key={i}>{x}</li>)}</ol></div>
           {d.notes.map((n) => <div key={n.no} className="mb-4 break-inside-avoid" data-testid={`fa-note-${n.no}`}><div className="font-bold">Note {n.no}: {n.title}</div>
+            {n.schedule?.length > 0 && <table className="w-full text-[11.5px] border-collapse mb-2" data-testid="fa-asset-schedule"><thead><tr className="border-y border-slate-700">
+              {["Asset", "Method / rate", "Opening WDV", "Additions", "Deletions", "Depreciation", "Closing WDV"].map((h, i) => <th key={h} className={i > 1 ? "text-right" : "text-left"}>{h}</th>)}</tr></thead>
+              <tbody>{n.schedule.map((r) => <tr key={r.ledger_id}><td className="pl-2">{r.asset}</td><td>{r.method === "none" ? "-" : `${r.method.toUpperCase()} ${r.rate}%`}</td>
+                {["opening", "additions", "deletions", "depreciation", "closing"].map((k) => <td key={k} className="text-right font-mono">{v(r[k])}</td>)}</tr>)}
+                <tr className="font-bold border-y border-slate-700"><td className="pl-2" colSpan={2}>Total</td>{["opening", "additions", "deletions", "depreciation", "closing"].map((k) => <td key={k} className="text-right font-mono">{v(n.schedule.reduce((s, r) => s + r[k], 0))}</td>)}</tr></tbody>
+              {!n.schedule_posted && <caption className="caption-bottom text-left text-[10.5px] italic pt-1">Depreciation shown is worked out but not yet posted - post it from Year-end: Depreciation &amp; Tax.</caption>}</table>}
             <table className="w-full text-[12px] border-collapse"><thead><tr className="border-b border-slate-700"><th className="text-left">Particulars</th><th className="w-36 text-right">Current year</th><th className="w-36 text-right">Previous year</th></tr></thead>
               <tbody>{n.rows.map((r, i) => <tr key={i}><td className="pl-3">{r.particulars}</td><td className="text-right font-mono">{v(r.cy)}</td><td className="text-right font-mono">{v(r.py)}</td></tr>)}
                 <tr className="font-bold border-y border-slate-700"><td className="pl-3">Total</td><td className="text-right font-mono">{v(n.cy)}</td><td className="text-right font-mono">{v(n.py)}</td></tr></tbody></table></div>)}

@@ -58,6 +58,7 @@ export default function VoucherEntry() {
 
   useEffect(() => { api.get("/ledgers").then((r) => setLedgers(r.data)); }, []);
   useEffect(() => setLast(null), [pType]);
+  const ledgersLoaded = !!ledgers;
   useEffect(() => {
     if (!ledgers) return;
     if (id) {
@@ -66,7 +67,7 @@ export default function VoucherEntry() {
       setType(pType || "sales");
       setF((old) => blank(pType || "sales", old?.date || todayIso(), ledgers));
     }
-  }, [id, pType, ledgers]);
+  }, [id, pType, ledgersLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!id && f?.date) api.get("/vouchers/next-number", { params: { voucher_type: type, date: f.date } }).then((r) => setVno(r.data.voucher_no)).catch(() => setVno("—"));
   }, [type, f?.date, id, last]);
@@ -139,7 +140,7 @@ export default function VoucherEntry() {
             <Switch checked={f.advanced} onCheckedChange={(advanced) => setF({ ...f, advanced })} data-testid="advanced-mode-switch" /> Multi-line entry
           </label>
         )}
-        {isItem ? <ItemsForm type={type} ledgers={ledgers} value={f} onChange={setF} stock={stock} />
+        {isItem ? <ItemsForm key={last?.voucher_no || "new"} type={type} ledgers={ledgers} value={f} onChange={setF} stock={stock} onLedgerAdded={(l) => setLedgers((x) => [...x, l])} />
           : SIMPLE[type] && !f.advanced ? <SimpleForm type={type} ledgers={ledgers} value={f.simple} onChange={(simple) => setF({ ...f, simple })} />
           : <JournalGrid ledgers={ledgers} lines={f.lines} setLines={(lines) => setF({ ...f, lines })} />}
         <div className="space-y-2"><Label>Narration</Label><Textarea rows={2} value={f.narration} onChange={(e) => setF({ ...f, narration: e.target.value })} placeholder="Being..." data-testid="voucher-narration-input" /></div>

@@ -7,6 +7,7 @@ import { amt, dmy, STATES, todayIso } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { fillEmpty, useGstinAutofill } from "@/lib/gstin";
 
 const PORTAL = "https://ewaybillgst.gov.in/";
 const UQC = { nos: "NOS", no: "NOS", pcs: "PCS", pc: "PCS", kg: "KGS", kgs: "KGS", mtr: "MTR", m: "MTR", ltr: "LTR", l: "LTR", box: "BOX", bag: "BAG", bags: "BAG", sqft: "SQF", sqm: "SQM", ton: "TON", mt: "MTS", set: "SET", rmt: "MTR", cum: "CBM" };
@@ -67,6 +68,7 @@ export default function EwayBill() {
       api.get("/erp/invoices", { params: { status: "finalized" } }).then((r) => r.data).catch(() => [])]).then(([vouchers, invoices]) => setSrc({ vouchers, invoices }));
   }, []);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  useGstinAutofill(f.toGstin, (d) => setF((x) => ({ ...fillEmpty(x, { toName: d.name, toAddr: d.address }), toState: d.state || x.toState })));
   const choose = async (val) => {
     setPick(val);
     if (!val) return setF(blankForm);

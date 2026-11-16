@@ -28,12 +28,14 @@ import erp_purchase
 import erp_reports
 import final_accounts
 import eway
+import fa_tax
+import gstin
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Easy Books Accounting")
-for r in (auth.router, auth.users_router, routes_ledgers.router, routes_vouchers.router, routes_reports.router, routes_admin.router, billing.router, gst.router, public.router, stock.router, reminders.router, shop.router, erp_core.router, erp_sales.router, erp_purchase.router, erp_reports.router, final_accounts.router, eway.router):
+for r in (auth.router, auth.users_router, routes_ledgers.router, routes_vouchers.router, routes_reports.router, routes_admin.router, billing.router, gst.router, public.router, stock.router, reminders.router, shop.router, erp_core.router, erp_sales.router, erp_purchase.router, erp_reports.router, final_accounts.router, eway.router, fa_tax.router, gstin.router):
     app.include_router(r)
 
 
