@@ -23,7 +23,16 @@ export function AppProvider({ children }) {
 
   useEffect(() => {
     if (OFFLINE) {
-      const start = (n) => api.post("/offline/session").then(async (r) => { localStorage.setItem("eb_token", r.data.token); setUser(r.data.user); await loadMeta(r.data.user); })
+      const start = (n) => api.post("/offline/session").then(async (r) => {
+        localStorage.setItem("eb_token", r.data.token);
+        let u = r.data.user;
+        const want = localStorage.getItem("eb_biz");
+        if (want && want !== u.business_id) {
+          try { const s = (await api.post("/ca/switch", { business_id: want })).data; localStorage.setItem("eb_token", s.token); u = s.user; } catch { localStorage.removeItem("eb_biz"); }
+        }
+        await loadMeta(u);
+        setUser(u);
+      })
         .catch(() => (n < 10 ? setTimeout(() => start(n + 1), 1500) : setUser(false)));
       start(0);
       return;
@@ -48,7 +57,17 @@ export function AppProvider({ children }) {
   };
   const logout = () => {
     localStorage.removeItem("eb_token");
+    localStorage.removeItem("eb_biz");
     setUser(false);
+  };
+  const switchBusiness = async (business_id) => {
+    const { data } = await api.post("/ca/switch", { business_id });
+    localStorage.setItem("eb_token", data.token);
+    localStorage.setItem("eb_biz", business_id);
+    localStorage.removeItem("eb_fy");
+    await loadMeta(null);
+    setUser(data.user);
+    return data.user;
   };
   const setFy = (f) => {
     localStorage.setItem("eb_fy", f.id);
@@ -66,7 +85,7 @@ export function AppProvider({ children }) {
   const isAdmin = user && user.role === "admin";
 
   return (
-    <AppCtx.Provider value={{ user, login, signup, logout, biz, loadBiz, expired, fys, fy, setFy, setCompanyFy, settings, setSettings, loadMeta, canWrite, isAdmin }}>
+    <AppCtx.Provider value={{ user, login, signup, logout, switchBusiness, biz, loadBiz, expired, fys, fy, setFy, setCompanyFy, settings, setSettings, loadMeta, canWrite, isAdmin }}>
       {children}
     </AppCtx.Provider>
   );

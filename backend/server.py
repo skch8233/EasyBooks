@@ -30,12 +30,13 @@ import final_accounts
 import eway
 import fa_tax
 import gstin
+import ca
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Easy Books Accounting")
-for r in (auth.router, auth.users_router, routes_ledgers.router, routes_vouchers.router, routes_reports.router, routes_admin.router, billing.router, gst.router, public.router, stock.router, reminders.router, shop.router, erp_core.router, erp_sales.router, erp_purchase.router, erp_reports.router, final_accounts.router, eway.router, fa_tax.router, gstin.router):
+for r in (auth.router, auth.users_router, routes_ledgers.router, routes_vouchers.router, routes_reports.router, routes_admin.router, billing.router, gst.router, public.router, stock.router, reminders.router, shop.router, erp_core.router, erp_sales.router, erp_purchase.router, erp_reports.router, final_accounts.router, eway.router, fa_tax.router, gstin.router, ca.router):
     app.include_router(r)
 
 
@@ -90,6 +91,8 @@ async def startup():
         await db.erp_parties.create_index([("business_id", ASCENDING), ("kind", ASCENDING)])
         for c in ("erp_prs", "erp_rfqs", "erp_pos", "erp_grns", "erp_bills", "erp_expenses"):
             await db[c].create_index([("business_id", ASCENDING), ("number", ASCENDING)], unique=True)
+        await db.memberships.create_index([("user_id", ASCENDING), ("business_id", ASCENDING)], unique=True)
+        await db.memberships.create_index("business_id")
         await db.erp_vendor_quotes.create_index([("rfq_id", ASCENDING), ("vendor_id", ASCENDING)], unique=True)
     except Exception as exc:
         logger.error("index creation: %s", exc)

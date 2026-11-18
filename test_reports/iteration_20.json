@@ -1,0 +1,35 @@
+{
+  "summary": "Round 13/14 CA Multi-Client Access tested on the backend and frontend using the public URL and fresh TEST_ signups. Backend: 10 of 11 tests pass (new file test_round14b_ca_extra.py plus the existing test_round14_ca.py). The businesses list and summary, client creation and validation (blank name 400, bad GSTIN 400, bad type 422), switching (token bid, /auth/me role, settings/vouchers/final-accounts/depreciation/tax-provision isolated), non-member switch 403, switch back home, grant access (unknown email 404 with a friendly message, own-business user 400, case-insensitive email, role upsert viewer->accountant), viewer member gets 403 on voucher writes, accountant member gets 403 on managing access, and revoke (switched token returns 401 at once, second revoke 404) all work. One defect: a CA who is switched into a client can grant access to their own email, which demotes their own role. Frontend: all flows pass. These cover the sidebar CA Clients page, the summary counts, the Add client dialog (GSTIN made uppercase), the new row, and the switcher appearing once there are 2 businesses. Final accounts opens with the client's name and the Company (Schedule III) layout, and Dep & Tax opens /year-end. Open goes to the dashboard. Reload keeps the switched business. A voucher posted in the client is not in the firm's Day Book. Switching back through the switcher works. On the access card, grant, the unknown-email toast, revoke and re-grant all work. Logging in as the CA via the UI shows the owner's business in the CA list and the switcher as accountant, and switching shows the toast 'Now working in ... as accountant'. The offline Windows build was not tested.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/ca/access", "issue": "Self-demotion: when the CA is switched into a client business (admin member), granting their own email is accepted (200). It overwrites their membership role, e.g. to viewer. The 'own user' 400 check only compares target.business_id with the current business, so it misses members. A CA-created client has no other admin, so the CA is locked out of admin on that business for good. Fix: refuse when target.id == user.id (400), as revoke_access already does."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "CA Clients table", "issues": ["The 'ENTRIES' (right-aligned) and 'LAST ENTRY' headers run together with no gap. Add pr-3 to the th cells to match the td padding."]},
+      {"screen": "CA Clients header", "issues": ["The 'Add client business' button is hidden when the current role is viewer (user.role), but the backend uses the home role. A CA who is a viewer member of a client cannot add a client from there until they switch home. This is inconsistent but harmless."]},
+      {"screen": "Final Accounts", "issues": ["The From/To/Signing date fields use the browser's native date input instead of the shadcn calendar. This was there before this round."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_round14b_ca_extra.py", "/app/backend/tests/test_round14_ca.py", "/app/test_reports/pytest/pytest_round14b.xml"],
+  "action_items": [
+    "In ca.py grant_access, return 400 when target['id'] == user['id'] ('You cannot change your own access'), so a CA cannot demote themselves inside a client business.",
+    "Optional: add pr-3 to the CA table th cells. Optional: base the Add client button on the home role."
+  ],
+  "critical_code_review_comments": [
+    "In ca.py switch-to-home, create_token(user) is called on the switched user dict. It works because the token only carries sub and email, which is fine.",
+    "Settings > Users inside a client business lists only home users of that business. CA members appear only in the CA access card, which may confuse admins. The two lists should point to each other.",
+    "logout() does not clear localStorage eb_biz. Only the OFFLINE start path reads it, so the online build is not affected.",
+    "Revoke lets any admin member remove another admin member, including the CA who created the client. There is no guard against leaving a business with no admin."
+  ],
+  "updated_files": ["/app/backend/tests/test_round14b_ca_extra.py"],
+  "success_rate": {"backend": "91% (10/11; 1 failing = self-demotion defect)", "frontend": "100%"},
+  "seed_data_creation": "Fresh TEST_ signups (test_cax_*, test_caxv_*, test_caui_*, test_caow_*@ex.in) with TEST_ client businesses and journal vouchers inside those test businesses only. No seeded or admin data was touched.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run with: cd /app/backend && REACT_APP_BACKEND_URL=... python -m pytest tests/test_round14b_ca_extra.py tests/test_round14_ca.py -n 0. test_self_grant_via_client_does_not_downgrade should pass once the self-grant guard is added. For UI login, set localStorage eb_token from a signup token. testids are sidebar-nav-ca, business-switcher and business-option-{id}; options can also be clicked by role=option name. The offline build was not tested."
+}

@@ -36,3 +36,11 @@ When you have a website, open `offline/build-settings.txt` and change this line:
 WEBSITE_URL=https://YOUR-EASYBOOKS-SITE
 ```
 to your address, for example `WEBSITE_URL=https://books.hannusoft.com`. Then click **Save to GitHub**. The next installer has "Activate online" switched on. Until then, customers activate with the paste-code option.
+
+
+## Final offline version (frozen)
+The offline Windows version is frozen at the build that includes CA multi-client access.
+- The next **Save to GitHub** builds that installer and publishes it as the release `offline-final`, marked latest. The Download page link (`releases/latest/download/EasyBooksSetup.exe`) then serves it.
+- Every later push sees that the `offline-final` release exists and skips the whole build. The installer never changes again.
+- If the website address must go into the installer, set `WEBSITE_URL` in `offline/build-settings.txt` before that final Save to GitHub.
+- To unfreeze on purpose: on GitHub, delete the `offline-final` release (and its tag), then run the workflow again.

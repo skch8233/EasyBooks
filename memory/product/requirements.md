@@ -177,3 +177,25 @@ Tax Provision: Add an income-tax provision entry so company accounts show tax ex
 - GSTIN lookup decision (user's words): "Skip auto-fetch; fill the state and PAN from the GSTIN number itself; fill onece gst information and other detail of buyer next time automatically shown after gstno enter enter"
   - No paid API. On entering a GSTIN: state and PAN fill from the number itself. Once a buyer's details are entered, next time that GSTIN is typed (in any invoice/voucher), all saved buyer details fill automatically.
 - Sales voucher: every invoice from the invoice generator appears automatically in Easy Books Sales Vouchers / Day Book "When finalized" (drafts stay out of the books).
+
+## Round 13 — user's request (build now)
+"CA Multi-Client Access: Let one CA log in once and prepare final accounts for all their client businesses"
+
+## Offline freeze — UPDATED by user: "First provide offline software till multiple client access then built a site"
+- So: the offline Windows version must INCLUDE Round 13 (CA multi-client access). Build a new offline installer with it, and freeze the offline version only AFTER that. Then start the online-only website work (Round 14).
+
+## Offline freeze — earlier wording (superseded by the update above)
+"Save offline version till here and now completely online website"
+- Freeze the offline Windows version at its current state (current GitHub release stays the final offline installer and the download link keeps working).
+- From now on, new work is for the online website only. Future pushes must not rebuild or change the offline installer (make the Windows build manual-only, or build from a frozen tag/branch).
+
+## Round 14 — user's request (build after Round 13) — SaaS website + Super Admin
+User uploaded two documents and said "now completely online website":
+- SaaS spec (follow it; Part 1 first, verify, then Part 2): https://customer-assets-m6fa6gv7.emergentagent.net/job_bharat-books-10--8pob58tc/artifacts/2b75784064600248_Emergent_SaaS_Build_Prompts___Customer___Super_Admin_Edition.pdf
+- Company profile (use for About Us / Vision content on the website): https://customer-assets-m6fa6gv7.emergentagent.net/job_bharat-books-10--8pob58tc/artifacts/aafb1b879f09bd63_Company_Profile_-_About_Us___Vision.pdf
+- Keep the existing accounting, ERP, final accounts, GST and e-way bill engine as is (the spec says the core engine must not be broken or removed). Existing decided prices stay unless the spec's pricing is adopted by the user (confirm with E1 if the spec's prices differ).
+Round 14 decisions (user):
+- Pricing: "New document pricing: Retail ₹5,000; College ₹15,000; Hospital ₹15,000; Wholesale/Service ₹2,500 billing-only or ₹5,000 complete" (all + GST, per year). Replaces old online pricing (₹6,500/₹10,000/₹15,000 ERP). User did not pick ERP as a separate add-on. Offline pricing unchanged (offline frozen).
+- User limits: "Yes, keep the user limits" (2 users base vs 3 to 8 users). Price for the 3-8 user tier under new pricing not given yet — keep it configurable in the Super Admin plan manager.
+- Industries: "Yes, build all five industries now" (Retail POS, Colleges fees/student directory/payroll, Hospitals OPD/IPD/patient registration/pharmacy batch-expiry, Wholesale, Services) per the spec.
+- Existing businesses on old plans keep their current validity.

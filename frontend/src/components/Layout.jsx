@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, PlusCircle, ListOrdered, BookUser, BarChart3, Settings, ShieldCheck, LogOut, Menu, X, BookMarked, CreditCard, Building2, AlertTriangle, Landmark, Package, BellRing, Briefcase } from "lucide-react";
+import { LayoutDashboard, PlusCircle, ListOrdered, BookUser, BarChart3, Settings, ShieldCheck, LogOut, Menu, X, BookMarked, CreditCard, Building2, AlertTriangle, Landmark, Package, BellRing, Briefcase, Users } from "lucide-react";
+import { BusinessSwitcher } from "@/components/BusinessSwitcher";
 import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -21,6 +22,7 @@ const NAV = [
   { to: "/reports/trial-balance", label: "Reports", icon: BarChart3, id: "reports", match: (p) => p.startsWith("/reports") && !p.startsWith("/reports/gstr") },
   { to: "/year-end", label: "Depreciation & Tax", icon: BarChart3, id: "year-end" },
   { to: "/final-accounts", label: "Final Accounts", icon: BarChart3, id: "final-accounts" },
+  { to: "/ca", label: "CA Clients", icon: Users, id: "ca" },
   { to: "/eway-bill", label: "E-way Bill", icon: Package, id: "eway" },
   { to: "/reports/gstr-3b", label: "GST Returns", icon: Landmark, id: "gst", match: (p) => p.startsWith("/reports/gstr") },
   { to: "/audit", label: "Audit Trail", icon: ShieldCheck, id: "audit", staff: true },
@@ -94,6 +96,7 @@ const TopBar = ({ onMenu }) => {
         <CompanyYear />
       </div>
       <div className="ml-auto flex items-center gap-3">
+        <BusinessSwitcher />
         <div className="text-right hidden sm:block">
           <div className="text-sm font-semibold" data-testid="topbar-user-name">{user?.name}</div>
           <div className="text-[11px] uppercase tracking-wide text-emerald-700 font-semibold" data-testid="topbar-user-role">{user?.role}</div>

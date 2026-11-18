@@ -1,0 +1,17 @@
+{
+  "summary": "Retest of the iteration_20 CA access fixes against the public URL, using fresh TEST_ signups. Backend: 17/17 pass, made up of the new tests/test_round14c_ca_guards.py (6 tests) plus the regression files test_round14_ca.py and test_round14b_ca_extra.py (11 tests). Self-grant returns 400 'You cannot change your own access' for the viewer, accountant and admin roles, with an upper-case email too. The role stays admin, checked through /auth/me and /ca/access. Self-grant at home also returns 400, and self-revoke returns 400. Revoking a non-admin member gives 200, the revoked member's switched token then gets 401, and a second revoke gives 404. A second admin member can revoke the CA (200). The CA's switch then gets 403, and the remaining admin cannot revoke themselves (400). The last-admin 400 branch was checked by calling revoke_access directly with a made-up admin caller, and it returns 400 'only admin'. It cannot be reached through the API because the calling admin always counts as another admin. Frontend /ca: the headers now have 12px right padding, so Entries and Last entry are separate. A CA whose home role is admin, switched into a client as a viewer, sees the Add client business button. Adding a client from there works: the toast shows and a new row appears with role admin.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/test_round14c_ca_guards.py", "/app/backend/tests/test_round14b_ca_extra.py", "/app/backend/tests/test_round14_ca.py", "/app/test_reports/pytest/pytest_round14c.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "revoke_access last-admin guard is correct but cannot be reached through the API, because the calling admin (a home admin or an admin member) is always counted in 'others'. It is harmless defence in depth.",
+    "Optional: Settings > Users update_user could still demote or deactivate the only home admin of a business. This is outside the scope of this round."
+  ],
+  "updated_files": ["/app/backend/tests/test_round14c_ca_guards.py"],
+  "success_rate": {"backend": "100% (17/17)", "frontend": "100%"},
+  "seed_data_creation": "Fresh TEST_ signups (test_cag_*, test_caui_*@ex.in), plus TEST_ client businesses and memberships among them only. No admin or seed data was touched.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Run: cd /app/backend && REACT_APP_BACKEND_URL=... python -m pytest tests/test_round14c_ca_guards.py tests/test_round14_ca.py tests/test_round14b_ca_extra.py -n 0. test_last_admin_guard_direct imports ca.py and calls revoke_access directly with motor (it needs MONGO_URL from backend/.env). For UI, set localStorage eb_token to a switched token. The bid is in the JWT."
+}

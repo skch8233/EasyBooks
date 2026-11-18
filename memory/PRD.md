@@ -88,3 +88,11 @@ JWT email/password; roles Admin / Accountant / Viewer; single company + FY manag
 - Final accounts (final_accounts.py, /final-accounts): Schedule III for companies, vertical for others; purpose company audit / tax audit 44AB / other; notes + policies, previous year, closing stock, signature blocks, Excel/PDF.
 - Voucher items have unit; company business type + CIN.
 - Tests: iteration 12-13; run suites serially: pytest -n 0 (57 passed).
+
+## Round 13 - CA Multi-Client Access (Nov 2026)
+- One login, many businesses: `memberships` collection (user_id, business_id, role); token carries optional `bid` claim, checked against memberships on every request (revoke is immediate).
+- /ca "CA Clients" page: summary per business (year, entries, last entry, depreciation/tax posted, plan) with Open / Dep & Tax / Final accounts buttons; Add client business; business switcher in top bar.
+- Business admins grant access to a CA's existing account by email (accountant/admin/viewer), list and revoke; guards on self-change and last admin.
+- Offline Windows build includes it (local client businesses, switch remembered across restarts).
+- Offline freeze: GitHub workflow publishes release `offline-final` (marked latest) on the next push, then skips all later builds while that release exists.
+- Next: Round 14 (SaaS website + Super Admin) queued, not started.

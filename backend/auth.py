@@ -25,9 +25,11 @@ def verify_password(p: str, h: str) -> bool:
     return bcrypt.checkpw(p.encode(), h.encode())
 
 
-def create_token(user: dict) -> str:
+def create_token(user: dict, bid: Optional[str] = None) -> str:
     payload = {"sub": user["id"], "email": user["email"], "type": "access",
                "exp": datetime.now(timezone.utc) + timedelta(hours=12)}
+    if bid:
+        payload["bid"] = bid
     return jwt.encode(payload, os.environ["JWT_SECRET"], algorithm=ALG)
 
 
@@ -45,6 +47,12 @@ async def get_current_user(request: Request) -> dict:
     user = await db.users.find_one({"id": payload["sub"]}, {**NO_ID, "password_hash": 0})
     if not user or not user.get("active", True):
         raise HTTPException(401, "User not found or disabled")
+    bid = payload.get("bid")
+    if bid and bid != user["business_id"]:
+        m = await db.memberships.find_one({"user_id": user["id"], "business_id": bid}, NO_ID)
+        if not m:
+            raise HTTPException(401, "Your access to that client business was removed. Please sign in again.")
+        user = {**user, "home_business_id": user["business_id"], "home_role": user["role"], "business_id": bid, "role": m["role"]}
     return user
 
 
