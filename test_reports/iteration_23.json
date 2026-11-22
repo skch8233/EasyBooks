@@ -1,0 +1,28 @@
+{
+  "summary": "Retest of the iteration_22 CA bug (Dashboard shows sales but the Sales Register is empty when 2 windows/tabs are open). FIXED, offline and online. Each window/tab now keeps its own token in sessionStorage; localStorage only seeds new windows. OFFLINE (127.0.0.1:8765, served bundle main.825ae453.js contains the fix; the server was not restarted): W1 switched to TEST_Client B, dashboard Rs 8,500. W2 (same context) opened on TEST_Client B and switched to My Business (Rs 1,000). Back in W1, the Total Sales KPI link opened a Sales Register with TEST_Client B's 3 rows (Rs 8,500), and the request JWT carried bid=TEST_Client B. W1 Day Book (3 vouchers, 10,030), P&L (Sales 8,500) and Purchase Register (empty, no purchases) match W1's dashboard. Their requests carried the client bid. W2's Sales Register shows the home firm's single row of Rs 1,000. Write test: W1 did a full reload (start() ran /offline/session then /ca/switch with an explicit header) and stayed on TEST_Client B even though localStorage eb_biz was now home. It saved sales SAL/2026-27/0004 (Rs 123), and POST /vouchers carried the client bid. It appeared in W1's register (8,623) and not in W2's home register (still 1,000). W1 switch back to home worked (Rs 1,000). The CA Clients page lists 3 businesses. ONLINE (fresh signup TEST_CA23 Firm + client TEST_CA23 Client): T1 switched to the client, saved sales Rs 700 through the UI, reload stayed on the client. T2 opened on the client (last chosen) and switched to the home firm (Rs 0). T1's KPI link Sales Register showed the client's Rs 700 row, with requests carrying the client bid. T1 saved a second voucher (Rs 55) after T2's switch: the POST carried the client bid, and T1's register showed 755 while T2's home register stayed empty. A new tab T3 opened after T2's switch started on the home firm (last chosen). Logout in T2 cleared storage, and logging in again works (lands on home firm). T1 after reload stays logged in on the client.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Layout logout-button (online)", "issue": "Logout goes to /welcome (landing), not /login, although the code calls nav('/login'). setUser(false) makes Protected redirect to /welcome first. This was already the case before this fix. Cosmetic.", "selector": "[data-testid='logout-button']", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/tests/setup_online_ca.py"],
+  "action_items": [
+    "LOW (optional): Logout in one tab does not log out other open tabs. They keep their sessionStorage token and still work after reload. If a shared logout is wanted, listen for a 'storage' event on eb_token removal and log out.",
+    "LOW (optional): eb_fy is still in shared localStorage. It is harmless today because loadMeta prefers me.working_fy_id and falls back to the active FY when the id belongs to another business.",
+    "LOW: make logout go to /login (or accept /welcome)."
+  ],
+  "critical_code_review_comments": [
+    "api.js: module-level seed of sessionStorage from localStorage plus getToken fallback is correct. setToken writes both stores, so new tabs start on the last-chosen business, as verified.",
+    "AppContext offline start(): no longer writes the home token to shared storage before /ca/switch. It switches with an explicit header and stores the result in sessionStorage only. Verified: reload keeps the window's business.",
+    "If /ca/switch fails in offline start(), only sessionStorage eb_biz is removed. localStorage eb_biz remains, so the next new window will retry the same business. Acceptable."
+  ],
+  "updated_files": ["/app/tests/setup_online_ca.py (new helper, test only)"],
+  "success_rate": {"backend": "N/A (frontend only)", "frontend": "100% of requested scenarios"},
+  "seed_data_creation": "Offline: sales voucher SAL/2026-27/0004 (Rs 123) in TEST_Client B was created by this test and then cancelled (POST /vouchers/{id}/cancel, reason 'TEST cleanup iteration 23'). It cannot be hard-deleted. Online: fresh signup test_ca23_1795311298@example.com / Test@1234 (business TEST_CA23 Firm plus client TEST_CA23 Client, which has 2 sales vouchers of Rs 700 and Rs 55). All of it is TEST_ data, left in place because there is no delete endpoint for businesses.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Offline business ids: home f886bf10-e11c-45c3-9b6a-ccc4c5fb86d8, Client A 57ab9c63-..., TEST_Client B 5d88a27d-bb67-46b4-ac96-9d2352c8717a. Multi-window tests use page.context.new_page() (shared storage). The JWT 'bid' claim shows which business a request targets. Not testable here: the desktop main.js setWindowOpenHandler change."
+}

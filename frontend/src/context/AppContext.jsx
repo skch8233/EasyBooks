@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { api, getToken, setToken, clearToken } from "@/lib/api";
 import { OFFLINE } from "@/lib/offline";
 
 const AppCtx = createContext(null);
@@ -24,12 +24,12 @@ export function AppProvider({ children }) {
   useEffect(() => {
     if (OFFLINE) {
       const start = (n) => api.post("/offline/session").then(async (r) => {
-        localStorage.setItem("eb_token", r.data.token);
-        let u = r.data.user;
-        const want = localStorage.getItem("eb_biz");
+        let u = r.data.user, tok = r.data.token;
+        const want = sessionStorage.getItem("eb_biz") || localStorage.getItem("eb_biz");
         if (want && want !== u.business_id) {
-          try { const s = (await api.post("/ca/switch", { business_id: want })).data; localStorage.setItem("eb_token", s.token); u = s.user; } catch { localStorage.removeItem("eb_biz"); }
+          try { const s = (await api.post("/ca/switch", { business_id: want }, { headers: { Authorization: `Bearer ${tok}` } })).data; tok = s.token; u = s.user; } catch { sessionStorage.removeItem("eb_biz"); }
         }
+        sessionStorage.setItem("eb_token", tok);
         await loadMeta(u);
         setUser(u);
       })
@@ -37,12 +37,18 @@ export function AppProvider({ children }) {
       start(0);
       return;
     }
-    if (!localStorage.getItem("eb_token")) return setUser(false);
-    api.get("/auth/me").then((r) => { setUser(r.data); return loadMeta(r.data); }).catch(() => { localStorage.removeItem("eb_token"); setUser(false); });
+    if (!getToken()) return setUser(false);
+    api.get("/auth/me").then((r) => { setUser(r.data); return loadMeta(r.data); }).catch(() => { clearToken(); setUser(false); });
   }, [loadMeta]);
 
+  useEffect(() => {
+    const h = (e) => { if (e.key === "eb_token" && !e.newValue && !OFFLINE) { sessionStorage.removeItem("eb_token"); setUser(false); } };
+    window.addEventListener("storage", h);
+    return () => window.removeEventListener("storage", h);
+  }, []);
+
   const startSession = async (data) => {
-    localStorage.setItem("eb_token", data.token);
+    setToken(data.token);
     localStorage.removeItem("eb_fy");
     setUser(data.user);
     await loadMeta(data.user);
@@ -51,18 +57,20 @@ export function AppProvider({ children }) {
   const login = async (email, password) => {
     const { data } = await api.post("/auth/login", { email, password });
     localStorage.removeItem("eb_fy");
-    localStorage.setItem("eb_token", data.token);
-    try { await loadMeta(data.user); } catch (e) { localStorage.removeItem("eb_token"); throw e; }
+    setToken(data.token);
+    try { await loadMeta(data.user); } catch (e) { clearToken(); throw e; }
     setUser(data.user);
   };
   const logout = () => {
-    localStorage.removeItem("eb_token");
+    clearToken();
     localStorage.removeItem("eb_biz");
+    sessionStorage.removeItem("eb_biz");
     setUser(false);
   };
   const switchBusiness = async (business_id) => {
     const { data } = await api.post("/ca/switch", { business_id });
-    localStorage.setItem("eb_token", data.token);
+    setToken(data.token);
+    sessionStorage.setItem("eb_biz", business_id);
     localStorage.setItem("eb_biz", business_id);
     localStorage.removeItem("eb_fy");
     await loadMeta(null);

@@ -58,6 +58,7 @@ async function boot() {
   }
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith("http") && !url.startsWith(`http://127.0.0.1:${API_PORT}`)) { shell.openExternal(url); return { action: "deny" }; }
+    if (url.startsWith(`http://127.0.0.1:${API_PORT}`)) { win.loadURL(url); return { action: "deny" }; }
     return { action: "allow" };
   });
 }

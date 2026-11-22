@@ -2,9 +2,15 @@ import axios from "axios";
 
 export const api = axios.create({ baseURL: `${process.env.REACT_APP_BACKEND_URL}/api` });
 
+// Each window/tab keeps its own business token; localStorage only seeds new windows
+export const getToken = () => sessionStorage.getItem("eb_token") || localStorage.getItem("eb_token");
+export const setToken = (t) => { sessionStorage.setItem("eb_token", t); localStorage.setItem("eb_token", t); };
+export const clearToken = () => { sessionStorage.removeItem("eb_token"); localStorage.removeItem("eb_token"); };
+if (!sessionStorage.getItem("eb_token") && localStorage.getItem("eb_token")) sessionStorage.setItem("eb_token", localStorage.getItem("eb_token"));
+
 api.interceptors.request.use((c) => {
-  const t = localStorage.getItem("eb_token");
-  if (t) c.headers.Authorization = `Bearer ${t}`;
+  const t = getToken();
+  if (t && !c.headers.Authorization) c.headers.Authorization = `Bearer ${t}`;
   return c;
 });
 
@@ -12,7 +18,7 @@ api.interceptors.response.use(
   (r) => r,
   (e) => {
     if (e.response?.status === 401 && !e.config?.url?.includes("/auth/login") && !e.config?.url?.includes("/public/")) {
-      localStorage.removeItem("eb_token");
+      clearToken();
       if (process.env.REACT_APP_OFFLINE === "1") window.location.reload();
       else if (window.location.pathname !== "/login") window.location.href = "/login";
     }

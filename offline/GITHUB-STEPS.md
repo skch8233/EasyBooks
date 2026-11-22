@@ -44,3 +44,8 @@ The offline Windows version is frozen at the build that includes CA multi-client
 - Every later push sees that the `offline-final` release exists and skips the whole build. The installer never changes again.
 - If the website address must go into the installer, set `WEBSITE_URL` in `offline/build-settings.txt` before that final Save to GitHub.
 - To unfreeze on purpose: on GitHub, delete the `offline-final` release (and its tag), then run the workflow again.
+
+## Rebuilding the frozen offline installer with a fix
+1. On GitHub open the repository > Releases > "offline-final" > Delete (tick "also delete the tag"; or delete tag `offline-final` under Tags).
+2. In Emergent click **Save to GitHub**. The Windows build runs (20-30 min) and publishes a new `offline-final` release (next version number), marked latest.
+3. Nothing else is needed: once the new `offline-final` exists, later pushes skip the build again (re-frozen). The Download link stays the same.
