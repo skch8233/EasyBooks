@@ -32,15 +32,14 @@ jobs:
         run: |
           $PSNativeCommandUseErrorActionPreference = $false
           $ErrorActionPreference = "Continue"
-          if ("${{ github.event_name }}" -eq "workflow_dispatch") { Write-Host "Manual run: building and replacing offline-final."; exit 0 }
-          $j = gh release view offline-final --repo $env:GITHUB_REPOSITORY --json isDraft,assets 2>$null
-          if ($LASTEXITCODE -eq 0 -and $j) {
-            $r = $j | ConvertFrom-Json
-            if (-not $r.isDraft -and ($r.assets | Where-Object { $_.name -eq "EasyBooksSetup.exe" })) {
-              Write-Host "Offline version is frozen (published release 'offline-final' with EasyBooksSetup.exe exists). Nothing to build."
-              "FROZEN=1" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-            } else { Write-Host "offline-final exists but is a draft or has no installer - rebuilding." }
-          }
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") { Write-Host "Manual run: building a new offline-final release."; exit 0 }
+          $json = gh api "repos/$env:GITHUB_REPOSITORY/releases?per_page=100" 2>&1
+          if ($LASTEXITCODE -ne 0) { Write-Host "Could not list releases ($json) - building."; $global:LASTEXITCODE = 0; exit 0 }
+          $done = ($json | ConvertFrom-Json) | Where-Object { -not $_.draft -and $_.tag_name -like "offline-final*" -and ($_.assets | Where-Object { $_.name -eq "EasyBooksSetup.exe" }) } | Select-Object -First 1
+          if ($done) {
+            Write-Host "Offline version is frozen: published release '$($done.tag_name)' has EasyBooksSetup.exe. Nothing to build."
+            "FROZEN=1" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          } else { Write-Host "No published offline-final* release with EasyBooksSetup.exe - building." }
           $global:LASTEXITCODE = 0
           exit 0
 
@@ -124,25 +123,33 @@ jobs:
           yarn install --network-timeout 600000
           yarn electron-builder --win nsis --x64 --publish never "-c.extraMetadata.version=$env:APP_VERSION"
 
-      - name: Publish to GitHub Releases (replace offline-final, mark latest)
+      - name: Publish to GitHub Releases (new offline-final-v* tag, marked latest)
         if: env.FROZEN != '1'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          $PSNativeCommandUseErrorActionPreference = $false
+          $ErrorActionPreference = "Continue"
           $exe = "offline/desktop/dist/EasyBooksSetup.exe"
           if (-not (Test-Path $exe)) {
             $found = Get-ChildItem offline/desktop/dist -Filter *.exe | Where-Object { $_.Name -notlike "*uninstall*" } | Select-Object -First 1
-            if (-not $found) { Write-Error "Installer not found in offline/desktop/dist"; exit 1 }
+            if (-not $found) { Write-Host "::error::Installer not found in offline/desktop/dist"; Get-ChildItem offline/desktop/dist | Format-Table Name, Length; exit 1 }
             Copy-Item $found.FullName $exe
           }
-          $PSNativeCommandUseErrorActionPreference = $false
-          $drafts = gh api "repos/$env:GITHUB_REPOSITORY/releases?per_page=100" --jq '.[] | select(.draft) | .id' 2>$null
-          foreach ($d in ($drafts -split "`n" | Where-Object { $_.Trim() })) { Write-Host "Deleting leftover draft release $d"; gh api -X DELETE "repos/$env:GITHUB_REPOSITORY/releases/$($d.Trim())" *> $null }
-          gh release view offline-final --repo $env:GITHUB_REPOSITORY *> $null
-          if ($LASTEXITCODE -eq 0) { gh release delete offline-final --repo $env:GITHUB_REPOSITORY --yes --cleanup-tag; Start-Sleep -Seconds 5 }
-          gh api "repos/$env:GITHUB_REPOSITORY/git/refs/tags/offline-final" *> $null
-          if ($LASTEXITCODE -eq 0) { gh api -X DELETE "repos/$env:GITHUB_REPOSITORY/git/refs/tags/offline-final" *> $null; Start-Sleep -Seconds 3 }
-          $PSNativeCommandUseErrorActionPreference = $true
+          Write-Host "Installer: $exe ($((Get-Item $exe).Length) bytes)"
+          $tag = "offline-final-v$env:APP_VERSION"
+          if ("$env:GITHUB_RUN_ATTEMPT" -ne "1") { $tag = "$tag-r$env:GITHUB_RUN_ATTEMPT" }
+          gh api "repos/$env:GITHUB_REPOSITORY/git/refs/tags/$tag" *> $null
+          if ($LASTEXITCODE -eq 0) { $tag = "$tag-$(Get-Date -Format yyyyMMddHHmmss)" }
+          Write-Host "Publishing tag $tag on commit $env:GITHUB_SHA"
           $notes = "Final one-click Windows installer for Easy Books offline (version $env:APP_VERSION), including CA multi-client access. Download EasyBooksSetup.exe and double-click it. This offline version is frozen; later updates are online only."
-          gh release create offline-final $exe --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title "Easy Books $env:APP_VERSION (final offline version)" --notes $notes --latest
-          gh release view offline-final --repo $env:GITHUB_REPOSITORY --json tagName,isDraft,assets
+          $out = gh release create $tag $exe --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title "Easy Books $env:APP_VERSION (final offline version)" --notes $notes --latest 2>&1
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "::error::gh release create failed for tag $tag : $out"
+            Write-Host "Existing releases:"; gh release list --repo $env:GITHUB_REPOSITORY --limit 20
+            exit 1
+          }
+          Write-Host $out
+          gh release view $tag --repo $env:GITHUB_REPOSITORY --json tagName,isDraft,assets
+          $global:LASTEXITCODE = 0
+          exit 0

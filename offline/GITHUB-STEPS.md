@@ -40,12 +40,12 @@ to your address, for example `WEBSITE_URL=https://books.hannusoft.com`. Then cli
 
 ## Final offline version (frozen)
 The offline Windows version is frozen at the build that includes CA multi-client access.
-- The next **Save to GitHub** builds that installer and publishes it as the release `offline-final`, marked latest. The Download page link (`releases/latest/download/EasyBooksSetup.exe`) then serves it.
-- Every later push sees that the `offline-final` release exists and skips the whole build. The installer never changes again.
+- The next **Save to GitHub** builds that installer and publishes it as a release tagged `offline-final-v1.0.N`, marked latest. The Download page link (`releases/latest/download/EasyBooksSetup.exe`) then serves it.
+- Every later push sees that a published `offline-final*` release with EasyBooksSetup.exe exists and skips the whole build. The installer never changes again.
 - If the website address must go into the installer, set `WEBSITE_URL` in `offline/build-settings.txt` before that final Save to GitHub.
-- To unfreeze on purpose: on GitHub, delete the `offline-final` release (and its tag), then run the workflow again.
+- To rebuild on purpose: run the workflow manually (Actions > Run workflow). Tags are never deleted or reused.
 
 ## Rebuilding the frozen offline installer with a fix
-1. In Emergent click **Save to GitHub**. If no published `offline-final` release exists, the push builds and publishes it.
-2. Or, at any time, on GitHub open Actions > "Build Windows installer" > **Run workflow** (branch main). A manual run always builds, deletes the old `offline-final` release, tag and any leftover drafts, then publishes a new `offline-final` with EasyBooksSetup.exe, marked latest.
+1. On GitHub open Actions > "Build Windows installer" > **Run workflow** (branch main). A manual run always builds.
+2. It publishes a NEW release with a new tag `offline-final-v1.0.N` (run number), attaches EasyBooksSetup.exe and marks it latest. Old releases and tags are kept; tag names are never deleted or reused (the repository may use immutable releases).
 3. The Download link (`releases/latest/download/EasyBooksSetup.exe`) then serves the new installer. Later pushes skip the build again (frozen).
