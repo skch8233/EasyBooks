@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { FileSpreadsheet, FileText, Printer, CheckCircle2, AlertTriangle } from "lucide-react";
 import { api, errMsg } from "@/lib/api";
 import { useApp } from "@/context/AppContext";
 import { dmy, todayIso } from "@/lib/format";
 import { REPORTS } from "@/lib/reports";
+import { Pick } from "@/components/industry/common";
 import { exportExcel, exportPdf } from "@/lib/export";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,8 @@ export default function Reports() {
   const { report = "trial-balance" } = useParams();
   const [sp, setSp] = useSearchParams();
   const nav = useNavigate();
-  const { fy, settings } = useApp();
+  const { fy, settings, industry } = useApp();
+  const billingOnly = industry?.industry_mode === "billing";
   const cfg = REPORTS.find((r) => r.id === report) || REPORTS[0];
   const monthFor = (f) => { const m = todayIso().slice(0, 7); return f && m >= f.start_date.slice(0, 7) && m <= f.end_date.slice(0, 7) ? m : f?.start_date.slice(0, 7); };
   const [p, setP] = useState({ from: fy?.start_date, to: fy?.end_date, month: monthFor(fy) });
@@ -48,11 +50,12 @@ export default function Reports() {
 
   const sub = cfg.filter === "month" ? `Return period ${p.month?.split("-").reverse().join("-")}` : cfg.filter === "asof" ? `As on ${dmy(p.to)}` : `${dmy(p.from)} to ${dmy(p.to)}`;
   const title = `${cfg.label}${res?.note ? ` - ${res.note}` : ""}`;
+  if (billingOnly && cfg.id !== "sales-register") return <Navigate to="/reports/sales-register" replace />;
 
   return (
     <div className="space-y-6" data-testid="reports-page">
       <div className="no-print flex flex-wrap gap-2" data-testid="report-tabs">
-        {REPORTS.map((r) => (
+        {REPORTS.filter((r) => !billingOnly || r.id === "sales-register").map((r) => (
           <button key={r.id} onClick={() => nav(`/reports/${r.id}`)} data-testid={`report-tab-${r.id}`}
             className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${r.id === cfg.id ? "bg-primary text-white border-primary" : "bg-white hover:bg-slate-50"}`}>{r.label}</button>
         ))}
@@ -79,8 +82,8 @@ export default function Reports() {
         {cfg.filter === "ledger" && <div><div className="text-xs font-semibold text-slate-500 mb-1">Ledger</div>
           <LedgerSelect ledgers={ledgers} groups={cfg.groups} value={ledger} onChange={(id) => setSp({ ledger: id })} testid="report-ledger-select" /></div>}
         {cfg.project && <div><div className="text-xs font-semibold text-slate-500 mb-1">Project</div>
-          <select className="h-11 w-full rounded-md border px-3 bg-white text-sm" value={p.project || ""} onChange={(e) => setP({ ...p, project: e.target.value })} data-testid="report-project-select">
-            <option value="">Combined - whole business</option><option value="none">Not tagged to a project</option>{projects.map((x) => <option key={x.id} value={x.id}>{x.code} · {x.name}</option>)}</select></div>}
+          <Pick className="min-w-[260px]" value={p.project || ""} onChange={(v) => setP({ ...p, project: v })} data-testid="report-project-select">
+            <option value="">Combined - whole business</option><option value="none">Not tagged to a project</option>{projects.map((x) => <option key={x.id} value={x.id}>{x.code} · {x.name}</option>)}</Pick></div>}
       </div>
       {res?.balanced !== undefined && (
         <div className={`flex items-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium ${res.balanced ? "bg-emerald-50 border-emerald-200 text-emerald-800" : "bg-red-50 border-red-200 text-red-800"}`} data-testid="report-balanced-status">

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { navFor } from "@/lib/industry";
 import { toast } from "sonner";
 import { Plus, Search, Pencil, FileBarChart, Trash2 } from "lucide-react";
 import { api, errMsg } from "@/lib/api";
@@ -20,7 +21,8 @@ const TABS = [
 ];
 
 export default function Ledgers() {
-  const { canWrite } = useApp();
+  const { canWrite, industry } = useApp();
+  const ledgerTitle = (industry && navFor(industry.industry_type, industry.industry_mode).labels.ledgers) || "Ledgers";
   const [ledgers, setLedgers] = useState([]);
   const [groups, setGroups] = useState([]);
   const [tab, setTab] = useState("all");
@@ -41,7 +43,7 @@ export default function Ledgers() {
   return (
     <div className="space-y-6" data-testid="ledgers-page">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div><h1 className="font-heading text-3xl font-extrabold tracking-tight">Ledgers</h1><p className="text-slate-500 mt-1">{ledgers.length} accounts · balances update automatically from vouchers.</p></div>
+        <div><h1 className="font-heading text-3xl font-extrabold tracking-tight">{ledgerTitle}</h1><p className="text-slate-500 mt-1">{ledgers.length} accounts · balances update automatically from vouchers.</p></div>
         {canWrite && <Button className="h-11 px-5" onClick={() => setDlg({ open: true, ledger: null })} data-testid="create-ledger-button"><Plus className="h-4 w-4 mr-1" /> New Ledger</Button>}
       </div>
       <div className="flex flex-wrap items-center gap-2">

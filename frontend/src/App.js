@@ -13,7 +13,7 @@ import Settings from "@/pages/Settings";
 import AuditLog from "@/pages/AuditLog";
 import Signup from "@/pages/Signup";
 import Subscription from "@/pages/Subscription";
-import Platform from "@/pages/Platform";
+import SuperAdmin from "@/pages/SuperAdmin";
 import Landing from "@/pages/Landing";
 import PublicInvoice from "@/pages/PublicInvoice";
 import Stock from "@/pages/Stock";
@@ -40,6 +40,17 @@ import FinalAccounts from "@/pages/FinalAccounts";
 import EwayBill from "@/pages/EwayBill";
 import YearEnd from "@/pages/YearEnd";
 import CaClients from "@/pages/CaClients";
+import Pricing from "@/pages/Pricing";
+import Solutions from "@/pages/Solutions";
+import About, { Features } from "@/pages/About";
+import Demo from "@/pages/Demo";
+import Pos from "@/pages/industry/Pos";
+import Students from "@/pages/industry/Students";
+import Payroll from "@/pages/industry/Payroll";
+import Patients from "@/pages/industry/Patients";
+import Pharmacy from "@/pages/industry/Pharmacy";
+import Recurring from "@/pages/industry/Recurring";
+import Tds from "@/pages/industry/Tds";
 import ErpReports from "@/pages/erp/ErpReports";
 import { OFFLINE } from "@/lib/offline";
 
@@ -61,6 +72,11 @@ function App() {
           <Route path="/login" element={OFFLINE ? <Navigate to="/" replace /> : <Login />} />
           <Route path="/signup" element={OFFLINE ? <Navigate to="/" replace /> : <Signup />} />
           <Route path="/welcome" element={OFFLINE ? <Navigate to="/login" replace /> : <Landing />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/solutions/:industry" element={<Solutions />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/features" element={<Features />} />
+          <Route path="/demo" element={OFFLINE ? <Navigate to="/" replace /> : <Demo />} />
           <Route path="/buy" element={<Buy />} />
           <Route path="/download" element={<DownloadPage />} />
           <Route path="/activate" element={<Activate />} />
@@ -82,8 +98,16 @@ function App() {
             <Route path="eway-bill" element={<EwayBill />} />
             <Route path="year-end" element={<YearEnd />} />
             <Route path="ca" element={<CaClients />} />
+            <Route path="pos" element={<Protected write><Pos /></Protected>} />
+            <Route path="students" element={<Students />} />
+            <Route path="payroll" element={<Payroll />} />
+            <Route path="patients" element={<Patients />} />
+            <Route path="pharmacy" element={<Pharmacy />} />
+            <Route path="recurring" element={<Recurring />} />
+            <Route path="tds" element={<Tds />} />
             <Route path="subscription" element={<Subscription />} />
-            <Route path="platform" element={<Platform />} />
+            <Route path="platform" element={<Navigate to="/super-admin" replace />} />
+            <Route path="super-admin" element={<SuperAdmin />} />
             <Route path="licence" element={<OfflineLicence />} />
             <Route path="erp" element={<ErpShell />}>
               <Route index element={<ErpDashboard />} />

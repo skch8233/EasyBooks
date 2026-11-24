@@ -96,3 +96,32 @@ JWT email/password; roles Admin / Accountant / Viewer; single company + FY manag
 - Offline Windows build includes it (local client businesses, switch remembered across restarts).
 - Offline freeze: GitHub workflow publishes release `offline-final` (marked latest) on the next push, then skips all later builds while that release exists.
 - Next: Round 14 (SaaS website + Super Admin) queued, not started.
+
+## Round 14 Part 1 + Round 14b (Nov 2026)
+- Industry SaaS: 5 industries (retail, college, hospital, wholesale, services; billing/complete modes for wholesale & services), industry stored on business, signup requires industry, Settings > Industry switch + sample data.
+- Plans per industry (base 2 users, multi 3-8 users = base + 3,500 placeholder); ERP included except wholesale billing-only; legacy basic/pro kept.
+- Public site: home with industry tabs/previews, /solutions/:industry, /pricing, /features, /about, /demo (sandbox, rate-limited by real client IP, 24h cleanup, hidden from Platform Admin).
+- Modules: POS (barcode/MRP inclusive, thermal receipt), Students & fees (installments, late fine, fee receipt), Payroll (payslips), Patients & hospital billing (OPD/IPD/Lab/Pharmacy), Pharmacy batches & expiry, Recurring bills (atomic), Receipts & TDS. Billing-only modes blocked from accounting reports (UI + server middleware).
+- 14b: grouped collapsible sidebar with up/down arrows (persisted), styled dropdowns (Pick) and DateInput on industry screens.
+- Next: Round 14 Part 2 (Super Admin plan manager etc.).
+
+## Round 14 Part 2 - Super Admin (Nov 2026) - DONE
+- /super-admin (replaces Platform Admin; /platform redirects): Overview KPIs (orgs, active paid, expiring 7d, revenue 30d/12m, industry breakdown)
+- Organizations: search/filters; Extend (+14d trial / +1 month / +1 year / custom days) with amount, method, reference; reference checked before any change; lifting suspension via Extend is an explicit checkbox and audited
+- Industry/mode/plan change keeping expiry, seat-limit override, ERP module toggle; suspend/reactivate
+- Expiry: 7-day read-only grace, then lock screen (423) "Subscription Expired - Contact Support to Renew"; billing/subscription endpoints stay open
+- Support view: reason prompt, read-only token, banner + exit, access log
+- Plan manager: edit name/annual/monthly price/max users/on-sale per industry plan (incl. 3-8 user tier), create custom plans (db.plan_settings, loaded at startup)
+- Payments & renewals history (online + manual ledger) with UTF-8 BOM CSV export
+- Dates parsed timezone-safely everywhere (parse_dt)
+- Tests: test_round19_superadmin.py, test_round19b_naive_dates_retest.py; iteration_28/29 all passed
+
+## Backlog
+- P1: Delete/archive custom plans without a restart; split manual vs online revenue
+- P2: Teardown for TEST_ orgs in older suites
+
+## Round 15 - Offline side menu (Nov 2026) - READY TO PUBLISH
+- New offline build = exact offline-final-v1.0.14 commit (d55a429) + offline/round15/side-menu-patch.txt (Layout.jsx only: 4 collapsible groups, down/up arrows, open/closed remembered in localStorage, current page highlighted + auto-opens its group)
+- Workflow checks out OFFLINE_BASE, applies the patch, builds, tags the release on the base commit; manual Run workflow only; pushes stay frozen; concurrency split per event so a push cannot cancel a manual build
+- Offline-mode React build of base+patch compiled successfully locally
+- Online main code unchanged (Round 14 intact)

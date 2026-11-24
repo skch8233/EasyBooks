@@ -11,7 +11,7 @@ P = {"from_date": "2026-04-01", "to_date": "2027-03-31"}
 
 def biz(btype="company"):
     u = uuid.uuid4().hex[:8]
-    r = requests.post(f"{API}/auth/signup", json={"business_name": f"TEST_dtx_{u}", "name": "T", "email": f"dtx_{u}@example.com", "password": "secret1", "phone": "", "state": "Maharashtra", "gstin": ""})
+    r = requests.post(f"{API}/auth/signup", json={"industry_type": "wholesale", "business_name": f"TEST_dtx_{u}", "name": "T", "email": f"dtx_{u}@example.com", "password": "secret1", "phone": "", "state": "Maharashtra", "gstin": ""})
     assert r.status_code == 200, r.text
     s = requests.Session()
     s.headers["Authorization"] = "Bearer " + r.json()["token"]

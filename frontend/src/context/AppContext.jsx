@@ -11,15 +11,17 @@ export function AppProvider({ children }) {
   const [fy, setFyState] = useState(null);
   const [settings, setSettings] = useState(null);
   const [biz, setBiz] = useState(null);
+  const [industry, setIndustry] = useState(null);
+  const loadIndustry = useCallback(() => (OFFLINE ? Promise.resolve() : api.get("/industry").then((r) => setIndustry(r.data)).catch(() => {})), []);
   const loadBiz = useCallback(() => api.get("/billing/status").then((r) => setBiz(r.data)), []);
 
   const loadMeta = useCallback(async (me) => {
-    const [f, s] = await Promise.all([api.get("/financial-years"), api.get("/settings"), loadBiz()]);
+    const [f, s] = await Promise.all([api.get("/financial-years"), api.get("/settings"), loadBiz(), loadIndustry()]);
     setFys(f.data);
     setSettings(s.data);
     const want = me?.working_fy_id || localStorage.getItem("eb_fy");
     setFyState(f.data.find((x) => x.id === want) || f.data.find((x) => x.is_active) || f.data[0] || null);
-  }, [loadBiz]);
+  }, [loadBiz, loadIndustry]);
 
   useEffect(() => {
     if (OFFLINE) {
@@ -54,6 +56,7 @@ export function AppProvider({ children }) {
     await loadMeta(data.user);
   };
   const signup = async (body) => startSession((await api.post("/auth/signup", body)).data);
+  const startDemo = (data) => startSession(data);
   const login = async (email, password) => {
     const { data } = await api.post("/auth/login", { email, password });
     localStorage.removeItem("eb_fy");
@@ -66,6 +69,19 @@ export function AppProvider({ children }) {
     localStorage.removeItem("eb_biz");
     sessionStorage.removeItem("eb_biz");
     setUser(false);
+  };
+  const enterSupport = async (data) => {
+    sessionStorage.setItem("eb_token_home", getToken());
+    sessionStorage.setItem("eb_token", data.token);
+    await loadMeta(null);
+    setUser(data.user);
+  };
+  const exitSupport = async () => {
+    sessionStorage.setItem("eb_token", sessionStorage.getItem("eb_token_home") || localStorage.getItem("eb_token"));
+    sessionStorage.removeItem("eb_token_home");
+    const me = (await api.get("/auth/me")).data;
+    await loadMeta(me);
+    setUser(me);
   };
   const switchBusiness = async (business_id) => {
     const { data } = await api.post("/ca/switch", { business_id });
@@ -93,7 +109,7 @@ export function AppProvider({ children }) {
   const isAdmin = user && user.role === "admin";
 
   return (
-    <AppCtx.Provider value={{ user, login, signup, logout, switchBusiness, biz, loadBiz, expired, fys, fy, setFy, setCompanyFy, settings, setSettings, loadMeta, canWrite, isAdmin }}>
+    <AppCtx.Provider value={{ user, login, signup, logout, switchBusiness, enterSupport, exitSupport, startDemo, industry, setIndustry, biz, loadBiz, expired, fys, fy, setFy, setCompanyFy, settings, setSettings, loadMeta, canWrite, isAdmin }}>
       {children}
     </AppCtx.Provider>
   );

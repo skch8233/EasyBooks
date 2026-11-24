@@ -21,6 +21,8 @@ class StockIn(BaseModel):
     opening_qty: float = 0
     opening_rate: float = Field(0, ge=0)
     reorder_level: float = Field(0, ge=0)
+    barcode: str = Field("", max_length=64)
+    mrp: float = Field(0, ge=0)
 
 
 async def _moves(bid: str, to_date: Optional[str] = None, before: Optional[str] = None, item_id: Optional[str] = None):

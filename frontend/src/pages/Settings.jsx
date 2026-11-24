@@ -10,6 +10,8 @@ import { CompanySettings, BrandingSettings } from "@/components/settings/Company
 import { FinancialYears } from "@/components/settings/FinancialYears";
 import { UsersSettings } from "@/components/settings/UsersSettings";
 import { BackupRestore } from "@/components/settings/BackupRestore";
+import { IndustrySettings } from "@/components/settings/IndustrySettings";
+import { OFFLINE } from "@/lib/offline";
 
 const Password = () => {
   const [f, setF] = useState({ current_password: "", new_password: "" });
@@ -39,6 +41,7 @@ export default function Settings() {
           <TabsTrigger value="fy" className="px-4 py-2" data-testid="settings-tab-fy">Financial Years</TabsTrigger>
           {isAdmin && <TabsTrigger value="users" className="px-4 py-2" data-testid="settings-tab-users">Users & Roles</TabsTrigger>}
           {isAdmin && <TabsTrigger value="backup" className="px-4 py-2" data-testid="settings-tab-backup">Backup & Restore</TabsTrigger>}
+          {!OFFLINE && <TabsTrigger value="industry" className="px-4 py-2" data-testid="settings-tab-industry">Industry</TabsTrigger>}
           <TabsTrigger value="password" className="px-4 py-2" data-testid="settings-tab-password">My Password</TabsTrigger>
         </TabsList>
         <TabsContent value="company" className="mt-5"><CompanySettings /></TabsContent>
@@ -46,6 +49,7 @@ export default function Settings() {
         <TabsContent value="fy" className="mt-5"><FinancialYears /></TabsContent>
         {isAdmin && <TabsContent value="users" className="mt-5"><UsersSettings /></TabsContent>}
         {isAdmin && <TabsContent value="backup" className="mt-5"><BackupRestore /></TabsContent>}
+        {!OFFLINE && <TabsContent value="industry" className="mt-5"><IndustrySettings /></TabsContent>}
         <TabsContent value="password" className="mt-5"><Password /></TabsContent>
       </Tabs>
     </div>

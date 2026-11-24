@@ -1,0 +1,55 @@
+{
+  "summary": "Iteration 25: retest of the iteration_24 fixes, the open items, Round 14b (grouped collapsible sidebar, styled dropdowns and date pickers on industry screens) and a regression pass. Backend: new suite test_round16_industry_retest.py, 13 of 13 pass with the POS tolerance at 0.011; with exact matching 12/13, POS fails by 0.01. Covered: signup 422, pharmacy duplicate and parallel oversell, GST split, IPD dates, billing-only 403 guard, complete mode not blocked, TDS base, payroll and recurring parallel runs, fee parallel overpay. test_round16_demo_ratelimit.py fails because a spoofed X-Forwarded-For header bypasses the limit; the 429 itself works and demos are hidden from the platform list. Frontend (Playwright): sidebar groups with chevrons, collapse, saved state and active bar; POS, Patients, Pharmacy, Students, Payroll, Recurring, TDS, billing-only Reports and Subscription, public pages, Solutions dropdown, mobile header and signup with industry all work end to end. Two small frontend bugs fixed in place; 2 real defects and several minor ones remain.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/public/demo", "issue": "Rate limit can be bypassed. The IP is read from the first X-Forwarded-For value, which the client controls. After getting 429 from my real IP, a request with X-Forwarded-For: 10.9.x.7 returned 200 and created a new sandbox. Use the right-most / ingress-appended entry (or request.client behind a trusted proxy). The limit is also kept in memory, so it resets when the server restarts.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "POST /api/vouchers (POS sale)", "issue": "Voucher total does not always equal the MRP total. Seen in the UI: Tata Salt 28 x1 plus Parle-G MRP 25 @18% x7. The bill and receipt show 203.00 but the voucher amount is 202.99 (taxable 21.1864*7=148.3048, rounded to 148.30, +18% = 174.99). Single Tata Salt is correct (28.00). Fix: work out the line taxable as round(qty*mrp/(1+g),2) and GST as qty*mrp minus taxable, or send an mrp_inclusive line total to the backend."},
+      {"endpoint": "POST /api/hospital/bills", "issue": "admission_date and discharge_date are stored on non-IPD bills. The frontend keeps the earlier IPD dates in state after the type changes: bill PH/0001 was saved with admission 2026-11-10. Clear them when kind != ipd, in the backend and/or the UI."},
+      {"endpoint": "POST /api/tds/receipts", "issue": "tds_base is not checked against gross (base can be more than the bill), and the TDS amount is not checked against the base."},
+      {"endpoint": "POST /api/payroll/runs, /api/college/fees", "issue": "The duplicate and balance checks are find-then-insert, not atomic. They held in my 3-way parallel tests, but there is no unique index on payroll_runs (business_id, month)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Layout SideNav useEffect", "issue": "FIXED by tester. Opening a URL directly (full load) in a closed group left the group closed. Under React StrictMode the effect called the flip toggle twice, so the group opened and then closed again. Changed it to open the group only, without flipping.", "selector": "[data-testid=sidebar-group-toggle-reports]", "priority": "MEDIUM"},
+      {"component": "Pick (industry/common.jsx) on POS dark card", "issue": "FIXED by tester. The POS 'Paid by' trigger showed white text on a white background, so the value looked blank. Added text-slate-900 to the Pick trigger.", "selector": "[data-testid=pos-pay-select]", "priority": "MEDIUM"},
+      {"component": "Patients bill form", "issue": "Switching the type from IPD to another type keeps admission_date and discharge_date in state, and they are sent with the bill.", "selector": "[data-testid=bill-kind-select]", "priority": "LOW"},
+      {"component": "TDS form", "issue": "The placeholder for the empty TDS base field shows gross/1.18 (e.g. 10000), but TDS is worked out on the gross (1,180 instead of 1,000) unless the user types the base. Use the placeholder value as the default, or show 'TDS on bill amount'.", "selector": "[data-testid=tds-base-input]", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [
+      {"flow": "POS save", "issue": "The receipt and on-screen total are 203.00 but the posted voucher is 202.99 (rounding, see backend minor).", "affected_selectors": ["[data-testid=pos-total]", "[data-testid=pos-save-print-button]"]}
+    ],
+    "design_issues": [
+      {"screen": "Pharmacy / TDS / Payroll forms", "issues": ["DateInput is h-11 while the Pick and Input fields are h-10, so the date field and its label sit out of line in the same row. 'Value before GST (TDS base)' wraps onto 2 lines and pushes its input out of line."]},
+      {"screen": "Payroll history", "issues": ["The run row is a <details> with no chevron or 'view payslips' cue, so users may not find the per-staff payslip print buttons."]},
+      {"screen": "Mobile drawer", "issues": ["The shortcuts text and the 'A product of' footer take about 25% of the drawer height on a 390px phone, and keyboard shortcuts mean nothing on mobile. Hide them under md."]},
+      {"screen": "Subscription (services billing)", "issues": ["The plan features list 'E-way bill, party master & sales register', but services billing hides the E-way bill and calls parties 'Client List'."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_round16_industry_retest.py", "/app/backend/tests/test_round16_demo_ratelimit.py", "/app/test_reports/pytest/round16.xml"],
+  "action_items": [
+    "Fix the /api/public/demo IP detection so a client-supplied X-Forwarded-For cannot bypass the 10/hour limit (use the trusted, right-most proxy hop). Consider keeping the counter in Mongo.",
+    "POS: make the posted voucher total equal the MRP total (rounding off by 0.01 when qty > 1)",
+    "Patients: clear admission and discharge dates when the bill type is not IPD (UI and backend)",
+    "TDS: default the base to the suggested before-GST value (or make the placeholder honest) and check base <= gross",
+    "Line up DateInput height (h-10) with Pick and Input, and add an expand cue to the payroll history rows",
+    "Fix the services billing plan feature text (no e-way bill)",
+    "Optional: unique index on payroll_runs(business_id, month); monthOptions uses toISOString (UTC), which can shift the month near midnight on the 1st in IST; nextDue (+6 months) overflows for month-end dates (31 Aug -> 3 Mar)"
+  ],
+  "critical_code_review_comments": [
+    "industry.py demo(): ip = x-forwarded-for.split(',')[0] trusts client input; _DEMO_HITS is in-memory and per process",
+    "Pos.jsx baseRate rounds to 4dp and the backend rounds the taxable per line to 2dp, so the GST-inclusive total drifts",
+    "The test_round15*/15b suites call /public/demo 13 times. With the 10/hour limit they will fail with 429 on a second run within an hour. Switch them to signup with industry_type (as test_round16 does).",
+    "Reports.jsx billingOnly is any industry_mode=='billing', but the backend guard covers only wholesale/services. Fine now (the frontend is stricter), but keep the two in step."
+  ],
+  "updated_files": ["/app/frontend/src/components/Layout.jsx", "/app/frontend/src/components/industry/common.jsx", "/app/backend/tests/test_round16_industry_retest.py", "/app/backend/tests/test_round16_demo_ratelimit.py"],
+  "success_rate": {"backend": "87% (13/15 including demo test and strict POS check)", "frontend": "90%"},
+  "test_credentials": "admin@easybooks.in / Admin@123 (also platform superadmin). bcrypt $2b$ confirmed; login lockout -> 429 after 5 bad attempts.",
+  "seed_data_creation": "Created about 33 TEST_R16* businesses via /api/auth/signup (isolated tenants, no delete endpoint, so not removed) and about 11 demo sandboxes (auto-cleaned after 24h). No admin or seed data changed.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "This tester's IP hit the demo 429 limit at about 05:30 UTC (server clock is in 2026-11). Use signups with industry_type/industry_mode, not /public/demo. Inject the token via localStorage and sessionStorage 'eb_token'. Pick dropdowns are Radix: click the trigger testid, then [role=option]. DateInput has a '<testid>-picker' button. Payroll payslip buttons sit inside <details>; click the summary first. final-accounts needs ?to_date=. GST sys ledgers are named 'CGST'/'SGST' (not 'Output CGST').",
+  "rca of the issue": "Sidebar direct-nav: React 18 StrictMode runs effects twice in dev; the effect called toggle(g.id), which flips the state, so the 2nd run closed the group again. Fixed with an open-only setter. POS 0.01: line rate = round(mrp/(1+g),4), backend taxable = round(qty*rate,2), GST = round(taxable*g,2); for 7 x 25 @18% this gives 174.99."
+}

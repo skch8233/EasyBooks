@@ -1,0 +1,58 @@
+{
+  "summary": "Round 14 Part 1 (industry SaaS) first test. Backend: 12 pytest cases (3 existing in test_round15_industry.py + 9 new in test_round15b_industry_extra.py) - 11 pass, 1 real bug: a pharmacy bill can oversell when the same batch is on two lines (stock goes negative). Frontend: I checked every flow in the brief with Playwright: public site (/welcome hero, the 5 industry tabs and previews, industry cards, pricing matrix with correct prices, /solutions/{k} pages, /pricing, /about, /features, mobile menu at 390px), signup (preselected industry, 'Select your industry to continue' error, wholesale/services mode options, retail signup lands on dashboard with the retail menu), Live Demo for all 7 industry/mode options, Retail POS (barcode Enter, plus/minus, total, Cash default, save opens the thermal receipt popup, voucher shows in Sales Register, low-stock alert for Parle-G), College (add student with installments, collect fee, overpay refused, FR/0001 receipt with installment breakdown, balance updates; payroll posts PMT voucher and a second run in the same month is refused), Hospital (UHID/0002, OPD receipt popup, IPD admission/discharge fields, the medicine dropdown leaves out expired batches, PH bill takes Amoxicillin stock from 60 to 57, expiry alert), Services billing (sidebar is correct, Client List ledger, recurring bill made once then 'No bills due today', TDS receipt and tds-total update, Sales Register), Wholesale billing (sidebar matches the spec exactly), Settings > Industry switch (sidebar changes at once), Subscription (shows only this industry's base and 3-8 user plans with the new prices), admin regression (full menu including Projects / ERP, dashboard loads, treated as wholesale complete). No JS page errors.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/hospital/bills", "issue": "Stock check is done per line against the stored qty, so two lines of the same batch (40 + 40 when 60 are in stock) both pass and qty becomes -20. The stock decrement ($inc) is also not atomic or conditional, so two bills at the same time can oversell as well. Fix: add up the qty per medicine_id before checking, and/or use update_one({id, qty: {$gte: q}}, {$inc: -q}) and check matched_count.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "POST /api/public/demo", "issue": "Public, no login and no rate limit. Every call creates a full business, a user and seeded ledgers, and nothing ever removes them (no TTL or cleanup). It can be used to spam the database, and demo businesses will pile up in Platform Admin lists."},
+      {"endpoint": "Billing-only modes (wholesale/services)", "issue": "Hiding modules is done only in the frontend menu. The backend still serves /api/reports/trial-balance, final accounts, GST and so on to billing-only businesses, so the plan difference is not enforced."},
+      {"endpoint": "POST /api/hospital/bills (pharmacy)", "issue": "medicine.gst_rate is stored but never used. Pharmacy sales post the full amount as income with no GST output split."},
+      {"endpoint": "POST /api/auth/signup", "issue": "industry_type defaults to 'wholesale' on the backend, so the 'required industry' rule is only checked in the frontend."},
+      {"endpoint": "POST /api/payroll/runs", "issue": "The duplicate-month check is find-then-insert with no unique index, so two requests at the same time could post salary twice."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "PublicNav Solutions dropdown", "issue": "Hovering opens the menu (onMouseEnter), so a desktop user's click on the button runs setOpen(!open) and CLOSES it. Hover then click leaves nothing open. Fix: onClick={() => setOpen(true)} when the pointer is a mouse, or drop the toggle.", "selector": "[data-testid='nav-solutions']", "priority": "MEDIUM"},
+      {"component": "Reports tab bar in billing-only mode", "issue": "Sidebar 'Sales Register' opens the Reports page, which shows every tab (Trial Balance, P&L, Balance Sheet, GSTR-1/3B, Day Book...). Billing-only users can reach the hidden accounting reports from there.", "selector": "/reports/sales-register", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [
+      {"flow": "Retail POS pricing", "issue": "GST is added on top of MRP: Tata Salt MRP 28 + 5% = 29.40, so the item sells above MRP. In India MRP already includes tax, so selling above it is not allowed. POS should treat MRP as tax-inclusive and work out the GST from it.", "affected_selectors": ["pos-total", "pos-line-*"]},
+      {"flow": "Receipts & TDS", "issue": "TDS % is applied to the GST-inclusive amount (11,800 x 10% = 1,180). TDS should normally be on the value before GST (1,000).", "affected_selectors": ["tds-preview", "tds-rate-input"]},
+      {"flow": "Payroll payslips", "issue": "payroll-runs shows only a one-line summary per month (gross, net, voucher). There is no payslip for each staff member to view or print.", "affected_selectors": ["payroll-runs"]}
+    ],
+    "design_issues": [
+      {"screen": "POS", "issues": ["The 'Bill total (incl. GST)' label is very light grey on white, so it is hard to read"]},
+      {"screen": "Industry pages (Students, Payroll, Patients, Pharmacy, Recurring, TDS, POS)", "issues": ["They use the browser's own <select> and date pickers (type=date/month) instead of the shadcn Select and Calendar"]},
+      {"screen": "Students dialog", "issues": ["A new installment row defaults to today's date, so Term 2 gets the same due date as Term 1"]},
+      {"screen": "Services billing", "issues": ["The sidebar says 'Client List' but the page heading still says 'Ledgers'"]},
+      {"screen": "Subscription (billing-only plans)", "issues": ["The plan cards for 'Invoice & Billing Only' list 'All vouchers, ledgers & reports' and 'GSTR-1 & GSTR-3B summaries', which these plans do not include"]},
+      {"screen": "Mobile header (390px)", "issues": ["'Easy Books' wraps onto two lines next to the Start Free Trial button"]},
+      {"screen": "/pricing", "issues": ["The 3-8 user tier price (base + 3,500) is only mentioned in a note. The table does not show the actual amounts."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_round15_industry.py", "/app/backend/tests/test_round15b_industry_extra.py", "/app/test_reports/pytest/pytest_results_iter24.xml"],
+  "action_items": [
+    "Fix the pharmacy oversell: add up qty per medicine across lines and decrement only when enough stock is left (atomic conditional update)",
+    "Fix the Solutions dropdown hover/click toggle conflict",
+    "Hide the accounting report tabs (or redirect) on the Reports page for billing-only modes, and ideally enforce this in the backend",
+    "POS: treat MRP as tax-inclusive (do not sell above MRP)",
+    "TDS: work out TDS on the value before GST, or let the user enter a taxable base",
+    "Rate-limit or clean up /api/public/demo sandboxes",
+    "Optional: per-staff payslip print, use medicine gst_rate, fix the billing-only plan feature text, change the POS total label contrast, use shadcn Select/Calendar"
+  ],
+  "critical_code_review_comments": [
+    "industry.py hospital_bill: the stock check and $inc decrement are not atomic and do not add up duplicate lines (confirmed by test)",
+    "industry.py run_payroll and recurring/run: no unique index or lock, so requests at the same time can create duplicate vouchers",
+    "industry.py demo(): an unauthenticated endpoint that writes to the DB with no throttle or expiry",
+    "billing-only feature gating is frontend-only (lib/industry.js navFor)",
+    "_add_months imports calendar inside the function (minor style issue)"
+  ],
+  "updated_files": ["/app/backend/tests/test_round15b_industry_extra.py"],
+  "success_rate": {"backend": "92% (11/12; 1 real bug)", "frontend": "~90% (all core flows in the brief work; 2 UI bugs, 3 logic issues)"},
+  "seed_data_creation": "Demo sandboxes created through /api/public/demo (test runs and UI). Two TEST_ signup businesses: TEST_Retail Shop (test_ret_*@example.com), and TEST_Viewer Biz with a viewer user. There is no delete endpoint for businesses, so they remain; all are TEST_ prefixed. The admin business was not changed (only viewed its Industry tab).",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Use /api/public/demo {industry_type, industry_mode} to get sandbox tokens. Stock items endpoint is /api/stock-items. pytest.ini uses xdist (-n), so do not pass -p no:xdist. Retest: pharmacy duplicate-line oversell (test_hospital_duplicate_lines_oversell), nav-solutions click while hovering, Reports tabs in billing-only mode. Razorpay checkout is not testable (no keys)."
+}

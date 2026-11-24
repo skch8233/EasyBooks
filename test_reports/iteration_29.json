@@ -1,0 +1,30 @@
+{
+  "summary": "Retest of iteration_28 issues - ALL FIXED. Backend: test_round19_superadmin.py 20/20 (incl. previously failing test_orgs_list_survives_naive_trial_ends, test_year_extend_naive_subscription_ends); new test_round19b_naive_dates_retest.py 9/9 (naive trial_ends/subscription_ends future/grace/locked -> /super/orgs, /super/overview, /billing/status, /ledgers all OK with correct status/days_left/locked/grace; extend month/year/days from naive subscription_ends adds exactly 30/365/45 days from that date; retail_complete_multi edit keeps '3 to 8 users'); regression round15+15b+17 demo ratelimit+17 retest+18 = 27/27 after a backend restart. Frontend: suspended and expired>7d users see account-locked-screen with plan-banner hidden (also after navigating to /ledgers,/reports), Renew -> /subscription works, no uncaught page errors (only browser 'Failed to load resource 423' network lines); grace user sees plan-banner and no lock; support view hides sidebar-nav-platform while support-view-banner shown and /super-admin redirects to /, exit restores it; orgs-empty row shows for no-match filter; expired trial org shows 'Free Trial (expired)'; Extend dialog refuses suspended org without lift checkbox (toast), with checkbox extends and status -> Active; payments CSV downloads easybooks-payments.csv.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/licences, GET /api/billing/payments", "issue": "Return 423 for a locked (expired >7d) org, so on /subscription (the only page a locked user can open) licences and payment history never load (axios interceptor swallows 423 with a never-resolving promise). Consider whitelisting these read endpoints for locked orgs."},
+      {"endpoint": "tests/test_round15*, test_round17*, test_round18*", "issue": "These suites don't clean up the TEST_ orgs they create (513 TEST_ businesses in DB now). Add id-based teardown."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_round19_superadmin.py", "/app/backend/tests/test_round19b_naive_dates_retest.py", "/app/test_reports/pytest/iteration_29_regression.xml"],
+  "action_items": [
+    "Optional: allow GET /api/licences and /api/billing/payments for locked orgs so Subscription page shows history/licences",
+    "Optional: add id-based cleanup to round15/17/18 test suites"
+  ],
+  "critical_code_review_comments": [
+    "api.js returns new Promise(() => {}) on 423 - silences errors but any awaiting component stays in loading state forever; acceptable behind LockGate, but affects Subscription page sections",
+    "load_plan_overrides derives tier from the already-mutated PLANS entry; fine now, but plan_settings deletion requires backend restart to revert in-memory PLANS (tests rely on restart)"
+  ],
+  "updated_files": ["/app/backend/tests/test_round19b_naive_dates_retest.py"],
+  "success_rate": {"backend": "100% (56/56)", "frontend": "100%"},
+  "seed_data_creation": "TEST_R19 UI orgs via ui_setup_round19.py (cleaned up), TEST_R19B orgs from new test file (auto-cleaned). plan_settings count = 0, backend restarted, retail_complete_multi = 8500 / 8 users / '3 to 8 users'. Leftover pre-existing 'TEST_SA2 Co' (not created by me) and TEST_R17/R18/Viewer orgs from regression suites remain.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run suites with -n 0. Restart backend before test_round15b/17 demo ratelimit if round19 (custom plan) or plan edits ran. Support view uses window.prompt - accept dialog in Playwright. Use new browser context per user login (localStorage token redirects /login). Server date Nov 2026."
+}

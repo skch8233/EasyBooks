@@ -8,7 +8,7 @@ API = os.environ.get("REACT_APP_BACKEND_URL").rstrip("/") + "/api"
 
 def biz():
     u = uuid.uuid4().hex[:8]
-    r = requests.post(f"{API}/auth/signup", json={"business_name": f"TEST_g_{u}", "name": "T", "email": f"g_{u}@example.com", "password": "secret1", "phone": "", "state": "Maharashtra", "gstin": ""})
+    r = requests.post(f"{API}/auth/signup", json={"industry_type": "wholesale", "business_name": f"TEST_g_{u}", "name": "T", "email": f"g_{u}@example.com", "password": "secret1", "phone": "", "state": "Maharashtra", "gstin": ""})
     s = requests.Session()
     s.headers["Authorization"] = "Bearer " + r.json()["token"]
     return s

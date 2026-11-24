@@ -24,7 +24,7 @@ def sess(email, pw):
 
 def signup(prefix="biz"):
     email = f"test_{prefix}_{uuid.uuid4().hex[:6]}@example.com"
-    r = requests.post(f"{API}/auth/signup", json={"business_name": f"TEST_{prefix} Traders", "name": "TEST Owner", "email": email,
+    r = requests.post(f"{API}/auth/signup", json={"industry_type": "wholesale", "business_name": f"TEST_{prefix} Traders", "name": "TEST Owner", "email": email,
                                                   "password": "secret1", "state": "Maharashtra", "gstin": ""})
     assert r.status_code == 200, r.text
     s = requests.Session()
@@ -72,13 +72,13 @@ class TestSignup:
         assert A.user["role"] == "admin" and not A.user.get("is_superadmin")
 
     def test_duplicate_email(self, A):
-        r = requests.post(f"{API}/auth/signup", json={"business_name": "X", "name": "X", "email": A.email.upper(), "password": "secret1"})
+        r = requests.post(f"{API}/auth/signup", json={"industry_type": "wholesale", "business_name": "X", "name": "X", "email": A.email.upper(), "password": "secret1"})
         assert r.status_code == 400
 
     def test_signup_validation(self):
-        r = requests.post(f"{API}/auth/signup", json={"business_name": " ", "name": "x", "email": "test_x@example.com", "password": "secret1"})
+        r = requests.post(f"{API}/auth/signup", json={"industry_type": "wholesale", "business_name": " ", "name": "x", "email": "test_x@example.com", "password": "secret1"})
         assert r.status_code == 400
-        r = requests.post(f"{API}/auth/signup", json={"business_name": "x", "name": "x", "email": "test_y@example.com", "password": "123"})
+        r = requests.post(f"{API}/auth/signup", json={"industry_type": "wholesale", "business_name": "x", "name": "x", "email": "test_y@example.com", "password": "123"})
         assert r.status_code == 400
 
 

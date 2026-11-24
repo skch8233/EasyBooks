@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, PlusCircle, ListOrdered, BookUser, BarChart3, Settings, ShieldCheck, LogOut, Menu, X, BookMarked, CreditCard, Building2, AlertTriangle, Landmark, Package, BellRing, Briefcase, Users } from "lucide-react";
+import { LayoutDashboard, PlusCircle, ListOrdered, BookUser, BarChart3, Settings, ShieldCheck, LogOut, Menu, X, BookMarked, CreditCard, Building2, AlertTriangle, Landmark, Package, BellRing, Briefcase, Users, ShoppingCart, GraduationCap, Wallet, Stethoscope, Pill, Repeat, Receipt, FileText, ChevronDown, ChevronUp } from "lucide-react";
+import { navFor } from "@/lib/industry";
 import { BusinessSwitcher } from "@/components/BusinessSwitcher";
 import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
@@ -10,6 +11,7 @@ import { MadeBy, Copyright } from "@/components/Hannusoft";
 import { OFFLINE } from "@/lib/offline";
 import { toast } from "sonner";
 import { errMsg } from "@/lib/api";
+import { Button } from "@/components/ui/button";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, id: "dashboard" },
@@ -29,14 +31,59 @@ const NAV = [
   { to: "/settings", label: "Settings", icon: Settings, id: "settings" },
   { to: "/subscription", label: "Subscription", icon: CreditCard, id: "subscription", admin: true, online: true },
   { to: "/licence", label: "Licence", icon: CreditCard, id: "licence", offline: true },
-  { to: "/platform", label: "Platform Admin", icon: Building2, id: "platform", superadmin: true, online: true },
+  { to: "/super-admin", label: "Super Admin", icon: Building2, id: "platform", superadmin: true, online: true },
 ];
 
+const ICONS = { pos: ShoppingCart, students: GraduationCap, payroll: Wallet, patients: Stethoscope, pharmacy: Pill, recurring: Repeat, tds: Receipt, "sales-register": FileText };
+const navItems = (ind) => {
+  if (OFFLINE || !ind) return NAV;
+  const cfg = navFor(ind.industry_type, ind.industry_mode);
+  const list = NAV.filter((n) => !cfg.hide.has(n.id)).map((n) => (cfg.labels[n.id] ? { ...n, label: cfg.labels[n.id] } : n));
+  list.splice(1, 0, ...cfg.extra.map((e) => ({ ...e, icon: ICONS[e.id] })));
+  return list;
+};
+
+const GROUPS = [
+  { id: "daily", label: "Daily work", ids: ["dashboard", "pos", "students", "payroll", "patients", "pharmacy", "recurring", "tds", "sales-register", "new-voucher", "vouchers"] },
+  { id: "masters", label: "Masters & projects", ids: ["ledgers", "stock", "reminders", "erp"] },
+  { id: "reports", label: "Reports & year end", ids: ["reports", "year-end", "final-accounts", "gst", "eway"] },
+  { id: "admin", label: "Business & settings", ids: ["ca", "audit", "settings", "subscription", "licence", "platform"] },
+];
+const isOn = (n, pathname) => (n.match ? n.match(pathname) : n.to === "/" ? pathname === "/" : pathname.startsWith(n.to));
+
+const NavGroup = ({ g, items, pathname, closed, toggle, onNav }) => {
+  const open = !closed.includes(g.id);
+  const Arrow = open ? ChevronUp : ChevronDown;
+  return (
+    <div className="pt-2" data-testid={`sidebar-group-${g.id}`}>
+      <button onClick={() => toggle(g.id)} aria-expanded={open} data-testid={`sidebar-group-toggle-${g.id}`}
+        className="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400 hover:text-white transition-colors">
+        {g.label}<Arrow className="h-4 w-4" /></button>
+      <div className={`grid transition-[grid-template-rows] duration-200 ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+        <div className="overflow-hidden space-y-0.5">
+          {items.map((n) => { const on = isOn(n, pathname); return (
+            <NavLink key={n.id} to={n.to} end={n.to === "/"} onClick={onNav} data-testid={`sidebar-nav-${n.id}`} tabIndex={open ? 0 : -1}
+              className={`relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-[14.5px] font-medium transition-colors ${on ? "bg-white/10 text-white" : "text-slate-300 hover:bg-white/5 hover:text-white"}`}>
+              {on && <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r bg-emerald-400" />}<n.icon className="h-[18px] w-[18px]" /> {n.label}</NavLink>); })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const SideNav = ({ onNav }) => {
-  const { canWrite, settings, user, isAdmin } = useApp();
+  const { canWrite, settings, user, isAdmin, industry } = useApp();
   const { pathname } = useLocation();
-  const show = (n) => (!n.write || canWrite) && (!n.admin || isAdmin) && (!n.superadmin || user?.is_superadmin) && (!n.staff || user?.role !== "viewer")
+  const show = (n) => (!n.write || canWrite) && (!n.admin || isAdmin) && (!n.superadmin || (user?.is_superadmin && !user?.support_view)) && (!n.staff || user?.role !== "viewer")
     && (!n.online || !OFFLINE) && (!n.offline || OFFLINE);
+  const items = navItems(industry).filter(show);
+  const [closed, setClosed] = useState(() => { try { return JSON.parse(localStorage.getItem("eb_nav_closed") || "[]"); } catch { return []; } });
+  const toggle = (id) => setClosed((c) => { const nx = c.includes(id) ? c.filter((x) => x !== id) : [...c, id]; localStorage.setItem("eb_nav_closed", JSON.stringify(nx)); return nx; });
+  useEffect(() => {
+    const g = GROUPS.find((x) => items.some((n) => x.ids.includes(n.id) && isOn(n, pathname)));
+    // idempotent open (a flip toggle runs twice under React StrictMode and re-closes the group)
+    if (g) setClosed((c) => { if (!c.includes(g.id)) return c; const nx = c.filter((x) => x !== g.id); localStorage.setItem("eb_nav_closed", JSON.stringify(nx)); return nx; });
+  }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="flex h-full flex-col">
       <div className="px-5 py-6 flex items-center gap-3">
@@ -46,26 +93,11 @@ const SideNav = ({ onNav }) => {
           <div className="text-xs text-slate-400 truncate" data-testid="sidebar-company-name">{settings?.company_name}</div>
         </div>
       </div>
-      <nav className="flex-1 px-3 space-y-1">
-        {NAV.filter(show).map((n) => (
-          <NavLink
-            key={n.id}
-            to={n.to}
-            end={n.to === "/"}
-            onClick={onNav}
-            data-testid={`sidebar-nav-${n.id}`}
-            className={({ isActive }) =>
-              `flex items-center gap-3 rounded-lg px-3 py-3 text-[15px] font-medium transition-colors ${
-                (n.match ? n.match(pathname) : isActive) ? "bg-white/10 text-white" : "text-slate-300 hover:bg-white/5 hover:text-white"
-              }`
-            }
-          >
-            <n.icon className="h-5 w-5" /> {n.label}
-          </NavLink>
-        ))}
+      <nav className="flex-1 px-3 pb-4 overflow-y-auto">
+        {GROUPS.map((g) => { const list = items.filter((n) => g.ids.includes(n.id)); return list.length ? <NavGroup key={g.id} g={g} items={list} pathname={pathname} closed={closed} toggle={toggle} onNav={onNav} /> : null; })}
       </nav>
       <div className="px-5 py-4 text-[11px] text-slate-500 leading-relaxed space-y-4">
-        <div>Shortcuts: Alt+S Sales · Alt+P Purchase · Alt+R Receipt · Alt+Y Payment · Alt+C Contra · Alt+J Journal</div>
+        <div className="hidden md:block">Shortcuts: Alt+S Sales · Alt+P Purchase · Alt+R Receipt · Alt+Y Payment · Alt+C Contra · Alt+J Journal</div>
         <MadeBy dark />
       </div>
     </div>
@@ -109,15 +141,42 @@ const TopBar = ({ onMenu }) => {
   );
 };
 
+const SupportBanner = () => {
+  const { user, settings, exitSupport } = useApp();
+  const nav = useNavigate();
+  if (!user?.support_view) return null;
+  return (
+    <div className="bg-amber-400 text-amber-950 px-4 py-2 text-sm font-medium flex items-center gap-3" data-testid="support-view-banner">
+      Support view (read-only) - {settings?.company_name}. Every access is logged.
+      <Button size="sm" variant="outline" className="ml-auto h-8 bg-white" onClick={async () => { await exitSupport(); nav("/super-admin"); }} data-testid="support-view-exit">Exit support view</Button>
+    </div>
+  );
+};
+
+const LockGate = ({ children }) => {
+  const { biz, user, logout } = useApp();
+  const { pathname } = useLocation();
+  if (!biz?.locked || user?.is_superadmin || pathname.startsWith("/subscription")) return children;
+  const susp = biz.status === "suspended";
+  return (
+    <div className="mx-auto max-w-lg mt-16 rounded-2xl border bg-white p-8 text-center space-y-4" data-testid="account-locked-screen">
+      <h1 className="font-heading text-2xl font-extrabold">{susp ? "Account suspended" : "Subscription Expired"}</h1>
+      <p className="text-slate-600">{susp ? "This account has been suspended. Contact Support to restore access." : "Your 7-day read-only grace period has ended. Contact Support to Renew, or renew online now."}</p>
+      <div className="flex justify-center gap-2">{!susp && <Link to="/subscription"><Button data-testid="locked-renew-button">Renew now</Button></Link>}
+        <Button variant="outline" onClick={logout} data-testid="locked-logout-button">Log out</Button></div>
+    </div>
+  );
+};
+
 const PlanBanner = () => {
   const { biz, isAdmin } = useApp();
-  if (!biz?.alert) return null;
+  if (!biz?.alert || biz.locked) return null;
   const expired = biz.status === "expired";
   const offMsg = expired ? (biz.reason || "No active licence. Enter a subscription key to continue.")
     : biz.status === "trial" ? `Free trial: ${biz.days_left} day${biz.days_left === 1 ? "" : "s"} left. All features are unlocked. Enter a subscription key before it ends.`
     : `Your licence expires in ${biz.days_left} days. Buy a renewal key.`;
   const msg = OFFLINE ? offMsg
-    : expired ? `Your ${biz.plan === "trial" ? "free trial" : "subscription"} has expired. Books are read-only.`
+    : expired ? `Your ${biz.plan === "trial" ? "free trial" : "subscription"} has expired. Books are read-only for 7 days, then locked until you renew.`
     : biz.status === "trial" ? `Free trial: ${biz.days_left} day${biz.days_left === 1 ? "" : "s"} left.` : `Your annual subscription expires in ${biz.days_left} days.`;
   return (
     <div className={`no-print flex flex-wrap items-center gap-3 px-4 lg:px-8 py-2.5 text-sm border-b ${expired ? "bg-red-50 text-red-800 border-red-200" : "bg-amber-50 text-amber-900 border-amber-200"}`} data-testid="plan-banner">
@@ -144,8 +203,9 @@ export default function Layout() {
         </div>
       )}
       <TopBar onMenu={() => setOpen(true)} />
+      <SupportBanner />
       <PlanBanner />
-      <main className="px-4 py-6 lg:px-8 lg:py-8 max-w-[1600px]"><Outlet /></main>
+      <main className="px-4 py-6 lg:px-8 lg:py-8 max-w-[1600px]"><LockGate><Outlet /></LockGate></main>
       <footer className="no-print px-4 lg:px-8 py-6 border-t lg:hidden"><MadeBy /></footer>
       <footer className="no-print hidden lg:block px-8 py-4 border-t"><Copyright /></footer>
     </div>

@@ -23,7 +23,7 @@ def W():
     a = requests.post(f"{API}/auth/login", json={"email": "admin@easybooks.in", "password": "Admin@123"})
     assert a.status_code == 200
     admin = sess(a.json()["token"])
-    r = requests.post(f"{API}/auth/signup", json={"business_name": f"TEST_R11_{U}", "name": "TEST Owner", "email": f"test_r11_{U}_{uuid.uuid4().hex[:4]}@example.com",
+    r = requests.post(f"{API}/auth/signup", json={"industry_type": "wholesale", "business_name": f"TEST_R11_{U}", "name": "TEST Owner", "email": f"test_r11_{U}_{uuid.uuid4().hex[:4]}@example.com",
                                                   "password": "secret1", "phone": "", "state": "Maharashtra", "gstin": ""})
     assert r.status_code == 200, r.text
     s = sess(r.json()["token"])

@@ -25,11 +25,13 @@ def verify_password(p: str, h: str) -> bool:
     return bcrypt.checkpw(p.encode(), h.encode())
 
 
-def create_token(user: dict, bid: Optional[str] = None) -> str:
+def create_token(user: dict, bid: Optional[str] = None, support: bool = False) -> str:
     payload = {"sub": user["id"], "email": user["email"], "type": "access",
-               "exp": datetime.now(timezone.utc) + timedelta(hours=12)}
+               "exp": datetime.now(timezone.utc) + timedelta(hours=2 if support else 12)}
     if bid:
         payload["bid"] = bid
+    if support:
+        payload["sv"] = True
     return jwt.encode(payload, os.environ["JWT_SECRET"], algorithm=ALG)
 
 
@@ -50,10 +52,20 @@ async def get_current_user(request: Request) -> dict:
     bid = payload.get("bid")
     if bid and bid != user["business_id"]:
         m = await db.memberships.find_one({"user_id": user["id"], "business_id": bid}, NO_ID)
-        if not m:
+        if not m and not (payload.get("sv") and user.get("is_superadmin")):
             raise HTTPException(401, "Your access to that client business was removed. Please sign in again.")
-        user = {**user, "home_business_id": user["business_id"], "home_role": user["role"], "business_id": bid, "role": m["role"]}
+        user = {**user, "home_business_id": user["business_id"], "home_role": user["role"], "business_id": bid,
+                "role": m["role"] if m else "viewer", **({} if m else {"support_view": True})}
+    if not user.get("is_superadmin") and request.url.path not in UNLOCKED_PATHS:
+        st = status_of(await get_business(user["business_id"]) or {})
+        if st.get("locked"):
+            msg = "This account is suspended - Contact Support" if st["status"] == "suspended" else "Subscription Expired - Contact Support to Renew"
+            raise HTTPException(423, msg)
     return user
+
+
+UNLOCKED_PATHS = {"/api/auth/me", "/api/financial-years", "/api/billing/status", "/api/billing/plans", "/api/billing/order",
+                  "/api/billing/verify", "/api/billing/payments", "/api/licences", "/api/settings", "/api/industry", "/api/ca/businesses", "/api/ca/switch"}
 
 
 def require_roles(*roles, write=False):
@@ -106,6 +118,8 @@ class SignupIn(BaseModel):
     phone: str = ""
     state: str = ""
     gstin: str = ""
+    industry_type: Literal["retail", "college", "hospital", "wholesale", "services"]
+    industry_mode: Literal["billing", "complete"] = "complete"
 
 
 class PasswordChange(BaseModel):
@@ -143,7 +157,7 @@ async def signup(body: SignupIn):
         raise HTTPException(403, "This offline installation is already set up. Ask the admin to add users.")
     if body.gstin.strip() and not re.match(r"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$", body.gstin.strip().upper()):
         raise HTTPException(400, "Invalid GSTIN format")
-    biz = await create_business(body.business_name, email, body.phone, body.state, body.gstin.strip().upper())
+    biz = await create_business(body.business_name, email, body.phone, body.state, body.gstin.strip().upper(), body.industry_type, body.industry_mode)
     user = {"id": new_id(), "business_id": biz["id"], "name": body.name.strip(), "email": email, "role": "admin",
             "active": True, "password_hash": hash_password(body.password), "created_at": now_iso()}
     await db.users.insert_one(user)

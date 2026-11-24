@@ -13,7 +13,7 @@ H = lambda t: {"Authorization": f"Bearer {t}"}
 
 def signup(name):
     e = f"test_cag_{uuid.uuid4().hex[:8]}@ex.in"
-    r = requests.post(f"{API}/auth/signup", json={"business_name": name, "name": name, "email": e, "password": "secret12", "state": "27-Maharashtra"})
+    r = requests.post(f"{API}/auth/signup", json={"industry_type": "wholesale", "business_name": name, "name": name, "email": e, "password": "secret12", "state": "27-Maharashtra"})
     assert r.status_code == 200, r.text
     return r.json()["token"], e, r.json()["user"]
 
@@ -29,7 +29,7 @@ def W():
     ca, ca_e, ca_u = signup("TEST_CAG Firm")
     b, b_e, b_u = signup("TEST_CAG Second")
     v, v_e, v_u = signup("TEST_CAG Viewer")
-    c = requests.post(f"{API}/ca/clients", headers=H(ca), json={"business_name": "TEST_CAG Client"}).json()
+    c = requests.post(f"{API}/ca/clients", headers=H(ca), json={"industry_type": "wholesale", "business_name": "TEST_CAG Client"}).json()
     return dict(ca=ca, ca_e=ca_e, ca_u=ca_u, b=b, b_e=b_e, b_u=b_u, v=v, v_e=v_e, v_u=v_u, c=c["id"], tc=switch(ca, c["id"]))
 
 

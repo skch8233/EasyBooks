@@ -8,7 +8,7 @@ API = os.environ["REACT_APP_BACKEND_URL"].rstrip("/") + "/api"
 
 def signup(name):
     e = f"test_ca_{uuid.uuid4().hex[:8]}@ex.in"
-    r = requests.post(f"{API}/auth/signup", json={"business_name": name, "name": name, "email": e, "password": "secret12", "state": "27-Maharashtra"})
+    r = requests.post(f"{API}/auth/signup", json={"industry_type": "wholesale", "business_name": name, "name": name, "email": e, "password": "secret12", "state": "27-Maharashtra"})
     assert r.status_code == 200, r.text
     return r.json()["token"], e
 
@@ -20,7 +20,7 @@ def test_ca_flow():
     ca, ca_email = signup("TEST_CA Firm")
     owner, _ = signup("TEST_Owner Biz")
     # CA creates a client business
-    r = requests.post(f"{API}/ca/clients", headers=H(ca), json={"business_name": "TEST_Client One", "business_type": "company", "state": "29-Karnataka"})
+    r = requests.post(f"{API}/ca/clients", headers=H(ca), json={"industry_type": "wholesale", "business_name": "TEST_Client One", "business_type": "company", "state": "29-Karnataka"})
     assert r.status_code == 200, r.text
     c1 = r.json()["id"]
     # owner grants CA access to their business

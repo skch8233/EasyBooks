@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
+import { IndustryPicker } from "@/components/settings/IndustrySettings";
+import { IND_KEYS } from "@/lib/industry";
 import { BookMarked, Loader2, CheckCircle2 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { errMsg } from "@/lib/api";
@@ -17,13 +19,16 @@ const FIELDS = [
 
 export default function Signup() {
   const { user, signup } = useApp();
-  const [f, setF] = useState({ business_name: "", name: "", email: "", phone: "", password: "", gstin: "", state: "" });
+  const [sp] = useSearchParams();
+  const pre = IND_KEYS.includes(sp.get("industry")) ? sp.get("industry") : "";
+  const [f, setF] = useState({ business_name: "", name: "", email: "", phone: "", password: "", gstin: "", state: "", industry_type: pre, industry_mode: sp.get("mode") === "billing" ? "billing" : "complete" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   if (user) return <Navigate to="/" replace />;
 
   const submit = async (e) => {
     e.preventDefault();
+    if (!f.industry_type) return setError("Select your industry to continue");
     setBusy(true);
     setError("");
     try { await signup(f); } catch (err) { setError(errMsg(err)); } finally { setBusy(false); }
@@ -42,13 +47,16 @@ export default function Signup() {
             <li key={t} className="flex items-center gap-3"><CheckCircle2 className="h-5 w-5 text-emerald-400" /> {t}</li>
           ))}
         </ul>
-        <p className="text-sm text-slate-400">After the trial: ₹6,500 + GST / year (1 + 1 free user) or ₹10,000 + GST / year (3 to 8 users).</p>
+        <p className="text-sm text-slate-400">After the trial: from ₹2,500 + GST / year depending on your industry. <Link to="/pricing" className="underline">See pricing</Link></p>
       </div>
       <div className="flex items-center justify-center p-6">
         <form onSubmit={submit} className="w-full max-w-xl fade-up" data-testid="signup-form">
           <h2 className="font-heading text-3xl font-bold tracking-tight">Create your business account</h2>
           <p className="mt-2 text-slate-500">Already have an account? <Link to="/login" className="text-primary font-medium hover:underline" data-testid="goto-login-link">Sign in</Link></p>
-          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          <div className="mt-8 space-y-2" data-testid="signup-industry-step"><Label>1. Select your industry</Label>
+            <IndustryPicker value={f} onChange={(v) => setF({ ...f, ...v })} testid="signup-industry" /></div>
+          <div className="mt-6 text-sm font-medium">2. Business details</div>
+          <div className="mt-3 grid gap-4 sm:grid-cols-2">
             {FIELDS.map(([k, label, type]) => (
               <div key={k} className="space-y-1.5">
                 <Label htmlFor={k}>{label}</Label>

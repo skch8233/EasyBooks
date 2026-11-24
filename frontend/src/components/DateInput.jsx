@@ -25,7 +25,7 @@ export const DateInput = ({ value, onChange, testid, className = "" }) => {
         onChange={(e) => setText(e.target.value)}
         onBlur={commit}
         onKeyDown={(e) => e.key === "Enter" && commit()}
-        className="h-11 pr-10 font-mono"
+        className="h-10 pr-10 font-mono"
       />
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>

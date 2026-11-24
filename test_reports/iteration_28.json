@@ -1,0 +1,46 @@
+{
+  "summary": "Round 14 Part 2 Super Admin tested end-to-end (backend pytest 20 cases + 6 Playwright UI flows) plus Part 1 regression. All 5 requested fixes verified working (blank-ref reject with no side-effects, trial14 with missing/naive trial_ends, expiring_7d excludes no-end-date, explicit lift_suspension + audit, trial14 courtesy on expired paid / refused on active paid, CSV UTF-8 BOM, ConfigDialog re-inits correctly when switching orgs). FOUND & FIXED one CRITICAL frontend crash: Layout.jsx used <Button> without importing it -> 'Button is not defined' runtime error blew up the whole app whenever SupportBanner (support view) or LockGate (suspended / expired>7d) rendered. After the 1-line import fix, support view, lock screen, suspended screen all work. One remaining backend bug: naive (no-timezone) stored dates crash status_of -> 500 on /api/super/orgs, /api/super/overview and every request of that org's users; extend 'month/year/days' also 500s on naive subscription_ends.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "GET /api/super/orgs, GET /api/super/overview (and get_current_user for that org's users)", "issue": "business._days_left() does datetime.fromisoformat(iso) - datetime.now(timezone.utc); if any business has a naive trial_ends/subscription_ends (e.g. '2026-12-01T00:00:00') -> TypeError 'can't subtract offset-naive and offset-aware datetimes' -> 500. One bad row breaks the entire Super Admin org list/overview. Fix: use parse_dt() in _days_left (and compare with parse_dt instead of raw string compare in _status).", "priority": "HIGH"},
+      {"endpoint": "POST /api/super/orgs/{bid}/extend (period month/year/days)", "issue": "extend_subscription() uses datetime.fromisoformat(b['subscription_ends']) then max() with aware now -> 500 when subscription_ends is naive. Fix 2 only made trial14 safe. Use parse_dt() here too.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "_status()", "issue": "Active/trial check is a lexicographic string compare (b['subscription_ends'] > now_iso()); fragile for naive/'Z' formats - use parse_dt."},
+      {"endpoint": "PUT /api/super/plans/{key}", "issue": "Editing a multi-tier plan rewrites users_label from '3 to 8 users' to 'Up to 8 users' (cosmetic label drift)."},
+      {"endpoint": "_orgs plan_label", "issue": "Expired trial orgs show raw plan key 'trial' (lowercase) in 'Current plan' column instead of 'Free Trial (expired)'."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Layout.jsx SupportBanner + LockGate", "issue": "FIXED BY TESTER: missing `import { Button } from '@/components/ui/button'` caused full-app runtime crash 'Button is not defined' on support view and locked/suspended screens.", "selector": "[data-testid=support-view-banner], [data-testid=account-locked-screen]", "priority": "CRITICAL (fixed)"}
+    ],
+    "integration_issues": [
+      {"flow": "Locked/suspended org", "issue": "Unhandled promise rejections 'Request failed with status code 423' (4x) from data fetches behind the lock screen - harmless but noisy; catch 423 in api interceptor.", "affected_selectors": ["[data-testid=account-locked-screen]"]}
+    ],
+    "design_issues": [
+      {"screen": "Lock screen", "issues": ["Top PlanBanner still says 'Books are read-only for 7 days, then locked until you renew' while the body says grace has ended - contradictory; hide/adjust banner when locked."]},
+      {"screen": "Support view", "issues": ["Sidebar still shows 'Super Admin' link which just redirects to '/' while in support view."]},
+      {"screen": "Organizations tab", "issues": ["No empty-state row when filters return 0 organizations (just a bare header)."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_round19_superadmin.py", "/app/backend/tests/ui_setup_round19.py", "/app/test_reports/pytest/round19.xml"],
+  "action_items": [
+    "Use parse_dt() in business._days_left, business._status and business.extend_subscription so naive/Z ISO dates never 500 (tests test_orgs_list_survives_naive_trial_ends, test_year_extend_naive_subscription_ends currently fail)",
+    "Keep the Button import added to /app/frontend/src/components/Layout.jsx",
+    "Hide 'read-only for 7 days' PlanBanner on lock screen; handle 423 in axios interceptor; show 'Free Trial (expired)' instead of raw 'trial' plan label",
+    "Optional: hide Super Admin nav link during support view; empty state for org table"
+  ],
+  "critical_code_review_comments": [
+    "Date handling is inconsistent: parse_dt exists but _days_left/_status/extend_subscription still use raw fromisoformat/string compares.",
+    "Custom plans deleted from plan_settings stay in in-memory PLANS until backend restart (no delete endpoint; fine but note for ops).",
+    "load_plan_overrides mutates module-level PLANS - multi-worker deployments would diverge until restart."
+  ],
+  "updated_files": ["/app/frontend/src/components/Layout.jsx (added Button import)", "/app/backend/tests/test_round19_superadmin.py", "/app/backend/tests/ui_setup_round19.py"],
+  "success_rate": {"backend": "90% (18/20 Round19; Part 1 regression round15/15b/17/18/ca_parity 26 passed, 1 skipped)", "frontend": "100% of tested flows after the Layout import fix (was crashing for support view & lock screens)"},
+  "seed_data_creation": "TEST_SA* and TEST_R19* businesses created via signup and deleted (businesses/users/settings/ledgers/fys/audit/subscription_ledger/support log by business_id). plan_settings overrides for retail_complete_multi and test custom plans deleted and backend restarted -> retail_complete_multi back to 8500/8. Audit rows for plan edits remain under admin's business. Pre-existing 'TEST_SA2 Co'/'SA Test Co' ledger rows (main agent's) untouched.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run: export REACT_APP_BACKEND_URL=...; pytest tests/test_round19_superadmin.py -n 0 (uses pymongo with backend/.env to set expired/naive dates on its own TEST orgs and cleans up). If test_create_custom_plan ran, restart backend before running test_round15b (in-memory PLANS keeps custom plan -> college price set mismatch). UI setup helper: python tests/ui_setup_round19.py [cleanup]. Server date is Nov 2026. CA switcher UI not re-tested in browser this round (backend parity test passed).",
+  "rca of the issue": "Support view/lock screen crash: Layout.jsx SupportBanner/LockGate render <Button> but Layout never imported Button -> ReferenceError at render. Naive date 500: _days_left subtracts naive datetime from aware now."
+}

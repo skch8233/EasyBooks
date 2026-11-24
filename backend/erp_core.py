@@ -8,7 +8,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
 from auth import ANY, SUPER
-from business import ERP_PLAN, get_business, status_of
+from business import ERP_PLAN, PLANS, get_business, status_of
 from db import db, NO_ID, new_id, now_iso, audit, clean
 from routes_admin import APP_NAME, _storage
 
@@ -27,6 +27,12 @@ STATUSES = ["Planning", "Running", "On Hold", "Completed", "Cancelled"]
 
 def erp_active(b: dict) -> bool:
     if os.environ.get("OFFLINE_MODE") == "1":
+        return True
+    if "erp" in (b.get("modules") or {}):
+        return bool(b["modules"]["erp"])
+    st = status_of(b)
+    if st["status"] == "trial" or (st["status"] == "active" and b.get("plan", "") in PLANS and PLANS[b["plan"]].get("industry")
+                                    and not b["plan"].startswith("wholesale_billing")):
         return True
     return bool(b.get("erp_ends")) and b["erp_ends"] > now_iso()
 

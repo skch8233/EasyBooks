@@ -24,7 +24,7 @@ def login(email, pw):
 
 def signup(prefix):
     email = f"test_{prefix}_{uuid.uuid4().hex[:6]}@example.com"
-    r = requests.post(f"{API}/auth/signup", json={"business_name": f"TEST_{prefix} Traders", "name": "TEST Owner", "email": email,
+    r = requests.post(f"{API}/auth/signup", json={"industry_type": "wholesale", "business_name": f"TEST_{prefix} Traders", "name": "TEST Owner", "email": email,
                                                   "password": "secret1", "state": "Maharashtra", "gstin": ""})
     assert r.status_code == 200, r.text
     s = requests.Session()

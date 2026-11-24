@@ -18,7 +18,7 @@ VOUCHER_FIELDS = ("voucher_type", "voucher_no", "date", "party_name", "party_led
 @router.get("/public/plans")
 async def public_plans():
     _, kid = _rzp()
-    return {"plans": list(PLANS.values()), "offline_plans": list(OFFLINE_PLANS.values()), "trial_days": TRIAL_DAYS, "trial_users": TRIAL_USERS, "payments_enabled": bool(kid)}
+    return {"plans": [p for p in PLANS.values() if not p.get("legacy")], "offline_plans": list(OFFLINE_PLANS.values()), "trial_days": TRIAL_DAYS, "trial_users": TRIAL_USERS, "payments_enabled": bool(kid)}
 
 
 @router.post("/vouchers/{vid}/share")

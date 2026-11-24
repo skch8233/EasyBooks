@@ -1,0 +1,49 @@
+{
+  "summary": "Iteration 26: retest of the iteration_25 fixes and Round 14 Part 1. Backend: new test_round17_industry_retest.py (10 tests, 9 pass) and test_round17_demo_ratelimit.py (1 of 1 pass). The earlier suites round15, round15b and round16 pass 25 of 25. Frontend (Playwright): POS, Patients (IPD to OPD switch), pharmacy bill, TDS, Payroll, Subscription text, sidebar direct load, mobile drawer, signup with industry, admin login and fee collection checked end to end. Most fixes work. The one serious problem: the demo rate limit now stores the load balancer's IP, so all visitors share a single limit of 10 demos per hour.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST /api/public/demo", "issue": "Spoofing is blocked: after the 429, requests with X-Forwarded-For 10.9.8.7 or '1.2.3.4, 5.6.7.8' still get 429. But the right-most hop is the GCP load balancer, not the client. I logged the header once (the debug line is removed): 'X-Forwarded-For: 9.9.9.9,34.170.12.145,104.22.62.160,34.149.9.106' = spoofed value, real client, Cloudflare edge, GCP LB. Every visitor is stored under ip=34.149.9.106 in db.demo_hits, so after any 10 demos in an hour the demo is blocked for everyone. Fix: use CF-Connecting-IP if present, or count back a fixed number of trusted proxy hops (e.g. xff[-3], hop count from env). Do not use the first value, which the client controls.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "POST /api/industry/sample-data", "issue": "Not idempotent. Calling it twice gives 6 stock items with duplicate names and barcodes (and duplicate students, patients and medicines). Return 409 or skip if sample data already exists, e.g. a flag on the business or a check for the sample barcode or roll no. Note there is no frontend button that calls this endpoint yet."},
+      {"endpoint": "POS / POST /api/vouchers", "issue": "Selling 7 Parle-G when only 4 are in stock is allowed (the UI shows 'only 4 in stock' but saves anyway). This was already the behaviour before; flagging in case negative stock should be blocked."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Pharmacy Stock form and TDS form", "issues": ["DateInput and Pick are now h-10 (40px), but the plain shadcn Inputs on these forms are still h-9 (36px). The Expiry (Pharmacy) and Date (TDS) fields and their labels sit 4px higher than the inputs beside them. Payroll is aligned because that form has no plain inputs. Fix: add h-10 to those Inputs (or make DateInput match the Input height on forms with no dropdowns).", "TDS 'TDS on (blank = bill)' placeholder '11800 (bill amount)' is cut off as '11800 (bill amoun' at 1920px. Shorten it to '= bill' or widen the field."]}
+    ]
+  },
+  "passed_items": [
+    "POS: Tata Salt x1 + Parle-G x7 + Amul Butter x3 -> pos-total 377.00, thermal receipt TOTAL 377.00 (taxable 330.34 + GST 46.66), posted voucher SAL/2026-27/0001 amount 377.0. The backend test that simulates postLines also gives 377.00.",
+    "Patients: choosing IPD, filling admission 10-11-2026 and discharge 12-11-2026, then switching to OPD sends admission_date='' and discharge_date=''. Stored OPD/0001 has empty dates. The backend also clears the dates when it receives them on an OPD bill, and keeps them on IPD bills.",
+    "TDS: with the base left blank the placeholder shows '11800 (bill amount)', the preview shows TDS 1,180 and net 10,620, and the receipt is stored with tds_base 11800. Base 2000 on a 1000 bill shows the 400 error message in a toast. API returns 400 for base > bill and for TDS > base.",
+    "Payroll history row shows a 'View payslips' cue; expanding it shows the payslip print button. DateInput on Payroll is 40px, in line with the dropdowns.",
+    "Services billing plan on the Subscription page shows 'Recurring bills, receipts & TDS tracking'.",
+    "Mobile drawer (390px) does not show the shortcuts text.",
+    "Sidebar: with eb_nav_closed=['reports'], loading /reports/trial-balance directly opens the Reports group.",
+    "POS 'Paid by' dropdown text is visible: slate-900 text on a white background.",
+    "POST /api/industry/sample-data loads 2 students and 1 staff (college), 1 patient and 2 medicines (hospital), 3 stock items (retail). Needs auth (401 without a token).",
+    "Regression: signup through the UI with industry College shows the college menu; admin@easybooks.in logs in and sees all 17 menu items; fee collection FR/0001 for 5,000 updates the KPIs; hospital pharmacy bill PH/0001 for Paracetamol x10 = 20.00 with GST 2.14 is correct."
+  ],
+  "test_report_links": ["/app/backend/tests/test_round17_industry_retest.py", "/app/backend/tests/test_round17_demo_ratelimit.py", "/app/test_reports/pytest/pytest_results_r17.xml"],
+  "action_items": [
+    "HIGH: Demo rate limit key should be the real client IP (CF-Connecting-IP, or the X-Forwarded-For hop just left of the trusted Cloudflare and GCP LB proxies), not xff[-1], which is the shared load balancer IP 34.149.9.106.",
+    "Make /api/industry/sample-data idempotent (skip or 409 when sample data is already loaded), and add a UI entry point if one is intended.",
+    "Pharmacy and TDS forms: make the plain Inputs h-10 so they line up with DateInput and Pick; shorten the TDS base placeholder."
+  ],
+  "critical_code_review_comments": [
+    "industry.py demo(): the comment 'right-most X-Forwarded-For hop is appended by our ingress' is wrong for this deployment: the chain is client -> Cloudflare -> GCP LB -> ingress.",
+    "seed_sample(): no existence check, so it duplicates data when called again.",
+    "industry.py is about 560 lines; it is getting close to the 700-line limit for splitting."
+  ],
+  "updated_files": ["/app/backend/tests/test_round17_industry_retest.py", "/app/backend/tests/test_round17_demo_ratelimit.py"],
+  "success_rate": {"backend": "91% (10/11 new; 25/25 earlier suites)", "frontend": "95% (all functional checks pass; 1 alignment issue)"},
+  "seed_data_creation": "Created signup businesses named 'TEST_R17 ...' (retail, hospital, services, college) with emails test_r17_*@ex.in, plus about 10 demo sandboxes (auto-cleaned after 24h). There is no delete-business API, so the TEST_R17 businesses are left in place. No seed or admin data was changed.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run test_round17_demo_ratelimit.py LAST: it uses up the hourly demo quota, which right now is shared by everyone because the key is the LB IP 34.149.9.106. db.demo_hits holds {ip, ts}. The real client IP is the 3rd hop from the right in X-Forwarded-For. Use signups plus /api/industry/sample-data for industry data. /api/stock-items returns {items: [...]}.",
+  "rca of the issue": "Demo limit: X-Forwarded-For looks like '<client-supplied>,<real client>,<Cloudflare edge>,<GCP LB 34.149.9.106>'. The code takes xff[-1], the load balancer IP, which is the same for every request, so all users share one bucket. Seen by logging the header once (the debug print is reverted) and by db.demo_hits holding only ip 34.149.9.106 while this container's egress IP is 34.170.12.145. Fix: use CF-Connecting-IP when present, or a set number of trusted hops."
+}

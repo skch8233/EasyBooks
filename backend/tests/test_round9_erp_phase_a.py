@@ -62,7 +62,7 @@ class TestGating:
             assert s.get(f"{API}{path}").status_code == 402, path
 
     def test_superadmin_grant_and_inter_state_igst(self, admin):
-        r = requests.post(f"{API}/auth/signup", json={"business_name": f"TEST_ERP_Biz_{U}", "name": "TEST Owner", "email": f"test_erp_{U}@example.com",
+        r = requests.post(f"{API}/auth/signup", json={"industry_type": "wholesale", "business_name": f"TEST_ERP_Biz_{U}", "name": "TEST Owner", "email": f"test_erp_{U}@example.com",
                                                       "password": "secret1", "phone": "", "state": "Maharashtra", "gstin": ""})
         assert r.status_code == 200, r.text
         s = requests.Session()

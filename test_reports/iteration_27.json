@@ -1,0 +1,46 @@
+{
+  "summary": "Iteration 27: final retest of the iteration_26 fixes. All 4 requested items pass. (1) Demo rate limit: requests are now keyed by the real client IP. The first 3 hits were stored as ip=34.170.12.145, which is my real egress IP (confirmed with api.ipify), not the LB IP 34.149.9.106. A spoofed 'X-Forwarded-For: 9.9.9.9' was still counted under my real IP. After 10 hits I got a 429, and the spoofed XFF '1.2.3.4, 5.6.7.8' also got 429. A client-sent CF-Connecting-IP header is rejected by Cloudflare (403, error 1000), so it cannot be spoofed through the edge. The LB-IP bucket is separate, so visitors no longer share one limit. (2) sample-data: the 2nd call returns 409 'Sample data for this industry is already loaded' for retail, college and hospital, with no duplicate rows. In the UI, industry-sample-button showed 'Sample data loaded' first and the 409 message the second time. One new problem: 5 parallel calls gave [200,200,200,409,409] and 9 stock items (a check-then-set race). (3) Pharmacy and TDS: every input, DateInput and dropdown is 40px tall with the same top. The TDS base placeholder is '= 11800' (or 'Value before GST' when empty) and is not cut off. (4) Regression: POS sale Tata+Amul = 86.00, saved SAL/2026-27/0001. Fee collection FR/0001 for 5,000 opened the receipt popup and updated the KPIs. Pharmacy bill PH/0001 for Paracetamol x10 = 20.00 reduced stock 200->190 and printed. Sidebar group collapse/expand works (height 210->37->210, aria-expanded toggles and survives a reload). Backend: new test_round18_sample_idempotent.py passes 4 of 5 (the race test fails). Earlier suites round15, 15b, 16 and 17 pass 35 of 35.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/industry/sample-data", "issue": "Race condition. The endpoint reads b.sample_loaded, then seeds, then sets the flag, so the steps are not atomic. 5 parallel calls gave 3x200 and 9 stock items (duplicates). This can happen with a double-click, because the frontend button has no busy/disabled state. Fix: claim the flag first with update_one({id, 'sample_loaded.<ind>': {$exists: false}}, {$set: ...}), seed only if modified_count == 1, and return 409 otherwise."},
+      {"endpoint": "POST /api/industry/sample-data", "issue": "For the wholesale and services industries, seed_sample does nothing but the endpoint still returns 200 and the UI says 'Sample data loaded'. It also sets the flag. Either hide the button for these industries or return a message such as 'No sample data for this industry'."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "IndustrySettings sample button", "issue": "No loading/disabled state while the request runs, so a double-click can trigger the backend race described above.", "selector": "[data-testid='industry-sample-button']", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Patients & Billing - New bill form", "issues": ["The same height mismatch fixed on Pharmacy and TDS is still here. bill-doctor-input, bill-desc-input-0 and bill-amount-input-0 are 36px tall, while Pick dropdowns (patient, type, ledger, bill-med-select-0) are 40px. Add className='h-10' to those Inputs."]},
+      {"screen": "Reports > Trial Balance", "issues": ["The Project filter is a native <select> and its text is cut off ('Combined - whole b'). Use the Pick or shadcn Select and widen it."]}
+    ]
+  },
+  "passed_items": [
+    "Demo IP key = real client IP 34.170.12.145 (stored in db.demo_hits). A spoofed left-most XFF does not change the key. 429 after 10 hits and spoof does not bypass. Client CF-Connecting-IP is blocked by Cloudflare.",
+    "sample-data returns 409 on the 2nd call with no duplicates (retail 3 stock items, college 2 students, hospital 1 patient + 2 medicines). Requires auth (401/403).",
+    "UI sample button: 'Sample data loaded' toast first, then the 409 toast.",
+    "Pharmacy form: name, batch, expiry, qty, mrp and gst inputs all top=352, h=40.",
+    "TDS form: all fields top=274, h=40. Placeholder '= 11800'. Preview TDS 1,180 / net 10,620. Saved RCT/2026-27/0001 and TDS receivable shows 1,180.",
+    "POS sale, fee collection, pharmacy bill and sidebar collapse/expand all work."
+  ],
+  "test_report_links": ["/app/backend/tests/test_round18_sample_idempotent.py", "/app/test_reports/pytest/round18.xml"],
+  "action_items": [
+    "Make sample-data atomic: claim the sample_loaded flag with a conditional update before seeding.",
+    "Add a busy/disabled state to industry-sample-button.",
+    "Hide the sample button, or return a clear message, for industries with no sample data (wholesale, services).",
+    "Add h-10 to the plain Inputs in the Patients bill form.",
+    "Optional: replace the native Project select on Trial Balance."
+  ],
+  "critical_code_review_comments": [
+    "industry.py demo(): if a request ever reaches the origin without passing through Cloudflare, a client could spoof cf-connecting-ip, and the xff[0] fallback (used when there are fewer than 3 hops) is spoofable too. Consider making the hop count configurable from env. Through the current ingress, both are safe.",
+    "industry.py sample_data(): the check-then-act sequence is not atomic (see backend minor)."
+  ],
+  "updated_files": ["/app/backend/tests/test_round18_sample_idempotent.py"],
+  "success_rate": {"backend": "97% (39/40; only the race test fails)", "frontend": "100% of requested flows"},
+  "seed_data_creation": "Created TEST_R18* signups (9 businesses) and deleted them, with their data, by business id. Also created about 20 demo sandboxes, which are removed by the 24h demo cleanup. Admin data was not touched.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Egress IP 34.170.12.145 was demo-rate-limited at 05:44 UTC on 22-11-2026 (10 hits). Run test_round18_sample_idempotent.py with -n 0 or in normal mode. test_concurrent_calls_race should pass once sample-data is atomic."
+}

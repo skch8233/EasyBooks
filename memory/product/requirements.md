@@ -199,3 +199,15 @@ Round 14 decisions (user):
 - User limits: "Yes, keep the user limits" (2 users base vs 3 to 8 users). Price for the 3-8 user tier under new pricing not given yet — keep it configurable in the Super Admin plan manager.
 - Industries: "Yes, build all five industries now" (Retail POS, Colleges fees/student directory/payroll, Hospitals OPD/IPD/patient registration/pharmacy batch-expiry, Wholesale, Services) per the spec.
 - Existing businesses on old plans keep their current validity.
+
+## Round 14b — user's request (after Part 1 is fixed and verified, before Part 2)
+"also change the interface of website make it more userfriendy and add drop downand up cursor in options side also"
+- Interpreted: friendlier overall interface; the side menu (options side) gets collapsible groups with a down/up arrow to open and close each group.
+- Also from the Part 1 open items: use the app's own styled dropdowns and date pickers on the industry screens.
+
+## Round 15 — queued (user's words)
+"IN OFFLINE VERSION ALSO ADD DROP DOWN AND UP CURSOR IN OPTION SIDE ALSO"
+- Offline is frozen at offline-final-v1.0.14. Adding the collapsible side-menu groups (down/up arrows, from Round 14b) needs a new offline build.
+- User decisions: "Only the new side menu with up/down arrows, everything else stays as 1.0.14; and then start online version". Timing: "Right after the Super Admin fixes finish".
+  - So: build the new offline installer from the exact 1.0.14 code plus ONLY the collapsible side menu (four groups, down/up arrows, remembered open/closed state, current page highlighted). No industries, POS, college, hospital, Super Admin, styled pickers or any other online change.
+  - Publish as a new offline-final-v1.0.N release marked latest, same download link. Then re-freeze and continue online-only work.

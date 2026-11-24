@@ -12,7 +12,7 @@ P = {"from_date": "2026-04-01", "to_date": "2027-03-31"}
 
 def signup(name):
     e = f"test_cax_{uuid.uuid4().hex[:8]}@ex.in"
-    r = requests.post(f"{API}/auth/signup", json={"business_name": name, "name": name, "email": e, "password": "secret12", "state": "27-Maharashtra"})
+    r = requests.post(f"{API}/auth/signup", json={"industry_type": "wholesale", "business_name": name, "name": name, "email": e, "password": "secret12", "state": "27-Maharashtra"})
     assert r.status_code == 200, r.text
     return r.json()["token"], e, r.json()["user"]
 
@@ -47,14 +47,14 @@ def test_businesses_home_only(W):
 
 # client creation validation
 def test_client_validation(W):
-    assert requests.post(f"{API}/ca/clients", headers=H(W["ca"]), json={"business_name": "  "}).status_code == 400
-    r = requests.post(f"{API}/ca/clients", headers=H(W["ca"]), json={"business_name": "TEST_bad", "gstin": "12345"})
+    assert requests.post(f"{API}/ca/clients", headers=H(W["ca"]), json={"industry_type": "wholesale", "business_name": "  "}).status_code == 400
+    r = requests.post(f"{API}/ca/clients", headers=H(W["ca"]), json={"industry_type": "wholesale", "business_name": "TEST_bad", "gstin": "12345"})
     assert r.status_code == 400 and "GSTIN" in r.json()["detail"]
-    assert requests.post(f"{API}/ca/clients", headers=H(W["ca"]), json={"business_name": "TEST_x", "business_type": "trust"}).status_code == 422
+    assert requests.post(f"{API}/ca/clients", headers=H(W["ca"]), json={"industry_type": "wholesale", "business_name": "TEST_x", "business_type": "trust"}).status_code == 422
 
 
 def test_client_create_and_switch(W):
-    r = requests.post(f"{API}/ca/clients", headers=H(W["ca"]), json={"business_name": "TEST_CAX Client LLP", "business_type": "llp", "state": "29-Karnataka", "gstin": "29ABCDE1234F1Z5"})
+    r = requests.post(f"{API}/ca/clients", headers=H(W["ca"]), json={"industry_type": "wholesale", "business_name": "TEST_CAX Client LLP", "business_type": "llp", "state": "29-Karnataka", "gstin": "29ABCDE1234F1Z5"})
     assert r.status_code == 200, r.text
     c = r.json()
     assert c["role"] == "admin" and c["business_type"] == "llp" and c["current"] is False and c["gstin"] == "29ABCDE1234F1Z5"
@@ -127,7 +127,7 @@ def test_viewer_member_cannot_write(W):
     assert jv(t, "2026-05-10", g["bank"], g["capital"], 100).status_code == 403
     assert requests.get(f"{API}/vouchers", headers=H(t)).status_code == 200
     # viewer of member biz but admin at home: can still add client (home role)
-    r = requests.post(f"{API}/ca/clients", headers=H(t), json={"business_name": "TEST_CAX Client2"})
+    r = requests.post(f"{API}/ca/clients", headers=H(t), json={"industry_type": "wholesale", "business_name": "TEST_CAX Client2"})
     assert r.status_code == 200
     W["c2"] = r.json()["id"]
 
@@ -159,7 +159,7 @@ def test_viewer_home_cannot_add_client(W):
     if r.status_code != 200:
         pytest.skip(f"cannot create viewer: {r.status_code} {r.text}")
     t = requests.post(f"{API}/auth/login", json={"email": e, "password": "secret12"}).json()["token"]
-    r = requests.post(f"{API}/ca/clients", headers=H(t), json={"business_name": "TEST_viewer client"})
+    r = requests.post(f"{API}/ca/clients", headers=H(t), json={"industry_type": "wholesale", "business_name": "TEST_viewer client"})
     assert r.status_code == 403
     assert requests.get(f"{API}/ca/access", headers=H(t)).status_code == 403
 

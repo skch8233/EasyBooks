@@ -6,6 +6,8 @@ load_dotenv(Path(__file__).parent / ".env")
 import logging
 import os
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+import jwt
 from pymongo import ASCENDING, DESCENDING
 from starlette.middleware.cors import CORSMiddleware
 
@@ -31,18 +33,44 @@ import eway
 import fa_tax
 import gstin
 import ca
+import industry
+import superadmin
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Easy Books Accounting")
-for r in (auth.router, auth.users_router, routes_ledgers.router, routes_vouchers.router, routes_reports.router, routes_admin.router, billing.router, gst.router, public.router, stock.router, reminders.router, shop.router, erp_core.router, erp_sales.router, erp_purchase.router, erp_reports.router, final_accounts.router, eway.router, fa_tax.router, gstin.router, ca.router):
+for r in (auth.router, auth.users_router, routes_ledgers.router, routes_vouchers.router, routes_reports.router, routes_admin.router,
+          billing.router, gst.router, public.router, stock.router, reminders.router, shop.router, erp_core.router, erp_sales.router,
+          erp_purchase.router, erp_reports.router, final_accounts.router, eway.router, fa_tax.router, gstin.router, ca.router,
+          industry.router, superadmin.router):
     app.include_router(r)
 
 
 @app.get("/api/")
 async def root():
     return {"message": "Easy Books API"}
+
+
+BILLING_BLOCK = ("/api/reports/", "/api/depreciation", "/api/tax-provision", "/api/audit-logs", "/api/ca/")
+
+
+@app.middleware("http")
+async def billing_only_guard(request, call_next):
+    p = request.url.path
+    if p.startswith(BILLING_BLOCK) and not (p == "/api/reports/register" and request.query_params.get("voucher_type", "sales") == "sales"):
+        h = request.headers.get("authorization", "")
+        if h.startswith("Bearer "):
+            try:
+                pl = jwt.decode(h[7:], os.environ["JWT_SECRET"], algorithms=["HS256"])
+                bid = pl.get("bid") or (await db.users.find_one({"id": pl["sub"]}, {"_id": 0, "business_id": 1}) or {}).get("business_id")
+                b = await db.businesses.find_one({"id": bid}, {"_id": 0, "industry_type": 1, "industry_mode": 1}) if bid else None
+                if b and b.get("industry_type") in ("wholesale", "services") and b.get("industry_mode") == "billing":
+                    msg = "This report is part of the Complete Accounting & Billing set. Switch the plan in Settings > Industry."
+                    return JSONResponse({"detail": msg}, status_code=403)
+            except jwt.PyJWTError:
+                pass
+    return await call_next(request)
 
 
 app.add_middleware(
@@ -74,6 +102,8 @@ async def startup():
         await db.users.create_index("business_id")
         for c in ("ledgers", "vouchers", "financial_years", "audit_logs", "settings", "payments", "licences"):
             await db[c].create_index("business_id")
+        await superadmin.load_plan_overrides()
+        await db.payroll_runs.create_index([("business_id", ASCENDING), ("month", ASCENDING)], unique=True)
         await db.vouchers.create_index([("business_id", ASCENDING), ("status", ASCENDING), ("date", ASCENDING)])
         await db.licences.create_index("key", unique=True)
         await db.vouchers.create_index("share_token", sparse=True)
@@ -85,7 +115,8 @@ async def startup():
         await db.offline_licences.create_index("key", unique=True)
         await db.shop_orders.create_index("order_id")
         await db.erp_projects.create_index([("business_id", ASCENDING), ("code", ASCENDING)], unique=True)
-        await db.erp_invoices.create_index([("business_id", ASCENDING), ("number", ASCENDING)], unique=True, partialFilterExpression={"number": {"$type": "string"}})
+        await db.erp_invoices.create_index([("business_id", ASCENDING), ("number", ASCENDING)], unique=True,
+                                          partialFilterExpression={"number": {"$type": "string"}})
         await db.erp_used_numbers.create_index([("business_id", ASCENDING), ("number", ASCENDING)], unique=True)
         await db.erp_quotations.create_index([("business_id", ASCENDING), ("number", ASCENDING)], unique=True)
         await db.erp_parties.create_index([("business_id", ASCENDING), ("kind", ASCENDING)])
@@ -93,6 +124,9 @@ async def startup():
             await db[c].create_index([("business_id", ASCENDING), ("number", ASCENDING)], unique=True)
         await db.memberships.create_index([("user_id", ASCENDING), ("business_id", ASCENDING)], unique=True)
         await db.memberships.create_index("business_id")
+        for c in ("students", "fee_receipts", "staff", "payroll_runs", "patients", "medicines", "hospital_bills", "recurring_bills", "tds_entries"):
+            await db[c].create_index("business_id")
+        await db.payroll_runs.create_index([("business_id", ASCENDING), ("month", ASCENDING)], unique=True)
         await db.erp_vendor_quotes.create_index([("rfq_id", ASCENDING), ("vendor_id", ASCENDING)], unique=True)
     except Exception as exc:
         logger.error("index creation: %s", exc)

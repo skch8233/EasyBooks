@@ -10,7 +10,7 @@ T = date.today().isoformat()
 U = uuid.uuid4().hex[:6]
 adm = requests.Session()
 adm.headers["Authorization"] = "Bearer " + requests.post(f"{API}/auth/login", json={"email": "admin@easybooks.in", "password": "Admin@123"}).json()["token"]
-r = requests.post(f"{API}/auth/signup", json={"business_name": f"TEST_ERPR_{U}", "name": "TEST", "email": f"test_erpr_{U}@example.com", "password": "secret1",
+r = requests.post(f"{API}/auth/signup", json={"industry_type": "wholesale", "business_name": f"TEST_ERPR_{U}", "name": "TEST", "email": f"test_erpr_{U}@example.com", "password": "secret1",
                                              "phone": "", "state": "Maharashtra", "gstin": ""}).json()
 s = requests.Session()
 s.headers["Authorization"] = "Bearer " + r["token"]

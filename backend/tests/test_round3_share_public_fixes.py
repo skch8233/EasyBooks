@@ -23,7 +23,7 @@ def sess(email, pw):
 
 def signup(prefix="r3", gstin=""):
     email = f"test_{prefix}_{uuid.uuid4().hex[:6]}@example.com"
-    r = requests.post(f"{API}/auth/signup", json={"business_name": f"TEST_{prefix} Traders", "name": "TEST Owner", "email": email,
+    r = requests.post(f"{API}/auth/signup", json={"industry_type": "wholesale", "business_name": f"TEST_{prefix} Traders", "name": "TEST Owner", "email": email,
                                                   "password": "secret1", "state": "Maharashtra", "gstin": gstin})
     assert r.status_code == 200, r.text
     s = requests.Session()
@@ -173,7 +173,7 @@ class TestExpiredWrites:
 # --- Signup GSTIN ---
 class TestSignupGSTIN:
     def test_invalid_gstin_400(self):
-        r = requests.post(f"{API}/auth/signup", json={"business_name": "TEST_bad", "name": "x", "email": f"test_g_{uuid.uuid4().hex[:5]}@example.com",
+        r = requests.post(f"{API}/auth/signup", json={"industry_type": "wholesale", "business_name": "TEST_bad", "name": "x", "email": f"test_g_{uuid.uuid4().hex[:5]}@example.com",
                                                       "password": "secret1", "gstin": "BADGSTIN"})
         assert r.status_code == 400
 

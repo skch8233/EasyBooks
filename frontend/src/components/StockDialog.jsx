@@ -7,11 +7,11 @@ import { Label } from "@/components/ui/label";
 import { api, errMsg } from "@/lib/api";
 import { useApp } from "@/context/AppContext";
 
-const EMPTY = { name: "", hsn: "", unit: "Nos", gst_rate: 18, sale_rate: "", purchase_rate: "", opening_qty: 0, opening_rate: "", reorder_level: 0 };
+const EMPTY = { name: "", hsn: "", unit: "Nos", gst_rate: 18, sale_rate: "", purchase_rate: "", opening_qty: 0, opening_rate: "", reorder_level: 0, barcode: "", mrp: "" };
 const FIELDS = [
   ["name", "Item name", "text", "sm:col-span-2"], ["hsn", "HSN / SAC", "text"], ["unit", "Unit (Nos, Kg, Ltr, Box...)", "text"],
   ["sale_rate", "Sale rate (₹)", "number"], ["purchase_rate", "Purchase rate (₹)", "number"],
-  ["opening_qty", "Opening quantity", "number"], ["opening_rate", "Opening rate (₹ per unit)", "number"], ["reorder_level", "Low stock alert at (qty)", "number"],
+  ["opening_qty", "Opening quantity", "number"], ["opening_rate", "Opening rate (₹ per unit)", "number"], ["reorder_level", "Low stock alert at (qty)", "number"], ["barcode", "Barcode (optional)", "text"], ["mrp", "MRP (₹, optional)", "number"],
 ];
 
 export const StockDialog = ({ open, item, onClose, onSaved }) => {
@@ -24,7 +24,7 @@ export const StockDialog = ({ open, item, onClose, onSaved }) => {
   const save = async () => {
     setBusy(true);
     const num = (k) => Number(f[k]) || 0;
-    const body = { ...f, gst_rate: Number(f.gst_rate), sale_rate: num("sale_rate"), purchase_rate: num("purchase_rate"), opening_qty: num("opening_qty"), opening_rate: num("opening_rate"), reorder_level: num("reorder_level") };
+    const body = { ...f, gst_rate: Number(f.gst_rate), sale_rate: num("sale_rate"), purchase_rate: num("purchase_rate"), opening_qty: num("opening_qty"), opening_rate: num("opening_rate"), reorder_level: num("reorder_level"), mrp: num("mrp"), barcode: (f.barcode || "").trim() };
     try {
       item ? await api.put(`/stock-items/${item.id}`, body) : await api.post("/stock-items", body);
       toast.success(`Item "${f.name}" saved`);

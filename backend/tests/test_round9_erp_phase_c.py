@@ -39,7 +39,7 @@ def admin():
 @pytest.fixture(scope="module")
 def W(admin):
     """Fresh business with full ERP data set."""
-    r = ok(requests.post(f"{API}/auth/signup", json={"business_name": f"TEST_ERPC_{U}", "name": "TEST Owner", "email": f"test_erpc_{U}_{uuid.uuid4().hex[:4]}@example.com",
+    r = ok(requests.post(f"{API}/auth/signup", json={"industry_type": "wholesale", "business_name": f"TEST_ERPC_{U}", "name": "TEST Owner", "email": f"test_erpc_{U}_{uuid.uuid4().hex[:4]}@example.com",
                                                     "password": "secret1", "phone": "", "state": "Maharashtra", "gstin": ""}))
     s = requests.Session()
     s.headers.update({"Authorization": f"Bearer {r['token']}"})

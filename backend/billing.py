@@ -2,19 +2,19 @@ import math
 import os
 import secrets
 from datetime import datetime, timezone
-from typing import Literal
+
 
 import razorpay
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from auth import ANY, ADMIN, SUPER
-from business import PLANS, TRIAL_USERS, get_business, status_of, extend_subscription
+from business import PLANS, TRIAL_USERS, get_business, status_of, extend_subscription, industry_of
 from db import db, NO_ID, new_id, now_iso, audit, clean
 from emailer import create_invoice, email_purchase
 
 router = APIRouter(prefix="/api")
-PlanKey = Literal["basic", "pro"]
+PlanKey = str
 ALERT_DAYS = 30
 
 
@@ -74,7 +74,9 @@ class ExtendIn(BaseModel):
 @router.get("/billing/plans")
 async def plans(user=Depends(ANY)):
     _, kid = _rzp()
-    return {"plans": list(PLANS.values()), "payments_enabled": bool(kid), "trial_users": TRIAL_USERS}
+    ind, mode = industry_of(await get_business(user["business_id"]))
+    return {"plans": [p for p in PLANS.values() if p.get("industry") == ind and p.get("mode") == mode], "payments_enabled": bool(kid),
+            "trial_users": TRIAL_USERS, "industry": ind, "mode": mode}
 
 
 @router.get("/billing/status")
@@ -97,6 +99,8 @@ async def create_order(body: OrderIn, user=Depends(ADMIN)):
     if not client:
         raise HTTPException(503, "Online payments are not configured yet. Please contact support.")
     bid = user["business_id"]
+    if body.plan not in PLANS or PLANS[body.plan].get("legacy") or "industry" not in PLANS[body.plan]:
+        raise HTTPException(400, "Unknown plan")
     users = await db.users.count_documents({"business_id": bid, "active": True})
     if users > PLANS[body.plan]["max_users"]:
         raise HTTPException(400, f"You have {users} active users. This plan allows {PLANS[body.plan]['max_users']}. Disable users or pick the Multi User plan.")
@@ -203,7 +207,7 @@ async def validate(body: ActivateIn):
 
 @router.get("/platform/businesses")
 async def all_businesses(user=Depends(SUPER)):
-    rows = await db.businesses.find({}, NO_ID).sort("created_at", -1).to_list(5000)
+    rows = await db.businesses.find({"demo": {"$ne": True}}, NO_ID).sort("created_at", -1).to_list(5000)
     out = []
     for b in rows:
         out.append({**clean(b), **status_of(b), "users": await db.users.count_documents({"business_id": b["id"], "active": True})})
@@ -214,6 +218,8 @@ async def all_businesses(user=Depends(SUPER)):
 async def platform_extend(bid: str, body: ExtendIn, user=Depends(SUPER)):
     if not 1 <= body.days <= 3650:
         raise HTTPException(400, "Days must be between 1 and 3650")
+    if body.plan not in PLANS:
+        raise HTTPException(400, "Unknown plan")
     sub = await extend_subscription(bid, body.plan, body.days)
     lic = await issue_licence(bid, body.plan, sub["subscription_ends"], "manual") if body.issue_licence else None
     await audit("subscription", bid, "manual_extend", user, note=f"{body.plan} +{body.days} days")

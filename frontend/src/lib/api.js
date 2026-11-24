@@ -22,6 +22,7 @@ api.interceptors.response.use(
       if (process.env.REACT_APP_OFFLINE === "1") window.location.reload();
       else if (window.location.pathname !== "/login") window.location.href = "/login";
     }
+    if (e.response?.status === 423 && !e.config?.url?.includes("/super/")) return new Promise(() => {});
     return Promise.reject(e);
   }
 );
