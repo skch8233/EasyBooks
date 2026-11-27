@@ -29,7 +29,7 @@ export const PublicHeader = () => {
     <header className="sticky top-0 z-20 border-b bg-white/90 backdrop-blur">
       <div className="max-w-6xl mx-auto flex items-center gap-2 px-5 h-16">
         <Link to="/welcome" className="flex items-center gap-3 mr-4" data-testid="nav-home"><div className="h-9 w-9 rounded-lg bg-emerald-500 flex items-center justify-center"><BookMarked className="h-5 w-5 text-white" /></div>
-          <span className="font-heading text-xl font-extrabold whitespace-nowrap">Easy Books</span></Link>
+          <span className="font-heading text-xl font-extrabold whitespace-nowrap">EASYTALLY BOOKS</span></Link>
         <nav className="hidden lg:flex items-center gap-1">
           <Solutions /><NavA to="/features" testid="nav-features">Accounting & ERP Features</NavA><NavA to="/pricing" testid="nav-pricing">Pricing</NavA>
           <NavA to="/demo" testid="nav-demo">Live Demo</NavA><NavA to="/about" testid="nav-about">About Us</NavA>

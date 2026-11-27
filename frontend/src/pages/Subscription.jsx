@@ -47,7 +47,7 @@ export default function Subscription() {
       if (!(await loadScript())) throw new Error("Could not load Razorpay checkout. Check your internet connection.");
       const { data: o } = await api.post("/billing/order", { plan });
       const rzp = new window.Razorpay({
-        key: o.key_id, amount: o.amount, currency: "INR", order_id: o.order_id, name: "Easy Books",
+        key: o.key_id, amount: o.amount, currency: "INR", order_id: o.order_id, name: "EASYTALLY BOOKS",
         description: `${o.plan.name} - 1 year`, prefill: { name: user.name, email: o.email },
         theme: { color: "#1E3A8A" },
         handler: async (res) => {

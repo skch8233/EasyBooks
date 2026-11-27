@@ -58,7 +58,7 @@ const Protected = ({ children, write }) => {
   const { user, fy, canWrite, biz } = useApp();
   const loc = useLocation();
   if (user === null || (user && !fy)) return <div className="min-h-screen flex items-center justify-center text-slate-500">Loading...</div>;
-  if (!user) return OFFLINE ? <div className="min-h-screen flex items-center justify-center text-slate-500" data-testid="offline-start-error">Easy Books could not start. Close and open it again.</div> : <Navigate to="/welcome" replace />;
+  if (!user) return OFFLINE ? <div className="min-h-screen flex items-center justify-center text-slate-500" data-testid="offline-start-error">EASYTALLY BOOKS could not start. Close and open it again.</div> : <Navigate to="/welcome" replace />;
   if (OFFLINE && biz?.status === "expired" && loc.pathname !== "/licence") return <Navigate to="/licence" replace />;
   if (write && !canWrite) return <Navigate to={user.role === "viewer" ? "/" : OFFLINE ? "/licence" : "/subscription"} replace />;
   return children;

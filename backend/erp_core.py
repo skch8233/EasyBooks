@@ -53,7 +53,7 @@ def erp(action: str = "view"):
         if not erp_active(b):
             raise HTTPException(402, "The Projects / ERP module needs the ERP plan (₹15,000 + GST per year).")
         if action != "view" and status_of(b)["status"] == "expired":
-            raise HTTPException(402, "Your Easy Books plan has expired. Books are read-only until you renew from Subscription.")
+            raise HTTPException(402, "Your EASYTALLY BOOKS plan has expired. Books are read-only until you renew from Subscription.")
         s = await erp_settings(user["business_id"])
         if not can(user, s["permissions"], action):
             raise HTTPException(403, f"Your role ({user['role'].replace('_', ' ')}) is not allowed to {action.replace('_', ' ')} ERP documents")

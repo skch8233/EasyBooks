@@ -1,0 +1,756 @@
+diff --git a/backend/auth.py b/backend/auth.py
+index f3e08e3..a8b1994 100644
+--- a/backend/auth.py
++++ b/backend/auth.py
+@@ -223,7 +223,7 @@ async def check_user_limit(bid: str):
+ async def seed_admin():
+     email = os.environ["ADMIN_EMAIL"].lower()
+     if not await db.users.find_one({"email": email}):
+-        biz = await create_business("Easy Books Demo", email)
++        biz = await create_business("EASYTALLY BOOKS Demo", email)
+         await db.users.insert_one({"id": new_id(), "business_id": biz["id"], "name": "Admin", "email": email, "role": "admin",
+                                    "active": True, "is_superadmin": True,
+                                    "password_hash": hash_password(os.environ["ADMIN_PASSWORD"]), "created_at": now_iso()})
+diff --git a/backend/billing.py b/backend/billing.py
+index 059b067..f03f875 100644
+--- a/backend/billing.py
++++ b/backend/billing.py
+@@ -140,7 +140,7 @@ async def verify_payment(body: VerifyIn, user=Depends(ADMIN)):
+     await audit("subscription", user["business_id"], "payment", user, note=f"{pay['plan']} plan paid, valid till {sub['subscription_ends'][:10]}")
+     b = await get_business(user["business_id"])
+     inv = await create_invoice(buyer={"name": user["name"], "business_name": b["name"], "email": user["email"], "gstin": b.get("gstin", "")},
+-                               item=f"Easy Books Online - {PLANS[pay['plan']]['name']}", base=PLANS[pay["plan"]]["price"],
++                               item=f"EASYTALLY BOOKS Online - {PLANS[pay['plan']]['name']}", base=PLANS[pay["plan"]]["price"],
+                                licence_key=lic["key"], payment_id=body.razorpay_payment_id, source="payment")
+     mail = await email_purchase(to=user["email"], name=user["name"], inv=inv, expires=sub["subscription_ends"])
+     return {"ok": True, **sub, "licence_key": lic["key"], "invoice_no": inv["number"], "email_status": mail["status"]}
+diff --git a/backend/ca.py b/backend/ca.py
+index 131fbfd..dba8d79 100644
+--- a/backend/ca.py
++++ b/backend/ca.py
+@@ -107,7 +107,7 @@ async def list_access(user=Depends(ADMIN)):
+ async def grant_access(body: AccessIn, user=Depends(ADMIN_WRITE)):
+     target = await db.users.find_one({"email": body.email.lower()}, NO_ID)
+     if not target:
+-        raise HTTPException(404, "No Easy Books account uses this email. Ask your CA to sign up first, then add them here.")
++        raise HTTPException(404, "No EASYTALLY BOOKS account uses this email. Ask your CA to sign up first, then add them here.")
+     if target["id"] == user["id"]:
+         raise HTTPException(400, "You cannot change your own access")
+     if target["business_id"] == user["business_id"]:
+diff --git a/backend/emailer.py b/backend/emailer.py
+index 02df405..9f189ef 100644
+--- a/backend/emailer.py
++++ b/backend/emailer.py
+@@ -175,21 +175,21 @@ async def email_purchase(*, to: str, name: str, inv: dict, expires: str, code: s
+     brand = escape(os.environ.get("EMAIL_FROM_NAME", ""))
+     p = 'style="font-size:14px;line-height:1.5;margin:0 0 12px"'
+     if offline and code:
+-        steps = (f'<p {p}>Your activation code for this computer (open Easy Books, go to Licence and paste it):</p>'
++        steps = (f'<p {p}>Your activation code for this computer (open EASYTALLY BOOKS, go to Licence and paste it):</p>'
+                  f'<p style="font-family:Consolas,monospace;font-size:11px;word-break:break-all;background:#f1f5f9;padding:10px;border-radius:6px">{escape(code)}</p>')
+     elif offline:
+         steps = (f'<p {p}><b>How to activate:</b> install the software, open <b>Licence</b>, enter this licence key and click <b>Activate online</b>. '
+                  f'The key locks to that one computer.</p>'
+                  + (f'<p {p}>No internet on that PC? <a href="{site}/activate">Get an activation code here</a> using the Machine ID shown on the Licence screen.</p>' if site.startswith("https://") else ""))
+     else:
+-        steps = f'<p {p}>Your subscription is active. Sign in to Easy Books to keep working.</p>'
++        steps = f'<p {p}>Your subscription is active. Sign in to EASYTALLY BOOKS to keep working.</p>'
+     html = (f'<table role="presentation" width="100%"><tr><td style="padding:24px;font-family:Arial,sans-serif;color:#0f172a">'
+             f'<p {p}>Hi {escape(name)}, thank you for your payment.</p>'
+             f'<p {p}>Licence key: <b style="font-family:Consolas,monospace;font-size:16px">{escape(inv["licence_key"])}</b><br>Valid till: <b>{escape(expires[:10])}</b></p>'
+             f'{steps}<p {p}>Keep this key safe. You need it for next year\'s renewal.</p>{_invoice_html(inv)}'
+             f'<p style="font-size:12px;color:#64748b;margin-top:20px">Sent by {brand}. All rights reserved to Hannusoft Private Limited. '
+             f'We never ask for your password or payment details by email.</p></td></tr></table>')
+-    subject = f"Your Easy Books licence key and GST invoice {inv['number']}"
++    subject = f"Your EASYTALLY BOOKS licence key and GST invoice {inv['number']}"
+     try:
+         eid = await send_email(to=to, subject=subject, html=html)
+         st = {"status": "sent", "email_id": eid, "to": to, "at": now_iso()}
+diff --git a/backend/erp_core.py b/backend/erp_core.py
+index 962647f..d52db94 100644
+--- a/backend/erp_core.py
++++ b/backend/erp_core.py
+@@ -47,7 +47,7 @@ def erp(action: str = "view"):
+         if not erp_active(b):
+             raise HTTPException(402, "The Projects / ERP module needs the ERP plan (₹15,000 + GST per year).")
+         if action != "view" and status_of(b)["status"] == "expired":
+-            raise HTTPException(402, "Your Easy Books plan has expired. Books are read-only until you renew from Subscription.")
++            raise HTTPException(402, "Your EASYTALLY BOOKS plan has expired. Books are read-only until you renew from Subscription.")
+         s = await erp_settings(user["business_id"])
+         if not can(user, s["permissions"], action):
+             raise HTTPException(403, f"Your role ({user['role'].replace('_', ' ')}) is not allowed to {action.replace('_', ' ')} ERP documents")
+diff --git a/backend/erp_purchase.py b/backend/erp_purchase.py
+index 51c63e5..3c99ce5 100644
+--- a/backend/erp_purchase.py
++++ b/backend/erp_purchase.py
+@@ -292,7 +292,7 @@ async def send_rfq(did: str, user=Depends(erp("edit"))):
+                 f'<p>Dear {escape(v["company_name"])},</p><p>Please send your best quotation for project <b>{escape(rfq["project_code"])} {escape(rfq["project_name"])}</b> '
+                 f'(RFQ {escape(rfq["number"])}) by {escape(rfq.get("due_date") or "the earliest")}, including rate, discount, GST, delivery time and payment terms.</p>'
+                 f'<table style="border-collapse:collapse">{rows}</table><p>{escape(rfq.get("terms", ""))}</p><p>Regards,<br>{co}</p>'
+-                f'<p style="font-size:12px;color:#64748b">Sent using Easy Books by Hannusoft. We never ask for your password or payment details by email.</p></td></tr></table>')
++                f'<p style="font-size:12px;color:#64748b">Sent using EASYTALLY BOOKS by Hannusoft. We never ask for your password or payment details by email.</p></td></tr></table>')
+         await send_email(to=v["email"], subject=f"Request for quotation {rfq['number']} from {s.get('company_name', '')}", html=html)
+         sent.append(v["email"])
+     if not sent:
+@@ -618,7 +618,7 @@ async def _ledger(bid: str, key: str, group: str) -> str:
+     led = await db.ledgers.find_one({"business_id": bid, "system_key": key, "active": True}, NO_ID) \
+         or await db.ledgers.find_one({"business_id": bid, "group": group, "active": True}, NO_ID)
+     if not led:
+-        raise HTTPException(400, f"No {group.replace('_', ' ')} ledger found in Easy Books. Create one first.")
++        raise HTTPException(400, f"No {group.replace('_', ' ')} ledger found in EASYTALLY BOOKS. Create one first.")
+     return led["id"]
+ 
+ 
+diff --git a/backend/erp_sales.py b/backend/erp_sales.py
+index 16f1c3f..35f0335 100644
+--- a/backend/erp_sales.py
++++ b/backend/erp_sales.py
+@@ -382,7 +382,7 @@ async def _sales_ledger(bid: str) -> str:
+     led = await db.ledgers.find_one({"business_id": bid, "system_key": "sales", "active": True}, NO_ID) \
+         or await db.ledgers.find_one({"business_id": bid, "group": "sales", "active": True}, NO_ID)
+     if not led:
+-        raise HTTPException(400, "No Sales ledger found in Easy Books. Create one under Sales Accounts.")
++        raise HTTPException(400, "No Sales ledger found in EASYTALLY BOOKS. Create one under Sales Accounts.")
+     return led["id"]
+ 
+ 
+@@ -562,7 +562,7 @@ async def email_invoice(iid: str, user=Depends(erp("edit"))):
+             f'<table style="border-collapse:collapse;width:100%">{rows}</table>'
+             f'<p>Invoice total: <b>₹{inv["totals"]["total"]:,.2f}</b><br>Net payable: <b>₹{inv["totals"]["net_payable"]:,.2f}</b><br>'
+             f'Balance due: <b>₹{inv["balance"]:,.2f}</b> by {escape(inv["due_date"])}</p>'
+-            f'<p>Regards,<br>{co}</p><p style="font-size:12px;color:#64748b">Sent from {co} using Easy Books by Hannusoft. '
++            f'<p>Regards,<br>{co}</p><p style="font-size:12px;color:#64748b">Sent from {co} using EASYTALLY BOOKS by Hannusoft. '
+             f'We never ask for your password or payment details by email.</p></td></tr></table>')
+     eid = await send_email(to=to, subject=f"Invoice {inv['number']} from {s.get('company_name', '')}", html=html)
+     await db.erp_invoices.update_one({"id": iid}, {"$push": {"emails": {"to": to, "id": eid, "at": now_iso()}}})
+diff --git a/backend/server.py b/backend/server.py
+index 59abf80..fda73e3 100644
+--- a/backend/server.py
++++ b/backend/server.py
+@@ -35,14 +35,14 @@ import ca
+ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+ logger = logging.getLogger(__name__)
+ 
+-app = FastAPI(title="Easy Books Accounting")
++app = FastAPI(title="EASYTALLY BOOKS Accounting")
+ for r in (auth.router, auth.users_router, routes_ledgers.router, routes_vouchers.router, routes_reports.router, routes_admin.router, billing.router, gst.router, public.router, stock.router, reminders.router, shop.router, erp_core.router, erp_sales.router, erp_purchase.router, erp_reports.router, final_accounts.router, eway.router, fa_tax.router, gstin.router, ca.router):
+     app.include_router(r)
+ 
+ 
+ @app.get("/api/")
+ async def root():
+-    return {"message": "Easy Books API"}
++    return {"message": "EASYTALLY BOOKS API"}
+ 
+ 
+ app.add_middleware(
+diff --git a/frontend/public/index.html b/frontend/public/index.html
+index e2d93f5..e181263 100644
+--- a/frontend/public/index.html
++++ b/frontend/public/index.html
+@@ -8,7 +8,7 @@
+         <link rel="preconnect" href="https://fonts.googleapis.com" />
+         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600&display=swap" rel="stylesheet" />
+-        <title>Emergent | Fullstack App</title>
++        <title>EASYTALLY BOOKS</title>
+         <script>window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);</script>
+         <script src="https://assets.emergent.sh/scripts/emergent-main.js"></script>
+     </head>
+diff --git a/frontend/src/App.js b/frontend/src/App.js
+index bfd523f..1c78c86 100644
+--- a/frontend/src/App.js
++++ b/frontend/src/App.js
+@@ -47,7 +47,7 @@ const Protected = ({ children, write }) => {
+   const { user, fy, canWrite, biz } = useApp();
+   const loc = useLocation();
+   if (user === null || (user && !fy)) return <div className="min-h-screen flex items-center justify-center text-slate-500">Loading...</div>;
+-  if (!user) return OFFLINE ? <div className="min-h-screen flex items-center justify-center text-slate-500" data-testid="offline-start-error">Easy Books could not start. Close and open it again.</div> : <Navigate to="/welcome" replace />;
++  if (!user) return OFFLINE ? <div className="min-h-screen flex items-center justify-center text-slate-500" data-testid="offline-start-error">EASYTALLY BOOKS could not start. Close and open it again.</div> : <Navigate to="/welcome" replace />;
+   if (OFFLINE && biz?.status === "expired" && loc.pathname !== "/licence") return <Navigate to="/licence" replace />;
+   if (write && !canWrite) return <Navigate to={user.role === "viewer" ? "/" : OFFLINE ? "/licence" : "/subscription"} replace />;
+   return children;
+diff --git a/frontend/src/components/KeyResult.jsx b/frontend/src/components/KeyResult.jsx
+index 5f04bd1..8997a3a 100644
+--- a/frontend/src/components/KeyResult.jsx
++++ b/frontend/src/components/KeyResult.jsx
+@@ -23,7 +23,7 @@ const CodeBox = ({ r, copy }) => {
+       </div>
+       <div className="flex flex-wrap gap-2">
+         <Button onClick={() => copy(r.code)} data-testid="copy-activation-code"><Copy className="h-4 w-4 mr-1" /> Copy activation code</Button>
+-        <Button variant="outline" onClick={() => downloadText(`EasyBooks-${r.key}.lic`, r.code)} data-testid="download-licence-file"><Download className="h-4 w-4 mr-1" /> Download licence file</Button>
++        <Button variant="outline" onClick={() => downloadText(`EASYTALLY-BOOKS-${r.key}.lic`, r.code)} data-testid="download-licence-file"><Download className="h-4 w-4 mr-1" /> Download licence file</Button>
+       </div>
+     </>
+   );
+@@ -43,7 +43,7 @@ export const KeyResult = ({ r }) => {
+       {r.code ? <CodeBox r={r} copy={copy} /> : (
+         <div className="rounded-md bg-white border p-4 text-sm space-y-1" data-testid="result-activate-steps">
+           <div className="font-semibold flex items-center gap-2"><MonitorCheck className="h-4 w-4" /> {r.max_pcs > 1 ? `Works on up to ${r.max_pcs} computers` : "Works on one computer"}</div>
+-          <p>On {r.max_pcs > 1 ? "each" : "the"} PC, open Easy Books → <b>Licence</b>, enter this key and click <b>Activate online</b>. {r.max_pcs > 1 ? `Each activation uses one of the ${r.max_pcs} computers (${r.pcs_used || 0} used).` : "The key then locks to that PC."}</p>
++          <p>On {r.max_pcs > 1 ? "each" : "the"} PC, open EASYTALLY BOOKS → <b>Licence</b>, enter this key and click <b>Activate online</b>. {r.max_pcs > 1 ? `Each activation uses one of the ${r.max_pcs} computers (${r.pcs_used || 0} used).` : "The key then locks to that PC."}</p>
+           <p className="text-slate-500">No internet on that PC? Use the <a href="/activate" className="text-primary underline">activation page</a> with the Machine ID shown on the Licence screen.</p>
+         </div>
+       )}
+diff --git a/frontend/src/components/Layout.jsx b/frontend/src/components/Layout.jsx
+index e3a62bd..8202e9c 100644
+--- a/frontend/src/components/Layout.jsx
++++ b/frontend/src/components/Layout.jsx
+@@ -1,6 +1,6 @@
+-import { useState } from "react";
++import { useEffect, useState } from "react";
+ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+-import { LayoutDashboard, PlusCircle, ListOrdered, BookUser, BarChart3, Settings, ShieldCheck, LogOut, Menu, X, BookMarked, CreditCard, Building2, AlertTriangle, Landmark, Package, BellRing, Briefcase, Users } from "lucide-react";
++import { LayoutDashboard, PlusCircle, ListOrdered, BookUser, BarChart3, Settings, ShieldCheck, LogOut, Menu, X, BookMarked, CreditCard, Building2, AlertTriangle, Landmark, Package, BellRing, Briefcase, Users, ChevronDown, ChevronUp } from "lucide-react";
+ import { BusinessSwitcher } from "@/components/BusinessSwitcher";
+ import { Link } from "react-router-dom";
+ import { useApp } from "@/context/AppContext";
+@@ -32,37 +32,57 @@ const NAV = [
+   { to: "/platform", label: "Platform Admin", icon: Building2, id: "platform", superadmin: true, online: true },
+ ];
+ 
++const GROUPS = [
++  { id: "daily", label: "Daily work", ids: ["dashboard", "new-voucher", "vouchers"] },
++  { id: "masters", label: "Masters & projects", ids: ["ledgers", "stock", "reminders", "erp"] },
++  { id: "reports", label: "Reports & year end", ids: ["reports", "year-end", "final-accounts", "gst", "eway"] },
++  { id: "admin", label: "Business & settings", ids: ["ca", "audit", "settings", "subscription", "licence", "platform"] },
++];
++const isOn = (n, pathname) => (n.match ? n.match(pathname) : n.to === "/" ? pathname === "/" : pathname.startsWith(n.to));
++
++const NavGroup = ({ g, items, pathname, closed, toggle, onNav }) => {
++  const open = !closed.includes(g.id);
++  const Arrow = open ? ChevronUp : ChevronDown;
++  return (
++    <div className="pt-2" data-testid={`sidebar-group-${g.id}`}>
++      <button onClick={() => toggle(g.id)} aria-expanded={open} data-testid={`sidebar-group-toggle-${g.id}`}
++        className="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400 hover:text-white transition-colors">
++        {g.label}<Arrow className="h-4 w-4" /></button>
++      <div className={`grid transition-[grid-template-rows] duration-200 ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
++        <div className="overflow-hidden space-y-0.5">
++          {items.map((n) => { const on = isOn(n, pathname); return (
++            <NavLink key={n.id} to={n.to} end={n.to === "/"} onClick={onNav} data-testid={`sidebar-nav-${n.id}`} tabIndex={open ? 0 : -1}
++              className={`relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-[14.5px] font-medium transition-colors ${on ? "bg-white/10 text-white" : "text-slate-300 hover:bg-white/5 hover:text-white"}`}>
++              {on && <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r bg-emerald-400" />}<n.icon className="h-[18px] w-[18px]" /> {n.label}</NavLink>); })}
++        </div>
++      </div>
++    </div>
++  );
++};
++
+ const SideNav = ({ onNav }) => {
+   const { canWrite, settings, user, isAdmin } = useApp();
+   const { pathname } = useLocation();
+   const show = (n) => (!n.write || canWrite) && (!n.admin || isAdmin) && (!n.superadmin || user?.is_superadmin) && (!n.staff || user?.role !== "viewer")
+     && (!n.online || !OFFLINE) && (!n.offline || OFFLINE);
++  const items = NAV.filter(show);
++  const [closed, setClosed] = useState(() => { try { return JSON.parse(localStorage.getItem("eb_nav_closed") || "[]"); } catch { return []; } });
++  const toggle = (id) => setClosed((c) => { const nx = c.includes(id) ? c.filter((x) => x !== id) : [...c, id]; localStorage.setItem("eb_nav_closed", JSON.stringify(nx)); return nx; });
++  useEffect(() => {
++    const g = GROUPS.find((x) => items.some((n) => x.ids.includes(n.id) && isOn(n, pathname)));
++    if (g) setClosed((c) => { if (!c.includes(g.id)) return c; const nx = c.filter((x) => x !== g.id); localStorage.setItem("eb_nav_closed", JSON.stringify(nx)); return nx; });
++  }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+   return (
+     <div className="flex h-full flex-col">
+       <div className="px-5 py-6 flex items-center gap-3">
+         <div className="h-10 w-10 rounded-lg bg-emerald-500 flex items-center justify-center"><BookMarked className="h-5 w-5 text-white" /></div>
+         <div className="min-w-0">
+-          <div className="font-heading font-extrabold text-white text-lg leading-tight">Easy Books</div>
++          <div className="font-heading font-extrabold text-white text-lg leading-tight">EASYTALLY BOOKS</div>
+           <div className="text-xs text-slate-400 truncate" data-testid="sidebar-company-name">{settings?.company_name}</div>
+         </div>
+       </div>
+-      <nav className="flex-1 px-3 space-y-1">
+-        {NAV.filter(show).map((n) => (
+-          <NavLink
+-            key={n.id}
+-            to={n.to}
+-            end={n.to === "/"}
+-            onClick={onNav}
+-            data-testid={`sidebar-nav-${n.id}`}
+-            className={({ isActive }) =>
+-              `flex items-center gap-3 rounded-lg px-3 py-3 text-[15px] font-medium transition-colors ${
+-                (n.match ? n.match(pathname) : isActive) ? "bg-white/10 text-white" : "text-slate-300 hover:bg-white/5 hover:text-white"
+-              }`
+-            }
+-          >
+-            <n.icon className="h-5 w-5" /> {n.label}
+-          </NavLink>
+-        ))}
++      <nav className="flex-1 px-3 pb-4 overflow-y-auto">
++        {GROUPS.map((g) => { const list = items.filter((n) => g.ids.includes(n.id)); return list.length ? <NavGroup key={g.id} g={g} items={list} pathname={pathname} closed={closed} toggle={toggle} onNav={onNav} /> : null; })}
+       </nav>
+       <div className="px-5 py-4 text-[11px] text-slate-500 leading-relaxed space-y-4">
+         <div>Shortcuts: Alt+S Sales · Alt+P Purchase · Alt+R Receipt · Alt+Y Payment · Alt+C Contra · Alt+J Journal</div>
+diff --git a/frontend/src/components/PublicShell.jsx b/frontend/src/components/PublicShell.jsx
+index 8bb0cca..2a83b6f 100644
+--- a/frontend/src/components/PublicShell.jsx
++++ b/frontend/src/components/PublicShell.jsx
+@@ -8,7 +8,7 @@ export const PublicShell = ({ children }) => (
+     <header className="sticky top-0 z-20 border-b bg-white/90 backdrop-blur">
+       <div className="max-w-6xl mx-auto flex items-center gap-3 px-5 h-16">
+         <Link to="/welcome" className="flex items-center gap-3"><div className="h-9 w-9 rounded-lg bg-emerald-500 flex items-center justify-center"><BookMarked className="h-5 w-5 text-white" /></div>
+-          <span className="font-heading text-xl font-extrabold">Easy Books</span></Link>
++          <span className="font-heading text-xl font-extrabold">EASYTALLY BOOKS</span></Link>
+         <nav className="ml-auto flex items-center gap-1">
+           <Link to="/download" className="hidden sm:inline px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-900" data-testid="nav-download">Download</Link>
+           <Link to="/buy" className="hidden sm:inline px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-900" data-testid="nav-buy">Buy</Link>
+diff --git a/frontend/src/components/erp/InvoiceSide.jsx b/frontend/src/components/erp/InvoiceSide.jsx
+index 3373a88..53bcb74 100644
+--- a/frontend/src/components/erp/InvoiceSide.jsx
++++ b/frontend/src/components/erp/InvoiceSide.jsx
+@@ -72,7 +72,7 @@ export const InvoiceSide = ({ doc, reload }) => {
+         <div><div className="text-xs uppercase text-slate-500">Credit / debit notes</div><div className="font-mono">−{amt(doc.credit_total || 0)} / +{amt(doc.debit_total || 0)}</div></div>
+         <div><div className="text-xs uppercase text-slate-500">Balance</div><div className="font-mono font-bold text-red-700" data-testid="invoice-balance">₹{amt(doc.balance)}</div></div>
+       </div>
+-      <div className="text-xs text-slate-500">Posted in Easy Books as <b>{doc.voucher_no}</b> (sales voucher).</div>
++      <div className="text-xs text-slate-500">Posted in EASYTALLY BOOKS as <b>{doc.voucher_no}</b> (sales voucher).</div>
+       {perm("finalize") && <div className="flex flex-wrap gap-2">
+         <Button size="sm" disabled={doc.balance <= 0} onClick={() => setPay(true)} data-testid="invoice-add-payment">Record payment</Button>
+         <Button size="sm" variant="outline" disabled={doc.balance <= 0} onClick={() => setNote("credit")} data-testid="invoice-credit-note">Credit note</Button>
+diff --git a/frontend/src/lib/export.js b/frontend/src/lib/export.js
+index 018cdf8..45cc680 100644
+--- a/frontend/src/lib/export.js
++++ b/frontend/src/lib/export.js
+@@ -27,7 +27,7 @@ export function exportPdf(title, subtitle, sections, company) {
+   const wide = sections.some((s) => s.columns.length > 6);
+   const doc = new jsPDF({ orientation: wide ? "landscape" : "portrait", unit: "pt", format: "a4" });
+   doc.setFontSize(14);
+-  doc.text(company || "Easy Books", 40, 40);
++  doc.text(company || "EASYTALLY BOOKS", 40, 40);
+   doc.setFontSize(11);
+   doc.text(`${title}  |  ${subtitle}  (Amounts in Rs.)`, 40, 58);
+   let y = 72;
+diff --git a/frontend/src/pages/Activate.jsx b/frontend/src/pages/Activate.jsx
+index 8ce4ddf..df5cbd8 100644
+--- a/frontend/src/pages/Activate.jsx
++++ b/frontend/src/pages/Activate.jsx
+@@ -24,7 +24,7 @@ export default function Activate() {
+     <PublicShell>
+       <div className="max-w-2xl mx-auto px-5 py-14 space-y-8" data-testid="activate-page">
+         <div><h1 className="font-heading text-4xl font-extrabold tracking-tight flex items-center gap-3"><MonitorCheck className="h-9 w-9 text-primary" /> Activate offline licence</h1>
+-          <p className="text-slate-500 mt-3">For PCs without internet. Each licence key works on one computer only. Open Easy Books → Licence on that PC and copy its Machine ID.</p></div>
++          <p className="text-slate-500 mt-3">For PCs without internet. Each licence key works on one computer only. Open EASYTALLY BOOKS → Licence on that PC and copy its Machine ID.</p></div>
+         <form onSubmit={submit} className="rounded-xl border bg-white p-6 grid gap-4" data-testid="activate-form">
+           <div className="space-y-1"><Label>Licence key</Label><Input required className="h-11 font-mono uppercase" placeholder="EB-XXXX-XXXX-XXXX-XXXX" value={f.key} onChange={(e) => setF({ ...f, key: e.target.value.toUpperCase() })} data-testid="activate-key-input" /></div>
+           <div className="space-y-1"><Label>Machine ID</Label><Input required pattern="[0-9A-Fa-f]{4}(-[0-9A-Fa-f]{4}){3}" title="Machine ID looks like 1A2B-3C4D-5E6F-7A8B (from the Licence screen)" className="h-11 font-mono uppercase" placeholder="XXXX-XXXX-XXXX-XXXX" value={f.machine_id} onChange={(e) => setF({ ...f, machine_id: e.target.value.toUpperCase() })} data-testid="activate-machine-input" /></div>
+diff --git a/frontend/src/pages/Buy.jsx b/frontend/src/pages/Buy.jsx
+index cf3db17..07bd186 100644
+--- a/frontend/src/pages/Buy.jsx
++++ b/frontend/src/pages/Buy.jsx
+@@ -26,7 +26,7 @@ const OfflineForm = ({ plan, enabled, onDone }) => {
+       if (!(await loadRazorpay())) throw new Error("Could not load Razorpay checkout");
+       const { data: o } = await axios.post(`${API}/shop/order`, { ...f, plan: plan.key });
+       new window.Razorpay({
+-        key: o.key_id, amount: o.amount, currency: "INR", order_id: o.order_id, name: "Easy Books by Hannusoft",
++        key: o.key_id, amount: o.amount, currency: "INR", order_id: o.order_id, name: "EASYTALLY BOOKS by Hannusoft",
+         description: plan.name, prefill: { name: f.name, email: f.email, contact: f.phone }, theme: { color: "#1E3A8A" },
+         handler: async (res) => { try { onDone((await axios.post(`${API}/shop/verify`, res)).data); } catch (er) { toast.error(errMsg(er)); } },
+         modal: { ondismiss: () => setBusy(false) },
+@@ -71,7 +71,7 @@ export default function Buy() {
+   return (
+     <PublicShell>
+       <div className="max-w-6xl mx-auto px-5 py-14 space-y-12" data-testid="buy-page">
+-        <div><h1 className="font-heading text-4xl sm:text-5xl font-extrabold tracking-tight">Buy Easy Books</h1>
++        <div><h1 className="font-heading text-4xl sm:text-5xl font-extrabold tracking-tight">Buy EASYTALLY BOOKS</h1>
+           <p className="text-slate-500 mt-3 text-lg">Pick online (browser and mobile) or the standalone offline Windows software. Your annual key appears right after payment and is emailed to you with a GST invoice.</p></div>
+         {!d.payments_enabled && <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" data-testid="buy-payments-disabled">Online payment is being set up. To buy a key today, contact Hannusoft. Keys can be issued manually.</div>}
+         {result && <KeyResult r={result} />}
+diff --git a/frontend/src/pages/Download.jsx b/frontend/src/pages/Download.jsx
+index ad1d703..0bbcb16 100644
+--- a/frontend/src/pages/Download.jsx
++++ b/frontend/src/pages/Download.jsx
+@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
+ import { dmy } from "@/lib/format";
+ import { PublicShell } from "@/components/PublicShell";
+ 
+-const STEPS = ["Download and install: it takes one click and opens Easy Books straight to your books, with no login.",
++const STEPS = ["Download and install: it takes one click and opens EASYTALLY BOOKS straight to your books, with no login.",
+   "If Windows says \"Windows protected your PC\", click More info → Run anyway. Use every feature free for 30 days.",
+   "Before the trial ends, buy a Single-PC or Multi-PC (up to 8 computers) key on the Buy page. It is emailed to you with a GST invoice.",
+   "Open Licence, enter your key and click Activate online. After that it works fully offline.",
+@@ -20,8 +20,8 @@ export default function DownloadPage() {
+       <div className="max-w-5xl mx-auto px-5 py-14 space-y-10" data-testid="download-page">
+         <div className="grid gap-8 lg:grid-cols-[1.3fr_1fr] items-center">
+           <div>
+-            <h1 className="font-heading text-4xl sm:text-5xl font-extrabold tracking-tight">Easy Books for Windows</h1>
+-            <p className="mt-4 text-lg text-slate-600">Standalone offline accounting software like Tally, with no internet needed. All features of Easy Books, and your data stays on your PC.</p>
++            <h1 className="font-heading text-4xl sm:text-5xl font-extrabold tracking-tight">EASYTALLY BOOKS for Windows</h1>
++            <p className="mt-4 text-lg text-slate-600">Standalone offline accounting software like Tally, with no internet needed. All features of EASYTALLY BOOKS, and your data stays on your PC.</p>
+             <div className="mt-8 flex flex-wrap gap-3">
+               {d?.url ? <a href={d.url} download="EasyBooksSetup.exe"><Button className="h-12 px-8 text-base" data-testid="download-exe-button"><DlIcon className="h-5 w-5 mr-2" /> Download for Windows</Button></a>
+                 : <Button disabled className="h-12 px-8 text-base" data-testid="download-exe-button">Download coming soon</Button>}
+diff --git a/frontend/src/pages/Landing.jsx b/frontend/src/pages/Landing.jsx
+index 5abc1cc..d48bb9d 100644
+--- a/frontend/src/pages/Landing.jsx
++++ b/frontend/src/pages/Landing.jsx
+@@ -42,7 +42,7 @@ export default function Landing() {
+       <header className="sticky top-0 z-20 border-b bg-white/90 backdrop-blur">
+         <div className="max-w-6xl mx-auto flex items-center gap-3 px-5 h-16">
+           <div className="h-9 w-9 rounded-lg bg-emerald-500 flex items-center justify-center"><BookMarked className="h-5 w-5 text-white" /></div>
+-          <span className="font-heading text-xl font-extrabold">Easy Books</span>
++          <span className="font-heading text-xl font-extrabold">EASYTALLY BOOKS</span>
+           <nav className="ml-auto flex items-center gap-2">
+             <a href="#pricing" className="hidden sm:inline px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-900" data-testid="landing-nav-pricing">Pricing</a>
+             <Link to="/download" className="px-2 sm:px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-900" data-testid="landing-nav-download"><span className="sm:hidden">Offline</span><span className="hidden sm:inline">Windows offline</span></Link>
+diff --git a/frontend/src/pages/Login.jsx b/frontend/src/pages/Login.jsx
+index c6c6b63..c0e5818 100644
+--- a/frontend/src/pages/Login.jsx
++++ b/frontend/src/pages/Login.jsx
+@@ -15,7 +15,7 @@ const OfflineSetupLink = () => {
+   const [needed, setNeeded] = useState(false);
+   useEffect(() => { api.get("/offline/status").then((r) => setNeeded(!r.data.has_users)).catch(() => {}); }, []);
+   return needed ? <p className="mt-6 text-sm text-slate-600">First time on this computer? <Link to="/signup" className="text-primary font-semibold hover:underline" data-testid="offline-setup-link">Set up your business</Link></p>
+-    : <p className="mt-6 text-xs text-slate-500">Easy Books Offline for Windows</p>;
++    : <p className="mt-6 text-xs text-slate-500">EASYTALLY BOOKS Offline for Windows</p>;
+ };
+ 
+ export default function Login() {
+@@ -38,7 +38,7 @@ export default function Login() {
+       <div className="hidden lg:flex flex-col justify-between bg-[#0F172A] p-14 text-white">
+         <div className="flex items-center gap-3">
+           <div className="h-11 w-11 rounded-lg bg-emerald-500 flex items-center justify-center"><BookMarked className="h-6 w-6" /></div>
+-          <span className="font-heading text-2xl font-extrabold">Easy Books</span>
++          <span className="font-heading text-2xl font-extrabold">EASYTALLY BOOKS</span>
+         </div>
+         <div className="fade-up">
+           <h1 className="font-heading text-5xl font-extrabold leading-[1.1] tracking-tight">Bookkeeping for Indian businesses, <span className="text-emerald-400">without the jargon.</span></h1>
+diff --git a/frontend/src/pages/OfflineLicence.jsx b/frontend/src/pages/OfflineLicence.jsx
+index 6511fcf..e08fbd1 100644
+--- a/frontend/src/pages/OfflineLicence.jsx
++++ b/frontend/src/pages/OfflineLicence.jsx
+@@ -25,7 +25,7 @@ const Status = ({ biz }) => {
+         <div><div className="text-xs uppercase opacity-70">Type</div><div className="font-semibold" data-testid="offline-licence-tier">{lic.t === "multi" ? `Multi-PC (up to ${lic.c} computers)` : "Single-PC"}</div></div>
+       </div> : trial ? <div className="text-amber-900" data-testid="offline-trial-status">
+         <div className="font-heading text-xl font-bold">Free trial: {biz.days_left} day{biz.days_left === 1 ? "" : "s"} left</div>
+-        <div className="text-sm">All features are unlocked until {dmy(biz.ends_at)}. After that, Easy Books asks for a subscription key.</div>
++        <div className="text-sm">All features are unlocked until {dmy(biz.ends_at)}. After that, EASYTALLY BOOKS asks for a subscription key.</div>
+       </div> : <div className="text-red-800" data-testid="offline-paywall">
+         <div className="font-heading text-xl font-bold">Subscription key required</div>
+         <div className="text-sm">{biz?.reason || "Enter a subscription key to continue."} Your data is safe and will be there once you activate.</div>
+@@ -66,7 +66,7 @@ export default function OfflineLicence() {
+       {!isAdmin ? <p className="text-sm text-slate-500">Ask your admin to activate or renew the licence.</p> : <>
+         <div className="rounded-xl border bg-white p-6 space-y-3" data-testid="offline-online-activate">
+           <div className="font-semibold flex items-center gap-2"><Globe className="h-4 w-4" /> Enter subscription key (needs internet once)</div>
+-          <p className="text-sm text-slate-500">Enter the licence key from your purchase email. After activation Easy Books works fully offline with no login. After a renewal, click again to load the new expiry date.</p>
++          <p className="text-sm text-slate-500">Enter the licence key from your purchase email. After activation EASYTALLY BOOKS works fully offline with no login. After a renewal, click again to load the new expiry date.</p>
+           <div className="flex flex-wrap gap-2">
+             <Input className="h-11 font-mono uppercase flex-1 min-w-[240px]" placeholder="EB-XXXX-XXXX-XXXX-XXXX" value={key} onChange={(e) => setKey(e.target.value.toUpperCase())} data-testid="offline-key-input" />
+             <Button className="h-11" onClick={online} disabled={!ONLINE_OK || !key.trim() || !biz?.machine_id || !!busy} data-testid="offline-activate-online-button">
+@@ -76,7 +76,7 @@ export default function OfflineLicence() {
+         </div>
+         <div className="rounded-xl border bg-white p-6 space-y-3">
+           <div className="font-semibold flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> No internet? Paste an activation code</div>
+-          <p className="text-sm text-slate-500">On any phone or PC, open the Easy Books website page <b>/activate</b>, enter your licence key and the Machine ID above, then paste the code (starts with EBOL1.) or open the .lic file here.</p>
++          <p className="text-sm text-slate-500">On any phone or PC, open the EASYTALLY BOOKS website page <b>/activate</b>, enter your licence key and the Machine ID above, then paste the code (starts with EBOL1.) or open the .lic file here.</p>
+           <Textarea rows={4} className="font-mono text-xs" placeholder="EBOL1...." value={code} onChange={(e) => setCode(e.target.value)} data-testid="offline-code-input" />
+           <div className="flex flex-wrap gap-2 items-center">
+             <Button onClick={() => run("code", () => apply(code))} disabled={!code.trim() || !!busy} data-testid="offline-activate-button">Activate licence</Button>
+diff --git a/frontend/src/pages/Signup.jsx b/frontend/src/pages/Signup.jsx
+index 4709a6d..4956f13 100644
+--- a/frontend/src/pages/Signup.jsx
++++ b/frontend/src/pages/Signup.jsx
+@@ -34,7 +34,7 @@ export default function Signup() {
+       <div className="hidden lg:flex flex-col justify-center gap-8 bg-[#0F172A] p-14 text-white">
+         <div className="flex items-center gap-3">
+           <div className="h-11 w-11 rounded-lg bg-emerald-500 flex items-center justify-center"><BookMarked className="h-6 w-6" /></div>
+-          <span className="font-heading text-2xl font-extrabold">Easy Books</span>
++          <span className="font-heading text-2xl font-extrabold">EASYTALLY BOOKS</span>
+         </div>
+         <h1 className="font-heading text-5xl font-extrabold leading-[1.1] tracking-tight">Start your <span className="text-emerald-400">30-day free trial</span></h1>
+         <ul className="space-y-3 text-slate-300">
+diff --git a/frontend/src/pages/Subscription.jsx b/frontend/src/pages/Subscription.jsx
+index b3cb048..de1e15f 100644
+--- a/frontend/src/pages/Subscription.jsx
++++ b/frontend/src/pages/Subscription.jsx
+@@ -47,7 +47,7 @@ export default function Subscription() {
+       if (!(await loadScript())) throw new Error("Could not load Razorpay checkout. Check your internet connection.");
+       const { data: o } = await api.post("/billing/order", { plan });
+       const rzp = new window.Razorpay({
+-        key: o.key_id, amount: o.amount, currency: "INR", order_id: o.order_id, name: "Easy Books",
++        key: o.key_id, amount: o.amount, currency: "INR", order_id: o.order_id, name: "EASYTALLY BOOKS",
+         description: `${o.plan.name} - 1 year`, prefill: { name: user.name, email: o.email },
+         theme: { color: "#1E3A8A" },
+         handler: async (res) => {
+diff --git a/frontend/src/pages/erp/BillEditor.jsx b/frontend/src/pages/erp/BillEditor.jsx
+index 0e06639..d52ab37 100644
+--- a/frontend/src/pages/erp/BillEditor.jsx
++++ b/frontend/src/pages/erp/BillEditor.jsx
+@@ -103,7 +103,7 @@ export default function BillEditor() {
+       </fieldset>
+       <div className={`flex flex-wrap gap-2 ${working ? "pointer-events-none opacity-60" : ""}`}>
+         {editable && perm(isNew ? "create" : "edit") && <Button onClick={save} data-testid="bill-save-button">Save draft</Button>}
+-        {st === "draft" && perm("finalize") && <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={async () => window.confirm("Post this bill to Easy Books as a purchase entry?") && (await run(() => api.post(`/erp/bills/${id}/post`), "Bill posted to accounts")) && load()} data-testid="bill-post-button">Post to accounts</Button>}
++        {st === "draft" && perm("finalize") && <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={async () => window.confirm("Post this bill to EASYTALLY BOOKS as a purchase entry?") && (await run(() => api.post(`/erp/bills/${id}/post`), "Bill posted to accounts")) && load()} data-testid="bill-post-button">Post to accounts</Button>}
+         {st === "posted" && doc.balance > 0 && perm("finalize") && <Button onClick={() => setPay(true)} data-testid="bill-pay-button">Record payment</Button>}
+         {doc && st !== "cancelled" && perm("cancel") && <Button variant="outline" className="text-red-600" onClick={() => setCancel(true)} data-testid="bill-cancel-button">Cancel</Button>}
+         {st === "draft" && perm("delete") && <Button variant="outline" className="text-red-600" onClick={async () => window.confirm("Delete draft?") && (await run(() => api.delete(`/erp/bills/${id}`), "Deleted")) && nav("/erp/purchases/bills")} data-testid="bill-delete-button">Delete</Button>}
+@@ -114,7 +114,7 @@ export default function BillEditor() {
+       </div>}
+       {pay && <PayOut title={`Pay ${doc.vendor_name} · balance ₹${amt(doc.balance)}`} balance={doc.balance} onClose={() => setPay(false)}
+         onSave={async (b) => { if (await run(() => api.post(`/erp/bills/${id}/payments`, b), "Payment posted")) { setPay(false); load(); } }} />}
+-      <ReasonDialog open={cancel} onClose={() => setCancel(false)} title={`Cancel ${doc?.number}`} note="The purchase entry in Easy Books is cancelled too."
++      <ReasonDialog open={cancel} onClose={() => setCancel(false)} title={`Cancel ${doc?.number}`} note="The purchase entry in EASYTALLY BOOKS is cancelled too."
+         onOk={async (reason) => { if (await run(() => api.post(`/erp/bills/${id}/cancel`, { reason }), "Cancelled")) { setCancel(false); load(); } }} />
+     </div>
+   );
+diff --git a/frontend/src/pages/erp/DocEditor.jsx b/frontend/src/pages/erp/DocEditor.jsx
+index 0ce2e91..d502430 100644
+--- a/frontend/src/pages/erp/DocEditor.jsx
++++ b/frontend/src/pages/erp/DocEditor.jsx
+@@ -129,7 +129,7 @@ export default function DocEditor({ kind }) {
+         </fieldset>
+         <div className="flex flex-wrap gap-2" data-testid={`${kind}-actions`}>
+           {editable && perm(st === "finalized" ? "edit_finalized" : id ? "edit" : "create") && <Button onClick={save} data-testid={`${kind}-save-button`}><Save className="h-4 w-4 mr-1" />{st === "finalized" ? "Save new version" : "Save draft"}</Button>}
+-          {inv && st === "draft" && perm("finalize") && <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={() => window.confirm("Finalize this invoice? It gets a permanent number and is posted to your Easy Books sales ledger.") && act("finalize", {}, "Invoice finalized and posted to accounts")} data-testid="invoice-finalize-button"><FileCheck2 className="h-4 w-4 mr-1" /> Finalize & post</Button>}
++          {inv && st === "draft" && perm("finalize") && <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={() => window.confirm("Finalize this invoice? It gets a permanent number and is posted to your EASYTALLY BOOKS sales ledger.") && act("finalize", {}, "Invoice finalized and posted to accounts")} data-testid="invoice-finalize-button"><FileCheck2 className="h-4 w-4 mr-1" /> Finalize & post</Button>}
+           {inv && st === "finalized" && !unlock && perm("edit_finalized") && <Button variant="outline" onClick={() => setUnlock(true)} data-testid="invoice-unlock-button">Edit finalized</Button>}
+           {!inv && st === "draft" && <Button variant="outline" onClick={() => act("status", { status: "sent" }, "Marked as sent")} data-testid="quotation-mark-sent">Mark sent</Button>}
+           {!inv && ["draft", "sent", "expired"].includes(st) && perm("approve") && <><Button variant="outline" onClick={() => act("status", { status: "accepted" }, "Accepted")} data-testid="quotation-accept">Accept</Button>
+@@ -150,7 +150,7 @@ export default function DocEditor({ kind }) {
+         {inv && doc?.versions?.length > 0 && <div className="rounded-xl border bg-white p-4 text-sm" data-testid="invoice-versions"><b>Version history</b>
+           {doc.versions.map((v) => <div key={v.version} className="border-t mt-2 pt-2">v{v.version} saved {dmyTime(v.saved_at)} by {v.by}: previous total ₹{amt(v.snapshot.totals?.net_payable)}</div>)}</div>}
+         <ReasonDialog open={cancelOpen} onClose={() => setCancelOpen(false)} title={`Cancel ${preview.number || "document"}`}
+-          note={inv ? "The invoice number is never reused. The sales entry in Easy Books is cancelled too." : "The quotation stays on record as cancelled."}
++          note={inv ? "The invoice number is never reused. The sales entry in EASYTALLY BOOKS is cancelled too." : "The quotation stays on record as cancelled."}
+           onOk={(reason) => act("cancel", { reason }, "Cancelled", () => { setCancelOpen(false); load(); })} />
+       </div>
+       <div className="space-y-3">
+diff --git a/frontend/src/pages/erp/ErpShell.jsx b/frontend/src/pages/erp/ErpShell.jsx
+index 13bf497..32a4119 100644
+--- a/frontend/src/pages/erp/ErpShell.jsx
++++ b/frontend/src/pages/erp/ErpShell.jsx
+@@ -17,7 +17,7 @@ const Locked = ({ st }) => (
+   <div className="max-w-xl rounded-2xl border bg-white p-8 space-y-4" data-testid="erp-locked">
+     <div className="h-12 w-12 rounded-xl bg-amber-100 flex items-center justify-center"><Lock className="h-6 w-6 text-amber-700" /></div>
+     <h2 className="font-heading text-2xl font-bold">Unlock Projects / ERP</h2>
+-    <p className="text-slate-600">Project-wise quotations, advanced invoices with retention and running bills, client and vendor masters, project dashboards and documents. Every approved invoice and payment posts straight into your Easy Books ledgers.</p>
++    <p className="text-slate-600">Project-wise quotations, advanced invoices with retention and running bills, client and vendor masters, project dashboards and documents. Every approved invoice and payment posts straight into your EASYTALLY BOOKS ledgers.</p>
+     <div className="text-3xl font-extrabold font-heading" data-testid="erp-plan-price">₹{amt(st.plan.price).replace(".00", "")} <span className="text-base font-medium text-slate-500">+ GST / year (₹{amt(st.plan.total)})</span></div>
+     <p className="text-sm text-slate-500">Online payment is being set up. To activate now, contact Hannusoft; the platform admin can switch on the ERP plan for your business.</p>
+   </div>
+diff --git a/frontend/src/pages/erp/Expenses.jsx b/frontend/src/pages/erp/Expenses.jsx
+index 20b1621..c7e78b2 100644
+--- a/frontend/src/pages/erp/Expenses.jsx
++++ b/frontend/src/pages/erp/Expenses.jsx
+@@ -112,7 +112,7 @@ export default function Expenses() {
+       </div>
+       <Dialog open={!!edit} onOpenChange={(o) => !o && setEdit(null)}><DialogContent className="max-w-3xl"><DialogHeader><DialogTitle>{edit?.id ? `Edit ${edit.number}` : "New project expense"}</DialogTitle></DialogHeader>
+         {edit && <ExpenseForm init={{ ...edit, vendor_id: edit.vendor_id || "" }} cats={cats} onClose={() => setEdit(null)} onSaved={load} />}</DialogContent></Dialog>
+-      <ReasonDialog open={!!cancel} onClose={() => setCancel(null)} title={`Cancel ${cancel?.number}`} note="If posted, the payment entry in Easy Books is cancelled too."
++      <ReasonDialog open={!!cancel} onClose={() => setCancel(null)} title={`Cancel ${cancel?.number}`} note="If posted, the payment entry in EASYTALLY BOOKS is cancelled too."
+         onOk={async (reason) => { try { await api.post(`/erp/expenses/${cancel.id}/cancel`, { reason }); setCancel(null); load(); } catch (e) { toast.error(errMsg(e)); } }} />
+     </div>
+   );
+diff --git a/offline/GITHUB-STEPS.md b/offline/GITHUB-STEPS.md
+index c6ec2c3..c02d402 100644
+--- a/offline/GITHUB-STEPS.md
++++ b/offline/GITHUB-STEPS.md
+@@ -19,7 +19,7 @@ You don't need a Windows PC or any software. GitHub builds the installer for you
+    `https://github.com/YOUR-USER/YOUR-REPO/releases/latest/download/EasyBooksSetup.exe`
+ 
+ ## Put it on your Download page
+-1. Sign in to Easy Books as the platform admin, then open **Platform**, then **Offline licences**.
++1. Sign in to EASYTALLY BOOKS as the platform admin, then open **Platform**, then **Offline licences**.
+ 2. Under **Offline .exe download link**, type your GitHub `user/repo` (for example `ravi/easybooks`) and click **Use latest GitHub release**. Then click **Save**.
+ 3. The `/download` page now has a one-click **Download for Windows** button. You never need to change it again: it always gives the newest build.
+ 
+@@ -28,7 +28,7 @@ You don't need a Windows PC or any software. GitHub builds the installer for you
+ ## What customers see
+ 1. Click **Download for Windows** and open **EasyBooksSetup.exe**.
+ 2. Windows may show "Windows protected your PC" because the installer isn't digitally signed yet. Click **More info**, then **Run anyway**.
+-3. The installer asks no questions. It installs, adds a **desktop shortcut** and opens Easy Books automatically.
++3. The installer asks no questions. It installs, adds a **desktop shortcut** and opens EASYTALLY BOOKS automatically.
+ 
+ ## Changing your website address later (one place)
+ When you have a website, open `offline/build-settings.txt` and change this line:
+diff --git a/offline/LICENSING-DESIGN.md b/offline/LICENSING-DESIGN.md
+index d7e6e1d..c659412 100644
+--- a/offline/LICENSING-DESIGN.md
++++ b/offline/LICENSING-DESIGN.md
+@@ -1,4 +1,4 @@
+-# Easy Books Offline: licensing and authentication design
++# EASYTALLY BOOKS Offline: licensing and authentication design
+ 
+ This is for the standalone Windows app. It runs fully offline, with no login, a 30-day trial, and Single-PC or Multi-PC subscription keys.
+ 
+@@ -7,7 +7,7 @@ This is for the standalone Windows app. It runs fully offline, with no login, a
+ ```
+           WEBSITE (online, Hannusoft)                       CUSTOMER PC (offline)
+  ┌───────────────────────────────────────┐        ┌──────────────────────────────────────┐
+- │ /buy → Razorpay → /api/shop/verify    │        │ Electron window (Easy Books.exe)     │
++ │ /buy → Razorpay → /api/shop/verify    │        │ Electron window (EASYTALLY BOOKS.exe)     │
+  │   └ issue licence key EB-XXXX-...     │        │  └ local API 127.0.0.1:8765          │
+  │   └ email key + GST invoice           │        │      ├ trial_state()  (2 signed      │
+  │                                       │        │      │   tokens + forward-only clock)│
+@@ -43,7 +43,7 @@ Related collections:
+ ### Customer PC (trial and licence state, no server)
+ | Where | What |
+ |---|---|
+-| `%APPDATA%\Easy Books\data\licence.json` | `{ "trial": <token>, "code": <activation code>, "last_seen": date }` |
++| `%APPDATA%\EASYTALLY BOOKS\data\licence.json` | `{ "trial": <token>, "code": <activation code>, "last_seen": date }` |
+ | `HKCU\Software\Hannusoft\EasyBooks\cfg` (registry; kept after uninstall) | `<token>` (shadow copy) |
+ 
+ The trial token is `base64(JSON{i: install date, s: last seen date, m: HWID}).HMAC-SHA256`. The HMAC key is derived from the HWID and the built-in public key, so a token copied from another PC or edited by hand is rejected.
+diff --git a/offline/README-PACKAGING.md b/offline/README-PACKAGING.md
+index 8831db1..efac9ae 100644
+--- a/offline/README-PACKAGING.md
++++ b/offline/README-PACKAGING.md
+@@ -1,11 +1,11 @@
+-# Easy Books Offline for Windows: packaging guide
++# EASYTALLY BOOKS Offline for Windows: packaging guide
+ 
+-The offline version is a standalone product. It uses the same Easy Books code but runs entirely on one Windows PC:
++The offline version is a standalone product. It uses the same EASYTALLY BOOKS code but runs entirely on one Windows PC:
+ 
+ ```
+-Easy Books.exe (Electron window)
+- ├── mongodb\mongod.exe            local database (data in %APPDATA%\Easy Books\data)
+- ├── server\easybooks-server.exe   the Easy Books API + UI on http://127.0.0.1:8765
++EASYTALLY BOOKS.exe (Electron window)
++ ├── mongodb\mongod.exe            local database (data in %APPDATA%\EASYTALLY BOOKS\data)
++ ├── server\easybooks-server.exe   the EASYTALLY BOOKS API + UI on http://127.0.0.1:8765
+  └── frontend\                     the React UI built in offline mode
+ ```
+ 
+@@ -37,7 +37,7 @@ The app checks the code offline with the public key in `desktop/main.js`, and re
+ ## Easiest: automatic build on GitHub (no Windows PC needed)
+ See **`offline/GITHUB-STEPS.md`**. Every **Save to GitHub** runs `.github/workflows/build-windows.yml` on a Windows machine at GitHub. It builds the UI, the server, adds MongoDB, makes the one-click installer and publishes `EasyBooksSetup.exe` to GitHub Releases. The version is 1.0.<build number>.
+ 
+-The installer is one-click: no questions, per-user install, desktop + Start menu shortcut, and it opens Easy Books when done.
++The installer is one-click: no questions, per-user install, desktop + Start menu shortcut, and it opens EASYTALLY BOOKS when done.
+ 
+ ## Before you build: set your website address (one place)
+ Edit `offline/build-settings.txt` → `WEBSITE_URL=`. Both the GitHub build and `build_frontend.bat` read it. While it is `https://YOUR-EASYBOOKS-SITE`, the "Activate online" button is disabled and customers use the paste-code option (`/activate` page).
+@@ -65,7 +65,7 @@ Steps (Command Prompt, in the project folder):
+    ```
+    The installer is created at `offline\desktop\dist\EasyBooksSetup.exe`.
+ 6. **Test it**:
+-   - Install it on a PC. Easy Books should open straight to the books (no login) with a 30-day trial banner. Rename the business in Settings.
++   - Install it on a PC. EASYTALLY BOOKS should open straight to the books (no login) with a 30-day trial banner. Rename the business in Settings.
+    - Open Licence, enter a licence key and click Activate online. Get a key from Platform Admin → "Issue offline licence" on the website.
+ 7. **Publish it**:
+    - Upload the .exe to GitHub Releases, Google Drive (set it to "Anyone with the link") or any file host.
+@@ -73,7 +73,7 @@ Steps (Command Prompt, in the project folder):
+    - It now appears on `/download`.
+ 
+ ## Updating
+-Change `version` in `offline/desktop/package.json`, repeat steps 1, 2 and 5, then upload the new .exe and update the link. Customer data in `%APPDATA%\Easy Books\data` is kept when updating.
++Change `version` in `offline/desktop/package.json`, repeat steps 1, 2 and 5, then upload the new .exe and update the link. Customer data in `%APPDATA%\EASYTALLY BOOKS\data` is kept when updating.
+ 
+ ## Important
+ - **Keep the signing key secret.** `LICENCE_SIGNING_KEY` lives only on the website server (backend/.env). Never put it in the offline app.
+@@ -81,7 +81,7 @@ Change `version` in `offline/desktop/package.json`, repeat steps 1, 2 and 5, the
+ - **Prices** are set in `backend/business.py` (`PLANS` and `OFFLINE_PLANS`).
+ - **Invoice seller details:** fill `SELLER_GSTIN` and `SELLER_ADDRESS` in `backend/.env`. While they are blank, invoices don't show them and always use CGST + SGST.
+ - **Backups:** customers should back up from Settings → Backup & Restore. The backup includes all Projects / ERP data and document numbering.
+-- **Projects / ERP in the offline app:** the full ERP (projects, quotations, invoices, purchases, expenses, reports) is included and unlocked with the offline licence or trial. Uploaded project documents and signature images are stored in `%APPDATA%\Easy Books\data\files`. RFQ emails need an internet connection and email settings on the PC. The ERP modules (`erp_core`, `erp_sales`, `erp_purchase`, `erp_reports`) are listed in the GitHub build and `build_server.bat`.
++- **Projects / ERP in the offline app:** the full ERP (projects, quotations, invoices, purchases, expenses, reports) is included and unlocked with the offline licence or trial. Uploaded project documents and signature images are stored in `%APPDATA%\EASYTALLY BOOKS\data\files`. RFQ emails need an internet connection and email settings on the PC. The ERP modules (`erp_core`, `erp_sales`, `erp_purchase`, `erp_reports`) are listed in the GitHub build and `build_server.bat`.
+ 
+ ## Lock files
+ The platform's Save to GitHub does not upload `yarn.lock` files. Copies are kept in `offline/locks/` (`frontend-yarn-lock.txt`, `desktop-yarn-lock.txt`), and the GitHub build restores them before installing. If you add or upgrade packages, refresh the copies:
+diff --git a/offline/build-settings.txt b/offline/build-settings.txt
+index ca412c2..2a2d495 100644
+--- a/offline/build-settings.txt
++++ b/offline/build-settings.txt
+@@ -1,5 +1,5 @@
+-# Easy Books offline build settings - the ONE place to change them. (Plain .txt on purpose: *.env files are not saved to GitHub.)
+-# WEBSITE_URL: your live Easy Books website, used by "Activate online" in the offline app.
++# EASYTALLY BOOKS offline build settings - the ONE place to change them. (Plain .txt on purpose: *.env files are not saved to GitHub.)
++# WEBSITE_URL: your live EASYTALLY BOOKS website, used by "Activate online" in the offline app.
+ # Leave as https://YOUR-EASYBOOKS-SITE until you have a website; customers then use the paste-code option.
+ WEBSITE_URL=https://YOUR-EASYBOOKS-SITE
+ # MongoDB database engine bundled inside the installer (Windows x64 ZIP).
+diff --git a/offline/desktop/main.js b/offline/desktop/main.js
+index be9e05d..a1bba3b 100644
+--- a/offline/desktop/main.js
++++ b/offline/desktop/main.js
+@@ -4,6 +4,8 @@ const crypto = require("crypto");
+ const fs = require("fs");
+ const http = require("http");
+ const path = require("path");
++// keep data folder of earlier "Easy Books" installs
++app.setPath("userData", path.join(app.getPath("appData"), "Easy Books"));
+ 
+ // Public key used to verify activation codes (matches LICENCE_PUBLIC_KEY on the website server).
+ const LICENCE_PUBLIC_KEY = "G8Jy7VEVHgl6Vp6oRf645qoqsqcoEf3XqWXiJG8-E_g";
+@@ -30,7 +32,7 @@ function waitFor(url, ms = 60000) {
+   const until = Date.now() + ms;
+   return new Promise((resolve, reject) => {
+     const tick = () => http.get(url, (r) => (r.statusCode < 500 ? resolve() : retry())).on("error", retry);
+-    const retry = () => (Date.now() > until ? reject(new Error("Easy Books server did not start")) : setTimeout(tick, 500));
++    const retry = () => (Date.now() > until ? reject(new Error("EASYTALLY BOOKS server did not start")) : setTimeout(tick, 500));
+     tick();
+   });
+ }
+@@ -46,14 +48,14 @@ async function boot() {
+     LICENCE_PUBLIC_KEY, EB_DATA_DIR: dataDir, FRONTEND_DIR: res("frontend"), EB_PORT: String(API_PORT), OFFLINE_MODE: "1",
+   });
+ 
+-  const win = new BrowserWindow({ width: 1400, height: 900, title: "Easy Books", autoHideMenuBar: true, show: false });
+-  win.loadURL(`data:text/html,<body style="font-family:Segoe UI;display:flex;align-items:center;justify-content:center;height:100vh">Starting Easy Books...</body>`);
++  const win = new BrowserWindow({ width: 1400, height: 900, title: "EASYTALLY BOOKS", autoHideMenuBar: true, show: false });
++  win.loadURL(`data:text/html,<body style="font-family:Segoe UI;display:flex;align-items:center;justify-content:center;height:100vh">Starting EASYTALLY BOOKS...</body>`);
+   win.show();
+   try {
+     await waitFor(`http://127.0.0.1:${API_PORT}/api/`);
+     win.loadURL(`http://127.0.0.1:${API_PORT}/`);
+   } catch (e) {
+-    dialog.showErrorBox("Easy Books", `${e.message}. Please restart your computer and try again.`);
++    dialog.showErrorBox("EASYTALLY BOOKS", `${e.message}. Please restart your computer and try again.`);
+     app.quit();
+   }
+   win.webContents.setWindowOpenHandler(({ url }) => {
+diff --git a/offline/desktop/package.json b/offline/desktop/package.json
+index 363539f..cfe386c 100644
+--- a/offline/desktop/package.json
++++ b/offline/desktop/package.json
+@@ -1,8 +1,8 @@
+ {
+   "name": "easybooks-offline",
+-  "productName": "Easy Books",
++  "productName": "EASYTALLY BOOKS",
+   "version": "1.0.0",
+-  "description": "Easy Books offline accounting for Windows - Hannusoft Private Limited",
++  "description": "EASYTALLY BOOKS offline accounting for Windows - Hannusoft Private Limited",
+   "author": "Hannusoft Private Limited",
+   "copyright": "© All rights reserved to Hannusoft Private Limited",
+   "main": "main.js",
+@@ -16,7 +16,7 @@
+   },
+   "build": {
+     "appId": "in.hannusoft.easybooks",
+-    "productName": "Easy Books",
++    "productName": "EASYTALLY BOOKS",
+     "win": { "target": "nsis", "icon": "icon.ico" },
+     "nsis": {
+       "oneClick": true,
+@@ -24,7 +24,7 @@
+       "runAfterFinish": true,
+       "createDesktopShortcut": "always",
+       "createStartMenuShortcut": true,
+-      "shortcutName": "Easy Books",
++      "shortcutName": "EASYTALLY BOOKS",
+       "deleteAppDataOnUninstall": false,
+       "artifactName": "EasyBooksSetup.exe"
+     },
+diff --git a/offline/server/build_server.bat b/offline/server/build_server.bat
+index 42b13b4..fefd56d 100644
+--- a/offline/server/build_server.bat
++++ b/offline/server/build_server.bat
+@@ -1,5 +1,5 @@
+ @echo off
+-REM Builds the Easy Books offline API server into server\dist\easybooks-server\
++REM Builds the EASYTALLY BOOKS offline API server into server\dist\easybooks-server\
+ cd /d %~dp0
+ python -m venv .venv
+ call .venv\Scripts\activate
+diff --git a/offline/server/offline_server.py b/offline/server/offline_server.py
+index cb87537..e5ce093 100644
+--- a/offline/server/offline_server.py
++++ b/offline/server/offline_server.py
+@@ -1,4 +1,4 @@
+-"""Entry point for the offline Windows build: runs the Easy Books API + web UI on 127.0.0.1."""
++"""Entry point for the offline Windows build: runs the EASYTALLY BOOKS API + web UI on 127.0.0.1."""
+ import os
+ import sys
+ from pathlib import Path

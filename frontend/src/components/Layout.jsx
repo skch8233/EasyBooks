@@ -89,7 +89,7 @@ const SideNav = ({ onNav }) => {
       <div className="px-5 py-6 flex items-center gap-3">
         <div className="h-10 w-10 rounded-lg bg-emerald-500 flex items-center justify-center"><BookMarked className="h-5 w-5 text-white" /></div>
         <div className="min-w-0">
-          <div className="font-heading font-extrabold text-white text-lg leading-tight">Easy Books</div>
+          <div className="font-heading font-extrabold text-white text-lg leading-tight">EASYTALLY BOOKS</div>
           <div className="text-xs text-slate-400 truncate" data-testid="sidebar-company-name">{settings?.company_name}</div>
         </div>
       </div>

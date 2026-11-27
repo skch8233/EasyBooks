@@ -125,3 +125,8 @@ JWT email/password; roles Admin / Accountant / Viewer; single company + FY manag
 - Workflow checks out OFFLINE_BASE, applies the patch, builds, tags the release on the base commit; manual Run workflow only; pushes stay frozen; concurrency split per event so a push cannot cancel a manual build
 - Offline-mode React build of base+patch compiled successfully locally
 - Online main code unchanged (Round 14 intact)
+
+## Round 16 - Rename to EASYTALLY BOOKS (Nov 2026) - DONE online, offline ready to publish
+- All visible branding (screens, page title, emails, invoices/PDF, Razorpay checkout, offline window/installer/shortcut) renamed to "EASYTALLY BOOKS"; Hannusoft branding kept
+- Compatibility kept: EasyBooksSetup.exe file name + download link, appId in.hannusoft.easybooks, registry key Software\Hannusoft\EasyBooks, DB name, machine-ID salt, licence key formats; offline userData pinned to old "Easy Books" folder so existing data stays
+- Offline build = d55a429 (v1.0.14) + offline/round15/offline-patch.txt (side menu + rename only); regenerate with offline/round15/rename.py

@@ -27,7 +27,7 @@ export function exportPdf(title, subtitle, sections, company) {
   const wide = sections.some((s) => s.columns.length > 6);
   const doc = new jsPDF({ orientation: wide ? "landscape" : "portrait", unit: "pt", format: "a4" });
   doc.setFontSize(14);
-  doc.text(company || "Easy Books", 40, 40);
+  doc.text(company || "EASYTALLY BOOKS", 40, 40);
   doc.setFontSize(11);
   doc.text(`${title}  |  ${subtitle}  (Amounts in Rs.)`, 40, 58);
   let y = 72;

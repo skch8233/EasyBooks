@@ -107,7 +107,7 @@ async def list_access(user=Depends(ADMIN)):
 async def grant_access(body: AccessIn, user=Depends(ADMIN_WRITE)):
     target = await db.users.find_one({"email": body.email.lower()}, NO_ID)
     if not target:
-        raise HTTPException(404, "No Easy Books account uses this email. Ask your CA to sign up first, then add them here.")
+        raise HTTPException(404, "No EASYTALLY BOOKS account uses this email. Ask your CA to sign up first, then add them here.")
     if target["id"] == user["id"]:
         raise HTTPException(400, "You cannot change your own access")
     if target["business_id"] == user["business_id"]:

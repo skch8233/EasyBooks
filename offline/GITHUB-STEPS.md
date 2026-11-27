@@ -19,7 +19,7 @@ You don't need a Windows PC or any software. GitHub builds the installer for you
    `https://github.com/YOUR-USER/YOUR-REPO/releases/latest/download/EasyBooksSetup.exe`
 
 ## Put it on your Download page
-1. Sign in to Easy Books as the platform admin, then open **Platform**, then **Offline licences**.
+1. Sign in to EASYTALLY BOOKS as the platform admin, then open **Platform**, then **Offline licences**.
 2. Under **Offline .exe download link**, type your GitHub `user/repo` (for example `ravi/easybooks`) and click **Use latest GitHub release**. Then click **Save**.
 3. The `/download` page now has a one-click **Download for Windows** button. You never need to change it again: it always gives the newest build.
 
@@ -28,7 +28,7 @@ You don't need a Windows PC or any software. GitHub builds the installer for you
 ## What customers see
 1. Click **Download for Windows** and open **EasyBooksSetup.exe**.
 2. Windows may show "Windows protected your PC" because the installer isn't digitally signed yet. Click **More info**, then **Run anyway**.
-3. The installer asks no questions. It installs, adds a **desktop shortcut** and opens Easy Books automatically.
+3. The installer asks no questions. It installs, adds a **desktop shortcut** and opens EASYTALLY BOOKS automatically.
 
 ## Changing your website address later (one place)
 When you have a website, open `offline/build-settings.txt` and change this line:

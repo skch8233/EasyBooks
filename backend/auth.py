@@ -237,7 +237,7 @@ async def check_user_limit(bid: str):
 async def seed_admin():
     email = os.environ["ADMIN_EMAIL"].lower()
     if not await db.users.find_one({"email": email}):
-        biz = await create_business("Easy Books Demo", email)
+        biz = await create_business("EASYTALLY BOOKS Demo", email)
         await db.users.insert_one({"id": new_id(), "business_id": biz["id"], "name": "Admin", "email": email, "role": "admin",
                                    "active": True, "is_superadmin": True,
                                    "password_hash": hash_password(os.environ["ADMIN_PASSWORD"]), "created_at": now_iso()})

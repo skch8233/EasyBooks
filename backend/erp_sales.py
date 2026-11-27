@@ -382,7 +382,7 @@ async def _sales_ledger(bid: str) -> str:
     led = await db.ledgers.find_one({"business_id": bid, "system_key": "sales", "active": True}, NO_ID) \
         or await db.ledgers.find_one({"business_id": bid, "group": "sales", "active": True}, NO_ID)
     if not led:
-        raise HTTPException(400, "No Sales ledger found in Easy Books. Create one under Sales Accounts.")
+        raise HTTPException(400, "No Sales ledger found in EASYTALLY BOOKS. Create one under Sales Accounts.")
     return led["id"]
 
 
@@ -562,7 +562,7 @@ async def email_invoice(iid: str, user=Depends(erp("edit"))):
             f'<table style="border-collapse:collapse;width:100%">{rows}</table>'
             f'<p>Invoice total: <b>₹{inv["totals"]["total"]:,.2f}</b><br>Net payable: <b>₹{inv["totals"]["net_payable"]:,.2f}</b><br>'
             f'Balance due: <b>₹{inv["balance"]:,.2f}</b> by {escape(inv["due_date"])}</p>'
-            f'<p>Regards,<br>{co}</p><p style="font-size:12px;color:#64748b">Sent from {co} using Easy Books by Hannusoft. '
+            f'<p>Regards,<br>{co}</p><p style="font-size:12px;color:#64748b">Sent from {co} using EASYTALLY BOOKS by Hannusoft. '
             f'We never ask for your password or payment details by email.</p></td></tr></table>')
     eid = await send_email(to=to, subject=f"Invoice {inv['number']} from {s.get('company_name', '')}", html=html)
     await db.erp_invoices.update_one({"id": iid}, {"$push": {"emails": {"to": to, "id": eid, "at": now_iso()}}})

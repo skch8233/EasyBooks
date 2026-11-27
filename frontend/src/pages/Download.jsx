@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { dmy } from "@/lib/format";
 import { PublicShell } from "@/components/PublicShell";
 
-const STEPS = ["Download and install: it takes one click and opens Easy Books straight to your books, with no login.",
+const STEPS = ["Download and install: it takes one click and opens EASYTALLY BOOKS straight to your books, with no login.",
   "If Windows says \"Windows protected your PC\", click More info → Run anyway. Use every feature free for 30 days.",
   "Before the trial ends, buy a Single-PC or Multi-PC (up to 8 computers) key on the Buy page. It is emailed to you with a GST invoice.",
   "Open Licence, enter your key and click Activate online. After that it works fully offline.",
@@ -20,8 +20,8 @@ export default function DownloadPage() {
       <div className="max-w-5xl mx-auto px-5 py-14 space-y-10" data-testid="download-page">
         <div className="grid gap-8 lg:grid-cols-[1.3fr_1fr] items-center">
           <div>
-            <h1 className="font-heading text-4xl sm:text-5xl font-extrabold tracking-tight">Easy Books for Windows</h1>
-            <p className="mt-4 text-lg text-slate-600">Standalone offline accounting software like Tally, with no internet needed. All features of Easy Books, and your data stays on your PC.</p>
+            <h1 className="font-heading text-4xl sm:text-5xl font-extrabold tracking-tight">EASYTALLY BOOKS for Windows</h1>
+            <p className="mt-4 text-lg text-slate-600">Standalone offline accounting software like Tally, with no internet needed. All features of EASYTALLY BOOKS, and your data stays on your PC.</p>
             <div className="mt-8 flex flex-wrap gap-3">
               {d?.url ? <a href={d.url} download="EasyBooksSetup.exe"><Button className="h-12 px-8 text-base" data-testid="download-exe-button"><DlIcon className="h-5 w-5 mr-2" /> Download for Windows</Button></a>
                 : <Button disabled className="h-12 px-8 text-base" data-testid="download-exe-button">Download coming soon</Button>}

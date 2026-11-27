@@ -39,7 +39,7 @@ export default function Signup() {
       <div className="hidden lg:flex flex-col justify-center gap-8 bg-[#0F172A] p-14 text-white">
         <div className="flex items-center gap-3">
           <div className="h-11 w-11 rounded-lg bg-emerald-500 flex items-center justify-center"><BookMarked className="h-6 w-6" /></div>
-          <span className="font-heading text-2xl font-extrabold">Easy Books</span>
+          <span className="font-heading text-2xl font-extrabold">EASYTALLY BOOKS</span>
         </div>
         <h1 className="font-heading text-5xl font-extrabold leading-[1.1] tracking-tight">Start your <span className="text-emerald-400">30-day free trial</span></h1>
         <ul className="space-y-3 text-slate-300">

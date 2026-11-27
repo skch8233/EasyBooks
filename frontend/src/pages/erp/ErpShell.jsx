@@ -17,7 +17,7 @@ const Locked = ({ st }) => (
   <div className="max-w-xl rounded-2xl border bg-white p-8 space-y-4" data-testid="erp-locked">
     <div className="h-12 w-12 rounded-xl bg-amber-100 flex items-center justify-center"><Lock className="h-6 w-6 text-amber-700" /></div>
     <h2 className="font-heading text-2xl font-bold">Unlock Projects / ERP</h2>
-    <p className="text-slate-600">Project-wise quotations, advanced invoices with retention and running bills, client and vendor masters, project dashboards and documents. Every approved invoice and payment posts straight into your Easy Books ledgers.</p>
+    <p className="text-slate-600">Project-wise quotations, advanced invoices with retention and running bills, client and vendor masters, project dashboards and documents. Every approved invoice and payment posts straight into your EASYTALLY BOOKS ledgers.</p>
     <div className="text-3xl font-extrabold font-heading" data-testid="erp-plan-price">₹{amt(st.plan.price).replace(".00", "")} <span className="text-base font-medium text-slate-500">+ GST / year (₹{amt(st.plan.total)})</span></div>
     <p className="text-sm text-slate-500">Online payment is being set up. To activate now, contact Hannusoft; the platform admin can switch on the ERP plan for your business.</p>
   </div>

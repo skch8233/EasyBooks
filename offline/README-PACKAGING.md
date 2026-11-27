@@ -1,11 +1,11 @@
-# Easy Books Offline for Windows: packaging guide
+# EASYTALLY BOOKS Offline for Windows: packaging guide
 
-The offline version is a standalone product. It uses the same Easy Books code but runs entirely on one Windows PC:
+The offline version is a standalone product. It uses the same EASYTALLY BOOKS code but runs entirely on one Windows PC:
 
 ```
-Easy Books.exe (Electron window)
- ├── mongodb\mongod.exe            local database (data in %APPDATA%\Easy Books\data)
- ├── server\easybooks-server.exe   the Easy Books API + UI on http://127.0.0.1:8765
+EASYTALLY BOOKS.exe (Electron window)
+ ├── mongodb\mongod.exe            local database (data in %APPDATA%\EASYTALLY BOOKS\data)
+ ├── server\easybooks-server.exe   the EASYTALLY BOOKS API + UI on http://127.0.0.1:8765
  └── frontend\                     the React UI built in offline mode
 ```
 
@@ -37,7 +37,7 @@ The app checks the code offline with the public key in `desktop/main.js`, and re
 ## Easiest: automatic build on GitHub (no Windows PC needed)
 See **`offline/GITHUB-STEPS.md`**. Every **Save to GitHub** runs `.github/workflows/build-windows.yml` on a Windows machine at GitHub. It builds the UI, the server, adds MongoDB, makes the one-click installer and publishes `EasyBooksSetup.exe` to GitHub Releases. The version is 1.0.<build number>.
 
-The installer is one-click: no questions, per-user install, desktop + Start menu shortcut, and it opens Easy Books when done.
+The installer is one-click: no questions, per-user install, desktop + Start menu shortcut, and it opens EASYTALLY BOOKS when done.
 
 ## Before you build: set your website address (one place)
 Edit `offline/build-settings.txt` → `WEBSITE_URL=`. Both the GitHub build and `build_frontend.bat` read it. While it is `https://YOUR-EASYBOOKS-SITE`, the "Activate online" button is disabled and customers use the paste-code option (`/activate` page).
@@ -65,7 +65,7 @@ Steps (Command Prompt, in the project folder):
    ```
    The installer is created at `offline\desktop\dist\EasyBooksSetup.exe`.
 6. **Test it**:
-   - Install it on a PC. Easy Books should open straight to the books (no login) with a 30-day trial banner. Rename the business in Settings.
+   - Install it on a PC. EASYTALLY BOOKS should open straight to the books (no login) with a 30-day trial banner. Rename the business in Settings.
    - Open Licence, enter a licence key and click Activate online. Get a key from Platform Admin → "Issue offline licence" on the website.
 7. **Publish it**:
    - Upload the .exe to GitHub Releases, Google Drive (set it to "Anyone with the link") or any file host.
@@ -73,7 +73,7 @@ Steps (Command Prompt, in the project folder):
    - It now appears on `/download`.
 
 ## Updating
-Change `version` in `offline/desktop/package.json`, repeat steps 1, 2 and 5, then upload the new .exe and update the link. Customer data in `%APPDATA%\Easy Books\data` is kept when updating.
+Change `version` in `offline/desktop/package.json`, repeat steps 1, 2 and 5, then upload the new .exe and update the link. Customer data in `%APPDATA%\EASYTALLY BOOKS\data` is kept when updating.
 
 ## Important
 - **Keep the signing key secret.** `LICENCE_SIGNING_KEY` lives only on the website server (backend/.env). Never put it in the offline app.
@@ -81,7 +81,7 @@ Change `version` in `offline/desktop/package.json`, repeat steps 1, 2 and 5, the
 - **Prices** are set in `backend/business.py` (`PLANS` and `OFFLINE_PLANS`).
 - **Invoice seller details:** fill `SELLER_GSTIN` and `SELLER_ADDRESS` in `backend/.env`. While they are blank, invoices don't show them and always use CGST + SGST.
 - **Backups:** customers should back up from Settings → Backup & Restore. The backup includes all Projects / ERP data and document numbering.
-- **Projects / ERP in the offline app:** the full ERP (projects, quotations, invoices, purchases, expenses, reports) is included and unlocked with the offline licence or trial. Uploaded project documents and signature images are stored in `%APPDATA%\Easy Books\data\files`. RFQ emails need an internet connection and email settings on the PC. The ERP modules (`erp_core`, `erp_sales`, `erp_purchase`, `erp_reports`) are listed in the GitHub build and `build_server.bat`.
+- **Projects / ERP in the offline app:** the full ERP (projects, quotations, invoices, purchases, expenses, reports) is included and unlocked with the offline licence or trial. Uploaded project documents and signature images are stored in `%APPDATA%\EASYTALLY BOOKS\data\files`. RFQ emails need an internet connection and email settings on the PC. The ERP modules (`erp_core`, `erp_sales`, `erp_purchase`, `erp_reports`) are listed in the GitHub build and `build_server.bat`.
 
 ## Lock files
 The platform's Save to GitHub does not upload `yarn.lock` files. Copies are kept in `offline/locks/` (`frontend-yarn-lock.txt`, `desktop-yarn-lock.txt`), and the GitHub build restores them before installing. If you add or upgrade packages, refresh the copies:

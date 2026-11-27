@@ -1,4 +1,4 @@
-# Easy Books Offline: licensing and authentication design
+# EASYTALLY BOOKS Offline: licensing and authentication design
 
 This is for the standalone Windows app. It runs fully offline, with no login, a 30-day trial, and Single-PC or Multi-PC subscription keys.
 
@@ -7,7 +7,7 @@ This is for the standalone Windows app. It runs fully offline, with no login, a 
 ```
           WEBSITE (online, Hannusoft)                       CUSTOMER PC (offline)
  ┌───────────────────────────────────────┐        ┌──────────────────────────────────────┐
- │ /buy → Razorpay → /api/shop/verify    │        │ Electron window (Easy Books.exe)     │
+ │ /buy → Razorpay → /api/shop/verify    │        │ Electron window (EASYTALLY BOOKS.exe)     │
  │   └ issue licence key EB-XXXX-...     │        │  └ local API 127.0.0.1:8765          │
  │   └ email key + GST invoice           │        │      ├ trial_state()  (2 signed      │
  │                                       │        │      │   tokens + forward-only clock)│
@@ -43,7 +43,7 @@ Related collections:
 ### Customer PC (trial and licence state, no server)
 | Where | What |
 |---|---|
-| `%APPDATA%\Easy Books\data\licence.json` | `{ "trial": <token>, "code": <activation code>, "last_seen": date }` |
+| `%APPDATA%\EASYTALLY BOOKS\data\licence.json` | `{ "trial": <token>, "code": <activation code>, "last_seen": date }` |
 | `HKCU\Software\Hannusoft\EasyBooks\cfg` (registry; kept after uninstall) | `<token>` (shadow copy) |
 
 The trial token is `base64(JSON{i: install date, s: last seen date, m: HWID}).HMAC-SHA256`. The HMAC key is derived from the HWID and the built-in public key, so a token copied from another PC or edited by hand is rejected.

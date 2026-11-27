@@ -25,7 +25,7 @@ const Status = ({ biz }) => {
         <div><div className="text-xs uppercase opacity-70">Type</div><div className="font-semibold" data-testid="offline-licence-tier">{lic.t === "multi" ? `Multi-PC (up to ${lic.c} computers)` : "Single-PC"}</div></div>
       </div> : trial ? <div className="text-amber-900" data-testid="offline-trial-status">
         <div className="font-heading text-xl font-bold">Free trial: {biz.days_left} day{biz.days_left === 1 ? "" : "s"} left</div>
-        <div className="text-sm">All features are unlocked until {dmy(biz.ends_at)}. After that, Easy Books asks for a subscription key.</div>
+        <div className="text-sm">All features are unlocked until {dmy(biz.ends_at)}. After that, EASYTALLY BOOKS asks for a subscription key.</div>
       </div> : <div className="text-red-800" data-testid="offline-paywall">
         <div className="font-heading text-xl font-bold">Subscription key required</div>
         <div className="text-sm">{biz?.reason || "Enter a subscription key to continue."} Your data is safe and will be there once you activate.</div>
@@ -66,7 +66,7 @@ export default function OfflineLicence() {
       {!isAdmin ? <p className="text-sm text-slate-500">Ask your admin to activate or renew the licence.</p> : <>
         <div className="rounded-xl border bg-white p-6 space-y-3" data-testid="offline-online-activate">
           <div className="font-semibold flex items-center gap-2"><Globe className="h-4 w-4" /> Enter subscription key (needs internet once)</div>
-          <p className="text-sm text-slate-500">Enter the licence key from your purchase email. After activation Easy Books works fully offline with no login. After a renewal, click again to load the new expiry date.</p>
+          <p className="text-sm text-slate-500">Enter the licence key from your purchase email. After activation EASYTALLY BOOKS works fully offline with no login. After a renewal, click again to load the new expiry date.</p>
           <div className="flex flex-wrap gap-2">
             <Input className="h-11 font-mono uppercase flex-1 min-w-[240px]" placeholder="EB-XXXX-XXXX-XXXX-XXXX" value={key} onChange={(e) => setKey(e.target.value.toUpperCase())} data-testid="offline-key-input" />
             <Button className="h-11" onClick={online} disabled={!ONLINE_OK || !key.trim() || !biz?.machine_id || !!busy} data-testid="offline-activate-online-button">
@@ -76,7 +76,7 @@ export default function OfflineLicence() {
         </div>
         <div className="rounded-xl border bg-white p-6 space-y-3">
           <div className="font-semibold flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> No internet? Paste an activation code</div>
-          <p className="text-sm text-slate-500">On any phone or PC, open the Easy Books website page <b>/activate</b>, enter your licence key and the Machine ID above, then paste the code (starts with EBOL1.) or open the .lic file here.</p>
+          <p className="text-sm text-slate-500">On any phone or PC, open the EASYTALLY BOOKS website page <b>/activate</b>, enter your licence key and the Machine ID above, then paste the code (starts with EBOL1.) or open the .lic file here.</p>
           <Textarea rows={4} className="font-mono text-xs" placeholder="EBOL1...." value={code} onChange={(e) => setCode(e.target.value)} data-testid="offline-code-input" />
           <div className="flex flex-wrap gap-2 items-center">
             <Button onClick={() => run("code", () => apply(code))} disabled={!code.trim() || !!busy} data-testid="offline-activate-button">Activate licence</Button>

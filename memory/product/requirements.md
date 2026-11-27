@@ -211,3 +211,9 @@ Round 14 decisions (user):
 - User decisions: "Only the new side menu with up/down arrows, everything else stays as 1.0.14; and then start online version". Timing: "Right after the Super Admin fixes finish".
   - So: build the new offline installer from the exact 1.0.14 code plus ONLY the collapsible side menu (four groups, down/up arrows, remembered open/closed state, current page highlighted). No industries, POS, college, hospital, Super Admin, styled pickers or any other online change.
   - Publish as a new offline-final-v1.0.N release marked latest, same download link. Then re-freeze and continue online-only work.
+
+## Round 16 — queued (user's words)
+"Easy tallybooks should be the name in place of easy books"
+- Rename product from "Easy Books" to the new name everywhere.
+- User decisions: name exactly "EASYTALLY BOOKS". Apply to "Online and the offline installer too". Offline: "Yes, wait and include the new name in that same offline build" — i.e. the pending Round 15 offline build (v1.0.14 code + side menu) must ALSO carry the rename (app title, window title, installer name/shortcut, screens, invoices/emails branding). Keep the download link working (if the .exe file name changes, keep EasyBooksSetup.exe available too or keep that file name).
+- Keep "by Hannusoft Private Limited" branding. Do not change data/licence compatibility for existing users.

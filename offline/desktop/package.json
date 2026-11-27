@@ -1,8 +1,8 @@
 {
   "name": "easybooks-offline",
-  "productName": "Easy Books",
+  "productName": "EASYTALLY BOOKS",
   "version": "1.0.0",
-  "description": "Easy Books offline accounting for Windows - Hannusoft Private Limited",
+  "description": "EASYTALLY BOOKS offline accounting for Windows - Hannusoft Private Limited",
   "author": "Hannusoft Private Limited",
   "copyright": "© All rights reserved to Hannusoft Private Limited",
   "main": "main.js",
@@ -16,7 +16,7 @@
   },
   "build": {
     "appId": "in.hannusoft.easybooks",
-    "productName": "Easy Books",
+    "productName": "EASYTALLY BOOKS",
     "win": { "target": "nsis", "icon": "icon.ico" },
     "nsis": {
       "oneClick": true,
@@ -24,7 +24,7 @@
       "runAfterFinish": true,
       "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
-      "shortcutName": "Easy Books",
+      "shortcutName": "EASYTALLY BOOKS",
       "deleteAppDataOnUninstall": false,
       "artifactName": "EasyBooksSetup.exe"
     },

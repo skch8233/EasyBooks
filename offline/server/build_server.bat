@@ -1,5 +1,5 @@
 @echo off
-REM Builds the Easy Books offline API server into server\dist\easybooks-server\
+REM Builds the EASYTALLY BOOKS offline API server into server\dist\easybooks-server\
 cd /d %~dp0
 python -m venv .venv
 call .venv\Scripts\activate

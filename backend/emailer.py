@@ -175,21 +175,21 @@ async def email_purchase(*, to: str, name: str, inv: dict, expires: str, code: s
     brand = escape(os.environ.get("EMAIL_FROM_NAME", ""))
     p = 'style="font-size:14px;line-height:1.5;margin:0 0 12px"'
     if offline and code:
-        steps = (f'<p {p}>Your activation code for this computer (open Easy Books, go to Licence and paste it):</p>'
+        steps = (f'<p {p}>Your activation code for this computer (open EASYTALLY BOOKS, go to Licence and paste it):</p>'
                  f'<p style="font-family:Consolas,monospace;font-size:11px;word-break:break-all;background:#f1f5f9;padding:10px;border-radius:6px">{escape(code)}</p>')
     elif offline:
         steps = (f'<p {p}><b>How to activate:</b> install the software, open <b>Licence</b>, enter this licence key and click <b>Activate online</b>. '
                  f'The key locks to that one computer.</p>'
                  + (f'<p {p}>No internet on that PC? <a href="{site}/activate">Get an activation code here</a> using the Machine ID shown on the Licence screen.</p>' if site.startswith("https://") else ""))
     else:
-        steps = f'<p {p}>Your subscription is active. Sign in to Easy Books to keep working.</p>'
+        steps = f'<p {p}>Your subscription is active. Sign in to EASYTALLY BOOKS to keep working.</p>'
     html = (f'<table role="presentation" width="100%"><tr><td style="padding:24px;font-family:Arial,sans-serif;color:#0f172a">'
             f'<p {p}>Hi {escape(name)}, thank you for your payment.</p>'
             f'<p {p}>Licence key: <b style="font-family:Consolas,monospace;font-size:16px">{escape(inv["licence_key"])}</b><br>Valid till: <b>{escape(expires[:10])}</b></p>'
             f'{steps}<p {p}>Keep this key safe. You need it for next year\'s renewal.</p>{_invoice_html(inv)}'
             f'<p style="font-size:12px;color:#64748b;margin-top:20px">Sent by {brand}. All rights reserved to Hannusoft Private Limited. '
             f'We never ask for your password or payment details by email.</p></td></tr></table>')
-    subject = f"Your Easy Books licence key and GST invoice {inv['number']}"
+    subject = f"Your EASYTALLY BOOKS licence key and GST invoice {inv['number']}"
     try:
         eid = await send_email(to=to, subject=subject, html=html)
         st = {"status": "sent", "email_id": eid, "to": to, "at": now_iso()}

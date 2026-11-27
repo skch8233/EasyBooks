@@ -15,7 +15,7 @@ const OfflineSetupLink = () => {
   const [needed, setNeeded] = useState(false);
   useEffect(() => { api.get("/offline/status").then((r) => setNeeded(!r.data.has_users)).catch(() => {}); }, []);
   return needed ? <p className="mt-6 text-sm text-slate-600">First time on this computer? <Link to="/signup" className="text-primary font-semibold hover:underline" data-testid="offline-setup-link">Set up your business</Link></p>
-    : <p className="mt-6 text-xs text-slate-500">Easy Books Offline for Windows</p>;
+    : <p className="mt-6 text-xs text-slate-500">EASYTALLY BOOKS Offline for Windows</p>;
 };
 
 export default function Login() {
@@ -38,7 +38,7 @@ export default function Login() {
       <div className="hidden lg:flex flex-col justify-between bg-[#0F172A] p-14 text-white">
         <div className="flex items-center gap-3">
           <div className="h-11 w-11 rounded-lg bg-emerald-500 flex items-center justify-center"><BookMarked className="h-6 w-6" /></div>
-          <span className="font-heading text-2xl font-extrabold">Easy Books</span>
+          <span className="font-heading text-2xl font-extrabold">EASYTALLY BOOKS</span>
         </div>
         <div className="fade-up">
           <h1 className="font-heading text-5xl font-extrabold leading-[1.1] tracking-tight">Bookkeeping for Indian businesses, <span className="text-emerald-400">without the jargon.</span></h1>

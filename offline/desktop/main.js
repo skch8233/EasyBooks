@@ -4,6 +4,8 @@ const crypto = require("crypto");
 const fs = require("fs");
 const http = require("http");
 const path = require("path");
+// keep data folder of earlier "Easy Books" installs
+app.setPath("userData", path.join(app.getPath("appData"), "Easy Books"));
 
 // Public key used to verify activation codes (matches LICENCE_PUBLIC_KEY on the website server).
 const LICENCE_PUBLIC_KEY = "G8Jy7VEVHgl6Vp6oRf645qoqsqcoEf3XqWXiJG8-E_g";
@@ -30,7 +32,7 @@ function waitFor(url, ms = 60000) {
   const until = Date.now() + ms;
   return new Promise((resolve, reject) => {
     const tick = () => http.get(url, (r) => (r.statusCode < 500 ? resolve() : retry())).on("error", retry);
-    const retry = () => (Date.now() > until ? reject(new Error("Easy Books server did not start")) : setTimeout(tick, 500));
+    const retry = () => (Date.now() > until ? reject(new Error("EASYTALLY BOOKS server did not start")) : setTimeout(tick, 500));
     tick();
   });
 }
@@ -46,14 +48,14 @@ async function boot() {
     LICENCE_PUBLIC_KEY, EB_DATA_DIR: dataDir, FRONTEND_DIR: res("frontend"), EB_PORT: String(API_PORT), OFFLINE_MODE: "1",
   });
 
-  const win = new BrowserWindow({ width: 1400, height: 900, title: "Easy Books", autoHideMenuBar: true, show: false });
-  win.loadURL(`data:text/html,<body style="font-family:Segoe UI;display:flex;align-items:center;justify-content:center;height:100vh">Starting Easy Books...</body>`);
+  const win = new BrowserWindow({ width: 1400, height: 900, title: "EASYTALLY BOOKS", autoHideMenuBar: true, show: false });
+  win.loadURL(`data:text/html,<body style="font-family:Segoe UI;display:flex;align-items:center;justify-content:center;height:100vh">Starting EASYTALLY BOOKS...</body>`);
   win.show();
   try {
     await waitFor(`http://127.0.0.1:${API_PORT}/api/`);
     win.loadURL(`http://127.0.0.1:${API_PORT}/`);
   } catch (e) {
-    dialog.showErrorBox("Easy Books", `${e.message}. Please restart your computer and try again.`);
+    dialog.showErrorBox("EASYTALLY BOOKS", `${e.message}. Please restart your computer and try again.`);
     app.quit();
   }
   win.webContents.setWindowOpenHandler(({ url }) => {

@@ -112,7 +112,7 @@ export default function Expenses() {
       </div>
       <Dialog open={!!edit} onOpenChange={(o) => !o && setEdit(null)}><DialogContent className="max-w-3xl"><DialogHeader><DialogTitle>{edit?.id ? `Edit ${edit.number}` : "New project expense"}</DialogTitle></DialogHeader>
         {edit && <ExpenseForm init={{ ...edit, vendor_id: edit.vendor_id || "" }} cats={cats} onClose={() => setEdit(null)} onSaved={load} />}</DialogContent></Dialog>
-      <ReasonDialog open={!!cancel} onClose={() => setCancel(null)} title={`Cancel ${cancel?.number}`} note="If posted, the payment entry in Easy Books is cancelled too."
+      <ReasonDialog open={!!cancel} onClose={() => setCancel(null)} title={`Cancel ${cancel?.number}`} note="If posted, the payment entry in EASYTALLY BOOKS is cancelled too."
         onOk={async (reason) => { try { await api.post(`/erp/expenses/${cancel.id}/cancel`, { reason }); setCancel(null); load(); } catch (e) { toast.error(errMsg(e)); } }} />
     </div>
   );

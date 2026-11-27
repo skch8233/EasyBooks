@@ -72,7 +72,7 @@ export const InvoiceSide = ({ doc, reload }) => {
         <div><div className="text-xs uppercase text-slate-500">Credit / debit notes</div><div className="font-mono">−{amt(doc.credit_total || 0)} / +{amt(doc.debit_total || 0)}</div></div>
         <div><div className="text-xs uppercase text-slate-500">Balance</div><div className="font-mono font-bold text-red-700" data-testid="invoice-balance">₹{amt(doc.balance)}</div></div>
       </div>
-      <div className="text-xs text-slate-500">Posted in Easy Books as <b>{doc.voucher_no}</b> (sales voucher).</div>
+      <div className="text-xs text-slate-500">Posted in EASYTALLY BOOKS as <b>{doc.voucher_no}</b> (sales voucher).</div>
       {perm("finalize") && <div className="flex flex-wrap gap-2">
         <Button size="sm" disabled={doc.balance <= 0} onClick={() => setPay(true)} data-testid="invoice-add-payment">Record payment</Button>
         <Button size="sm" variant="outline" disabled={doc.balance <= 0} onClick={() => setNote("credit")} data-testid="invoice-credit-note">Credit note</Button>

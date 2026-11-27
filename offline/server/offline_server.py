@@ -1,4 +1,4 @@
-"""Entry point for the offline Windows build: runs the Easy Books API + web UI on 127.0.0.1."""
+"""Entry point for the offline Windows build: runs the EASYTALLY BOOKS API + web UI on 127.0.0.1."""
 import os
 import sys
 from pathlib import Path

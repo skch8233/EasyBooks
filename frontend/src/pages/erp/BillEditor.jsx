@@ -103,7 +103,7 @@ export default function BillEditor() {
       </fieldset>
       <div className={`flex flex-wrap gap-2 ${working ? "pointer-events-none opacity-60" : ""}`}>
         {editable && perm(isNew ? "create" : "edit") && <Button onClick={save} data-testid="bill-save-button">Save draft</Button>}
-        {st === "draft" && perm("finalize") && <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={async () => window.confirm("Post this bill to Easy Books as a purchase entry?") && (await run(() => api.post(`/erp/bills/${id}/post`), "Bill posted to accounts")) && load()} data-testid="bill-post-button">Post to accounts</Button>}
+        {st === "draft" && perm("finalize") && <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={async () => window.confirm("Post this bill to EASYTALLY BOOKS as a purchase entry?") && (await run(() => api.post(`/erp/bills/${id}/post`), "Bill posted to accounts")) && load()} data-testid="bill-post-button">Post to accounts</Button>}
         {st === "posted" && doc.balance > 0 && perm("finalize") && <Button onClick={() => setPay(true)} data-testid="bill-pay-button">Record payment</Button>}
         {doc && st !== "cancelled" && perm("cancel") && <Button variant="outline" className="text-red-600" onClick={() => setCancel(true)} data-testid="bill-cancel-button">Cancel</Button>}
         {st === "draft" && perm("delete") && <Button variant="outline" className="text-red-600" onClick={async () => window.confirm("Delete draft?") && (await run(() => api.delete(`/erp/bills/${id}`), "Deleted")) && nav("/erp/purchases/bills")} data-testid="bill-delete-button">Delete</Button>}
@@ -114,7 +114,7 @@ export default function BillEditor() {
       </div>}
       {pay && <PayOut title={`Pay ${doc.vendor_name} · balance ₹${amt(doc.balance)}`} balance={doc.balance} onClose={() => setPay(false)}
         onSave={async (b) => { if (await run(() => api.post(`/erp/bills/${id}/payments`, b), "Payment posted")) { setPay(false); load(); } }} />}
-      <ReasonDialog open={cancel} onClose={() => setCancel(false)} title={`Cancel ${doc?.number}`} note="The purchase entry in Easy Books is cancelled too."
+      <ReasonDialog open={cancel} onClose={() => setCancel(false)} title={`Cancel ${doc?.number}`} note="The purchase entry in EASYTALLY BOOKS is cancelled too."
         onOk={async (reason) => { if (await run(() => api.post(`/erp/bills/${id}/cancel`, { reason }), "Cancelled")) { setCancel(false); load(); } }} />
     </div>
   );

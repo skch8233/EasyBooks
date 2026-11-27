@@ -129,7 +129,7 @@ export default function DocEditor({ kind }) {
         </fieldset>
         <div className="flex flex-wrap gap-2" data-testid={`${kind}-actions`}>
           {editable && perm(st === "finalized" ? "edit_finalized" : id ? "edit" : "create") && <Button onClick={save} data-testid={`${kind}-save-button`}><Save className="h-4 w-4 mr-1" />{st === "finalized" ? "Save new version" : "Save draft"}</Button>}
-          {inv && st === "draft" && perm("finalize") && <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={() => window.confirm("Finalize this invoice? It gets a permanent number and is posted to your Easy Books sales ledger.") && act("finalize", {}, "Invoice finalized and posted to accounts")} data-testid="invoice-finalize-button"><FileCheck2 className="h-4 w-4 mr-1" /> Finalize & post</Button>}
+          {inv && st === "draft" && perm("finalize") && <Button className="bg-emerald-700 hover:bg-emerald-800" onClick={() => window.confirm("Finalize this invoice? It gets a permanent number and is posted to your EASYTALLY BOOKS sales ledger.") && act("finalize", {}, "Invoice finalized and posted to accounts")} data-testid="invoice-finalize-button"><FileCheck2 className="h-4 w-4 mr-1" /> Finalize & post</Button>}
           {inv && st === "finalized" && !unlock && perm("edit_finalized") && <Button variant="outline" onClick={() => setUnlock(true)} data-testid="invoice-unlock-button">Edit finalized</Button>}
           {!inv && st === "draft" && <Button variant="outline" onClick={() => act("status", { status: "sent" }, "Marked as sent")} data-testid="quotation-mark-sent">Mark sent</Button>}
           {!inv && ["draft", "sent", "expired"].includes(st) && perm("approve") && <><Button variant="outline" onClick={() => act("status", { status: "accepted" }, "Accepted")} data-testid="quotation-accept">Accept</Button>
@@ -150,7 +150,7 @@ export default function DocEditor({ kind }) {
         {inv && doc?.versions?.length > 0 && <div className="rounded-xl border bg-white p-4 text-sm" data-testid="invoice-versions"><b>Version history</b>
           {doc.versions.map((v) => <div key={v.version} className="border-t mt-2 pt-2">v{v.version} saved {dmyTime(v.saved_at)} by {v.by}: previous total ₹{amt(v.snapshot.totals?.net_payable)}</div>)}</div>}
         <ReasonDialog open={cancelOpen} onClose={() => setCancelOpen(false)} title={`Cancel ${preview.number || "document"}`}
-          note={inv ? "The invoice number is never reused. The sales entry in Easy Books is cancelled too." : "The quotation stays on record as cancelled."}
+          note={inv ? "The invoice number is never reused. The sales entry in EASYTALLY BOOKS is cancelled too." : "The quotation stays on record as cancelled."}
           onOk={(reason) => act("cancel", { reason }, "Cancelled", () => { setCancelOpen(false); load(); })} />
       </div>
       <div className="space-y-3">

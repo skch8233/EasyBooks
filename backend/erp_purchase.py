@@ -292,7 +292,7 @@ async def send_rfq(did: str, user=Depends(erp("edit"))):
                 f'<p>Dear {escape(v["company_name"])},</p><p>Please send your best quotation for project <b>{escape(rfq["project_code"])} {escape(rfq["project_name"])}</b> '
                 f'(RFQ {escape(rfq["number"])}) by {escape(rfq.get("due_date") or "the earliest")}, including rate, discount, GST, delivery time and payment terms.</p>'
                 f'<table style="border-collapse:collapse">{rows}</table><p>{escape(rfq.get("terms", ""))}</p><p>Regards,<br>{co}</p>'
-                f'<p style="font-size:12px;color:#64748b">Sent using Easy Books by Hannusoft. We never ask for your password or payment details by email.</p></td></tr></table>')
+                f'<p style="font-size:12px;color:#64748b">Sent using EASYTALLY BOOKS by Hannusoft. We never ask for your password or payment details by email.</p></td></tr></table>')
         await send_email(to=v["email"], subject=f"Request for quotation {rfq['number']} from {s.get('company_name', '')}", html=html)
         sent.append(v["email"])
     if not sent:
@@ -618,7 +618,7 @@ async def _ledger(bid: str, key: str, group: str) -> str:
     led = await db.ledgers.find_one({"business_id": bid, "system_key": key, "active": True}, NO_ID) \
         or await db.ledgers.find_one({"business_id": bid, "group": group, "active": True}, NO_ID)
     if not led:
-        raise HTTPException(400, f"No {group.replace('_', ' ')} ledger found in Easy Books. Create one first.")
+        raise HTTPException(400, f"No {group.replace('_', ' ')} ledger found in EASYTALLY BOOKS. Create one first.")
     return led["id"]
 
 
